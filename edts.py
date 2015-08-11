@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import sys
 import eddb
@@ -27,21 +28,18 @@ class Application:
     ap.add_argument("stations", metavar="system/station", nargs="+", help="A station to travel via, in the form 'system/station'")
     self.args = ap.parse_args()
 
+    logging.getLogger().setLevel(logging.DEBUG)
+
     if not os.path.isfile(self.args.eddb_systems_file) or not os.path.isfile(self.args.eddb_stations_file):
       if self.args.download_eddb_files:
         eddb.download_eddb_files(self.args.eddb_systems_file, self.args.eddb_stations_file)
       else:
-        self.log(0, "Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these.")
+        logging.error("Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these.")
         sys.exit(1)
 
     self.eddb_systems = eddb.load_systems(self.args.eddb_systems_file)
     self.eddb_stations = eddb.load_stations(self.args.eddb_stations_file)
     
-
-  def log(self, level, msg):
-    if self.args.verbose >= level:
-      print msg
-
 
   def get_station_from_string(self, statstr):
     parts = statstr.split("/", 1)
@@ -69,10 +67,10 @@ class Application:
     end = self.get_station_from_string(self.args.end)
 
     if start == None:
-      self.log(0, "Error: start station {0} could not be found. Stopping.".format(self.args.start))
+      logging.error("Error: start station {0} could not be found. Stopping.".format(self.args.start))
       return
     if end == None:
-      self.log(0, "Error: end station {0} could not be found. Stopping.".format(self.args.end))
+      logging.error("Error: end station {0} could not be found. Stopping.".format(elf.args.end))
       return
 
     stations = []
@@ -81,15 +79,15 @@ class Application:
       if sobj != None:
         if sobj.distance != None:
           if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-            self.log(1, "Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
+            logging.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
             continue
           else:
-            self.log(2, "Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance))
+            logging.info("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance))
             stations.append(sobj)
         else:
-          self.log(1, "Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
+          logging.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
       else:
-        self.log(1, "Warning: station {0} could not be found. Discarding.".format(st))
+        logging.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
     s = Solver(self.args)
 
