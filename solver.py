@@ -1,13 +1,13 @@
 import math
 
 class Solver:
-  def __init__(self, jumpdist, jumptime, scmult, difflimit, jumpdecay, slf):
-    self.jump_distance = jumpdist
-    self.jump_time = jumptime
-    self.sc_multiplier = scmult
-    self.diff_limit = difflimit
-    self.jump_decay = jumpdecay
-    self.straight_line_factor = slf
+  def __init__(self, args):
+    self.jump_distance = args.jump_distance
+    self.jump_time = args.jump_time
+    self.sc_multiplier = args.sc_multiplier
+    self.diff_limit = args.diff_limit
+    self.jump_decay = args.jump_decay
+    self.straight_line_factor = args.slf
 
 
   def jump_count(self, a, b, route):

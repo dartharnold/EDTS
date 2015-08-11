@@ -16,6 +16,7 @@ class Application:
     ap.add_argument("-n", "--num-jumps", required=True, type=int, help="The number of stations to visit, not including the start/end")
     ap.add_argument("-p", "--pad-size", default="M", type=str, help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
+    ap.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--sc-multiplier", type=float, default=0.25, help="Seconds taken per 1Ls of supercruise travel")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
@@ -30,12 +31,17 @@ class Application:
       if self.args.download_eddb_files:
         eddb.download_eddb_files(self.args.eddb_systems_file, self.args.eddb_stations_file)
       else:
-        print "Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these."
+        self.log(0, "Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these.")
         sys.exit(1)
 
     self.eddb_systems = eddb.load_systems(self.args.eddb_systems_file)
     self.eddb_stations = eddb.load_stations(self.args.eddb_stations_file)
     
+
+  def log(self, level, msg):
+    if self.args.verbose >= level:
+      print msg
+
 
   def get_station_from_string(self, statstr):
     parts = statstr.split("/", 1)
@@ -45,16 +51,15 @@ class Application:
     return self.get_station(sysname, statname)
 
   def get_station(self, sysname, statname):
-    for system in self.eddb_systems:
-      if system["name"].lower() == sysname.lower():
+    for sy in self.eddb_systems:
+      if sy["name"].lower() == sysname.lower():
         # Found system
-        sysid = system["id"]
+        sysid = sy["id"]
 
-        for station in self.eddb_stations:
-          if station["system_id"] == sysid and station["name"].lower() == statname.lower():
+        for st in self.eddb_stations:
+          if st["system_id"] == sysid and st["name"].lower() == statname.lower():
             # Found station
-            return Station(system["x"], system["y"], system["z"], station["distance_to_star"], system["name"], station["name"], station["type"], bool(system["needs_permit"]), bool(station["has_refuel"]), station["max_landing_pad_size"])
-  
+            return Station(sy["x"], sy["y"], sy["z"], st["distance_to_star"], sy["name"], st["name"], st["type"], bool(sy["needs_permit"]), bool(st["has_refuel"]), st["max_landing_pad_size"])  
     return None
 
 
@@ -64,10 +69,10 @@ class Application:
     end = self.get_station_from_string(self.args.end)
 
     if start == None:
-      print "Error: start station %s could not be found. Stopping." % self.args.start
+      self.log(0, "Error: start station {0} could not be found. Stopping.".format(self.args.start))
       return
     if end == None:
-      print "Error: end station %s could not be found. Stopping." % self.args.end
+      self.log(0, "Error: end station {0} could not be found. Stopping.".format(self.args.end))
       return
 
     stations = []
@@ -76,24 +81,19 @@ class Application:
       if sobj != None:
         if sobj.distance != None:
           if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-            print "Warning: station %s (%s) is not usable by the specified ship size. Discarding." % (s["name"], s.system)
+            self.log(1, "Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
             continue
           else:
-            print "Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance)
+            self.log(2, "Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance))
             stations.append(sobj)
         else:
-          print "Warning: station %s (%s) is missing SC distance in EDDB. Discarding." % (sobj.name, sobj.system)
+          self.log(1, "Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
       else:
-        print "Warning: station %s could not be found. Discarding." % st
+        self.log(1, "Warning: station {0} could not be found. Discarding.".format(st))
 
-    s = Solver(
-      jumpdist = self.args.jump_distance,
-      jumptime = self.args.jump_time,
-      scmult = self.args.sc_multiplier,
-      difflimit = self.args.diff_limit,
-      jumpdecay = self.args.jump_decay,
-      slf = self.args.slf)
+    s = Solver(self.args)
 
+    # Add 2 to the jump count for start + end
     route = s.solve(stations, start, end, self.args.num_jumps + 2)
 
     totaldist = 0.0
@@ -110,9 +110,11 @@ class Application:
       totalsc += route[i].distance
       print "    --- {0: >6.2f}Ly ({1:d} jump{2:1s}) ---> {3}".format(jumpdist, jumpcount, ("s" if jumpcount != 1 else ""), route[i].to_string())
 
-    print "Total distance: %.2fLy; total jumps: %d; total SC distance: %dLs" % (totaldist, totaljumps, totalsc)
     print ""
-  #  print "Route: %s" % ("; ".join([p.to_string() for p in route]))
+    print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls".format(totaldist, totaljumps, totalsc)
+    print ""
+
+
 
 if __name__ == '__main__':
   a = Application()
