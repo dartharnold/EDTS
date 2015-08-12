@@ -23,7 +23,6 @@ class Application:
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
     ap.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
-    ap.add_argument("--sc-multiplier", type=float, default=0.25, help="Seconds taken per 1Ls of supercruise travel")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
     ap.add_argument("--buffer-ly-route", type=float, default=25.0, help="A buffer distance to help search for valid stars for routing")
@@ -109,14 +108,20 @@ class Application:
     print ""
     print route[0].to_string()
     for i in xrange(1, len(route)):
-      hop_route = r.plot(route[i-1].system, route[i].system, self.args.jump_distance)
+      cur_max_jump = self.args.jump_distance - (self.args.jump_decay * (i-1))
+      hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
       jumpcount = len(hop_route)-1
       jumpdist = (route[i-1].position - route[i].position).length
       totaldist += jumpdist
 #      jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
       totaljumps += jumpcount
       totalsc += route[i].distance
-      print "    --- {0: >6.2f}Ly ({1:d} jump{2:1s}) ---> {3}".format(jumpdist, jumpcount, ("s" if jumpcount != 1 else ""), route[i].to_string())
+      if len(hop_route) > 2:
+        for j in xrange(1, len(hop_route)-1):
+          hdist = (hop_route[j-1].position - hop_route[j].position).length
+          print "    --- {0: >6.2f}Ly ---> {1}".format(hdist, hop_route[j].name)
+      lastdist = (hop_route[-1].position - hop_route[-2].position).length
+      print "    === {0: >6.2f}Ly ===> {1}".format(lastdist, route[i].to_string())
 
     print ""
     print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls".format(totaldist, totaljumps, totalsc)

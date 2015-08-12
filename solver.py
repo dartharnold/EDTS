@@ -5,10 +5,12 @@ class Solver:
   def __init__(self, args):
     self.jump_distance = args.jump_distance
     self.jump_time = args.jump_time
-    self.sc_multiplier = args.sc_multiplier
     self.diff_limit = args.diff_limit
     self.jump_decay = args.jump_decay
     self.straight_line_factor = args.slf
+    self.sc_power = 0.5
+    self.sc_multiplier = 1.8
+    self.sc_constant = 70
 
 
   def jump_count(self, a, b, route):
@@ -23,7 +25,7 @@ class Solver:
     # Now calculate
     hs_jumps = self.jump_count(a, b, route) * self.jump_time
     hs_jdist = (a.position - b.position).length
-    sc = b.distance * self.sc_multiplier
+    sc = self.sc_constant + (math.pow(b.distance, self.sc_power) * self.sc_multiplier)
     return (hs_jumps + hs_jdist + sc)
 
   def solve(self, stations, start, end, maxstops):
