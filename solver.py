@@ -33,16 +33,13 @@ class Solver:
     minroute = None
 
     for route in vr:
-      logging.debug("Testing route: {0}".format(" --> ".join([s.to_string() for s in route])))
       cost = 0
       for i in xrange(0, len(route)-1):
         cost += self.cost(route[i], route[i+1], route)
-      logging.debug("Route cost: {0:2f}".format(cost))
       if mincost == None or cost < mincost:
         mincost = cost
         minroute = route
 
-    logging.debug("Best route ({0}): {1}".format(mincost, " --> ".join([s.to_string() for s in minroute])))
     return minroute
 
   def get_viable_routes(self, route, stations, end, maxstops):

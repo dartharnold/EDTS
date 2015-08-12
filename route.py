@@ -1,6 +1,7 @@
 import logging
 import math
 from system import System
+from vector3 import Vector3
 
 log = logging.getLogger("route")
 
@@ -34,8 +35,29 @@ class Routing:
     return candidates
 
 
+  def cylinder(self, stars, vec_from, vec_to, buffer_both):
+    candidates = []
+    for s in stars:
+      x = s.position.x if isinstance(s, System) else s["x"]
+      y = s.position.y if isinstance(s, System) else s["y"]
+      z = s.position.z if isinstance(s, System) else s["z"]
+      sv = Vector3(x, y, z)
+      
+      numerator = ((sv - vec_from).cross(sv - vec_to)).length
+      denominator = (vec_to - vec_from).length
+      dist = numerator / denominator
+      if dist < buffer_both:
+        if isinstance(s, System):
+          candidates.append(s)
+        else:
+          candidates.append(System(s["x"], s["y"], s["z"], s["name"], s["needs_permit"]))
+
+    return candidates
+
+
   def plot(self, sys_from, sys_to, jump_range):
-    stars = self.aabb(self._systems, sys_from.position, sys_to.position, self._buffer_ly, self._buffer_ly)
+    # stars = self.aabb(self._systems, sys_from.position, sys_to.position, self._buffer_ly, self._buffer_ly)
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly)
    
     log.debug("Systems to search from: {0}".format(len(stars)))
 
@@ -49,20 +71,20 @@ class Routing:
       log.debug("Attempt %d, jump count: %d, viable routes: %d", add_jumps, best_jump_count + add_jumps, len(vr))
       for route in vr:
         cost = self.route_cost(route)
-        dist = self.route_dist(route)
         if bestcost == None or cost < bestcost:
-          log.debug("Route, length = %d, dist = %.2f, variance = %.2f, cost = %.2f", len(route)-1, dist, self.route_variance(route, dist), cost)
           best = route
           bestcost = cost
       add_jumps += 1
 
+    log.debug("Route, length = %d, cost = %.2f: %s", len(best)-1, bestcost, " --> ".join([p.name for p in best]))
     return best
 
 
   def route_cost(self, route):
+    jump_count = (len(route)-1) * 1000
     dist = self.route_dist(route)
     var = self.route_variance(route, dist)
-    return dist + var
+    return jump_count + dist + var
 
   def route_dist(self, route):
     dist = 0.0
@@ -87,7 +109,8 @@ class Routing:
 
       # current_pos + (dir(current_pos --> sys_to) * jump_range)
       dir_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range)
-      mystars = self.aabb(stars, route[-1].position, dir_vec, 0.0, self._buffer_ly)
+      # mystars = self.aabb(stars, route[-1].position, dir_vec, 0.0, self._buffer_ly)
+      mystars = self.cylinder(stars, route[-1].position, dir_vec, self._buffer_ly)
 
       # Get valid next hops
       vsnext = []

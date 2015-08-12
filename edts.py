@@ -88,7 +88,7 @@ class Application:
             log.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
             continue
           else:
-            log.debug("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance))
+            log.debug("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
             stations.append(sobj)
         else:
           log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
@@ -112,7 +112,7 @@ class Application:
       jumpcount = len(hop_route)-1
       jumpdist = (route[i-1].position - route[i].position).length
       totaldist += jumpdist
-      # jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
+#      jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
       totaljumps += jumpcount
       totalsc += route[i].distance
       print "    --- {0: >6.2f}Ly ({1:d} jump{2:1s}) ---> {3}".format(jumpdist, jumpcount, ("s" if jumpcount != 1 else ""), route[i].to_string())
