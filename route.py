@@ -10,7 +10,8 @@ class Routing:
 
   def __init__(self, args, eddbSystems):
     self._systems = eddbSystems
-    self._buffer_ly = args.buffer_ly
+    self._buffer_ly_route = args.buffer_ly_route
+    self._buffer_ly_hop = args.buffer_ly_hop
 
 
   def aabb(self, stars, vec_from, vec_to, buffer_from, buffer_to):
@@ -56,8 +57,7 @@ class Routing:
 
 
   def plot(self, sys_from, sys_to, jump_range):
-    # stars = self.aabb(self._systems, sys_from.position, sys_to.position, self._buffer_ly, self._buffer_ly)
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly)
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly_route)
    
     log.debug("Systems to search from: {0}".format(len(stars)))
 
@@ -67,6 +67,7 @@ class Routing:
     best = None
     bestcost = None
     while best == None:
+      log.debug("Attempt %d, jump count: %d, calculating...", add_jumps, best_jump_count + add_jumps)
       vr = self.get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps)
       log.debug("Attempt %d, jump count: %d, viable routes: %d", add_jumps, best_jump_count + add_jumps, len(vr))
       for route in vr:
@@ -109,8 +110,9 @@ class Routing:
 
       # current_pos + (dir(current_pos --> sys_to) * jump_range)
       dir_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range)
-      # mystars = self.aabb(stars, route[-1].position, dir_vec, 0.0, self._buffer_ly)
-      mystars = self.cylinder(stars, route[-1].position, dir_vec, self._buffer_ly)
+      # Start looking halfway down the route, since we shouldn't really ever be jumping <50% of our range, especially + buffer
+      start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range / 2)
+      mystars = self.cylinder(stars, start_vec, dir_vec, self._buffer_ly_hop)
 
       # Get valid next hops
       vsnext = []
@@ -118,7 +120,8 @@ class Routing:
         next_dist = (s.position - route[-1].position).length
         dist_jumpN = (s.position - sys_to.position).length
         if next_dist < jump_range:
-          maxd = (best_jump_count - (len(route)-1)) * jump_range
+          maxd = (best_jump_count - len(route)) * jump_range
+#          log.debug("[%d] [%d] cur_dist = %.2f, next_dist = %.2f, dist_jumpN = %.2f, maxd = %.2f", best_jump_count, len(route)-1, cur_dist, next_dist, dist_jumpN, maxd)
           if dist_jumpN < maxd:
             vsnext.append(s)
 
