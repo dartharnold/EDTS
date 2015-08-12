@@ -4,8 +4,12 @@ import logging
 import os
 import sys
 import eddb
+from route import Routing
 from solver import Solver
 from station import Station
+from system import System
+
+log = logging.getLogger("edts")
 
 class Application:
 
@@ -22,20 +26,21 @@ class Application:
     ap.add_argument("--sc-multiplier", type=float, default=0.25, help="Seconds taken per 1Ls of supercruise travel")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
-    ap.add_argument("--eddb-systems-file", type=str, default="eddb/systems.json", help="Path to EDDB systems.json")
-    ap.add_argument("--eddb-stations-file", type=str, default="eddb/stations_lite.json", help="Path to EDDB stations_lite.json or stations.json")
-    ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files if not already present.")
+    ap.add_argument("--buffer-ly", type=float, default=20.0, help="A buffer to add around bounding boxes used to determine valid stars for routing")
+    ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
+    ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
+    ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
     ap.add_argument("stations", metavar="system/station", nargs="+", help="A station to travel via, in the form 'system/station'")
     self.args = ap.parse_args()
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    if self.args.verbose > 1:
+      logging.getLogger().setLevel(logging.DEBUG)
 
-    if not os.path.isfile(self.args.eddb_systems_file) or not os.path.isfile(self.args.eddb_stations_file):
-      if self.args.download_eddb_files:
-        eddb.download_eddb_files(self.args.eddb_systems_file, self.args.eddb_stations_file)
-      else:
-        logging.error("Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these.")
-        sys.exit(1)
+    if self.args.download_eddb_files:
+      eddb.download_eddb_files(self.args.eddb_systems_file, self.args.eddb_stations_file)
+    elif not os.path.isfile(self.args.eddb_systems_file) or not os.path.isfile(self.args.eddb_stations_file):
+      log.error("Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these.")
+      sys.exit(1)
 
     self.eddb_systems = eddb.load_systems(self.args.eddb_systems_file)
     self.eddb_stations = eddb.load_stations(self.args.eddb_stations_file)
@@ -57,7 +62,8 @@ class Application:
         for st in self.eddb_stations:
           if st["system_id"] == sysid and st["name"].lower() == statname.lower():
             # Found station
-            return Station(sy["x"], sy["y"], sy["z"], st["distance_to_star"], sy["name"], st["name"], st["type"], bool(sy["needs_permit"]), bool(st["has_refuel"]), st["max_landing_pad_size"])  
+            sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
+            return Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])  
     return None
 
 
@@ -67,10 +73,10 @@ class Application:
     end = self.get_station_from_string(self.args.end)
 
     if start == None:
-      logging.error("Error: start station {0} could not be found. Stopping.".format(self.args.start))
+      log.error("Error: start station {0} could not be found. Stopping.".format(self.args.start))
       return
     if end == None:
-      logging.error("Error: end station {0} could not be found. Stopping.".format(elf.args.end))
+      log.error("Error: end station {0} could not be found. Stopping.".format(elf.args.end))
       return
 
     stations = []
@@ -79,17 +85,18 @@ class Application:
       if sobj != None:
         if sobj.distance != None:
           if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-            logging.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
+            log.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
             continue
           else:
-            logging.info("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance))
+            log.debug("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system, sobj.distance))
             stations.append(sobj)
         else:
-          logging.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
+          log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
       else:
-        logging.warning("Warning: station {0} could not be found. Discarding.".format(st))
+        log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
     s = Solver(self.args)
+    r = Routing(self.args, self.eddb_systems)
 
     # Add 2 to the jump count for start + end
     route = s.solve(stations, start, end, self.args.num_jumps + 2)
@@ -101,9 +108,11 @@ class Application:
     print ""
     print route[0].to_string()
     for i in xrange(1, len(route)):
+      hop_route = r.plot(route[i-1].system, route[i].system, self.args.jump_distance)
+      jumpcount = len(hop_route)-1
       jumpdist = (route[i-1].position - route[i].position).length
       totaldist += jumpdist
-      jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
+      # jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
       totaljumps += jumpcount
       totalsc += route[i].distance
       print "    --- {0: >6.2f}Ly ({1:d} jump{2:1s}) ---> {3}".format(jumpdist, jumpcount, ("s" if jumpcount != 1 else ""), route[i].to_string())
@@ -115,6 +124,7 @@ class Application:
 
 
 if __name__ == '__main__':
+  logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
   a = Application()
   a.run()
 

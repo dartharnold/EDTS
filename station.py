@@ -1,18 +1,28 @@
 from vector3 import Vector3
 
 class Station:
-  def __init__(self, x, y, z, ls, sysname, stationname, stationtype, permit, fuel, padsize):
-    self.position = Vector3(x, y, z)
+  def __init__(self, sysobj, ls, stationname, stationtype, fuel, padsize):
     self.distance = ls
-    self.system = sysname
+    self.system = sysobj
     self.name = stationname
     self.station_type = stationtype
-    self.needs_permit = permit
     self.has_fuel = fuel
     self.max_pad_size = padsize
 
+  @property
+  def position(self):
+    return self.system.position
+
+  @property
+  def needs_permit(self):
+    return self.system.needs_permit
+
+  @property
+  def system_name(self):
+    return self.system.name
+
   def to_string(self):
-    return "%s, %s (%dLs, %s)" % (self.system, self.name, self.distance, self.station_type)
+    return "%s, %s (%dLs, %s)" % (self.system_name, self.name, self.distance, self.station_type)
 
   def __eq__(self, other):
     if isinstance(other, Station):
@@ -21,5 +31,5 @@ class Station:
       return NotImplemented
 
   def __hash__(self):
-    return "{0}/{1}".format(self.system, self.name).__hash__()
+    return "{0}/{1}".format(self.system_name, self.name).__hash__()
 

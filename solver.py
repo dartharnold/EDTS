@@ -21,9 +21,10 @@ class Solver:
 
   def cost(self, a, b, route):
     # Now calculate
-    hs = self.jump_count(a, b, route) * self.jump_time
+    hs_jumps = self.jump_count(a, b, route) * self.jump_time
+    hs_jdist = (a.position - b.position).length
     sc = b.distance * self.sc_multiplier
-    return (hs + sc)
+    return (hs_jumps + hs_jdist + sc)
 
   def solve(self, stations, start, end, maxstops):
     vr = self.get_viable_routes([start], stations, end, maxstops)
