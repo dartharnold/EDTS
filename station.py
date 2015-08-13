@@ -22,7 +22,7 @@ class Station:
     return self.system.name
 
   def to_string(self):
-    return "%s, %s (%dLs, %s)" % (self.system_name, self.name, self.distance, self.station_type)
+    return "{0}, {1} ({2}Ls, {3})".format(self.system_name, self.name, self.distance if self.distance != None else "???", self.station_type if self.station_type != None else "???")
 
   def __eq__(self, other):
     if isinstance(other, Station):

@@ -18,10 +18,11 @@ class Application:
     ap.add_argument("-j", "--jump-distance", type=float, required=True, help="The ship's max jump distance while empty")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station'")
-    ap.add_argument("-n", "--num-jumps", required=True, type=int, help="The number of stations to visit, not including the start/end")
+    ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
     ap.add_argument("-p", "--pad-size", default="M", type=str, help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
     ap.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
+    ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
@@ -30,8 +31,11 @@ class Application:
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
     ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
     ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
-    ap.add_argument("stations", metavar="system/station", nargs="+", help="A station to travel via, in the form 'system/station'")
+    ap.add_argument("stations", metavar="system/station", nargs="*", help="A station to travel via, in the form 'system/station'")
     self.args = ap.parse_args()
+
+    if self.args.num_jumps == None:
+      self.args.num_jumps = len(self.args.stations)
 
     if self.args.verbose > 1:
       logging.getLogger().setLevel(logging.DEBUG)
@@ -98,12 +102,16 @@ class Application:
     s = Solver(self.args)
     r = Routing(self.args, self.eddb_systems)
 
-    # Add 2 to the jump count for start + end
-    route = s.solve(stations, start, end, self.args.num_jumps + 2)
+    if self.args.ordered:
+      route = [start] + stations + [end]
+    else:
+      # Add 2 to the jump count for start + end
+      route = s.solve(stations, start, end, self.args.num_jumps + 2)
 
     totaldist = 0.0
     totaljumps = 0
     totalsc = 0
+    totalsc_accurate = True
 
     print ""
     print route[0].to_string()
@@ -115,7 +123,11 @@ class Application:
       totaldist += jumpdist
 #      jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
       totaljumps += jumpcount
-      totalsc += route[i].distance
+      if route[i].distance != None:
+        totalsc += route[i].distance
+      else:
+        totalsc_accurate = False
+
       if len(hop_route) > 2:
         for j in xrange(1, len(hop_route)-1):
           hdist = (hop_route[j-1].position - hop_route[j].position).length
@@ -124,7 +136,7 @@ class Application:
       print "    === {0: >6.2f}Ly ===> {1}".format(lastdist, route[i].to_string())
 
     print ""
-    print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls".format(totaldist, totaljumps, totalsc)
+    print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "")
     print ""
 
 
