@@ -39,13 +39,16 @@ Required arguments:
 * `-e S`/`--end S`: the station to end at
 * `-j N`/`--jump-range N`: the current jump range of the ship, in Ly
 
-Optional arguments:
+Common optional arguments:
 
 * `-n N`/`--num-jumps N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-p [SML]`/`--pad-size [SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-d N`/`--jump-decay N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows estimation of a route with cargo being picked up at each hop along the way. Default: `0`
-* `-v N`/`--verbose N`: causes more logging output to be provided
+* `-d N`/`--jump-decay N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
 * `-o`/`--ordered`: indicates that the provided stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`.
+
+Other optional arguments:
+
+* `-v N`/`--verbose N`: causes more logging output to be provided
 * `--jump-time N`: the time taken to perform a single hyperspace jump (used as part of the route estimation). Default: `45`
 * `--diff-limit N`: the multiplier of the fastest route beyond which a route is considered "bad" and discounted. Default: `1.5`
 * `--slf N`: the multiplier to apply to multi-jump hops to account for imperfect system positions. Default: `0.9`
