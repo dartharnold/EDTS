@@ -56,6 +56,7 @@ Other optional arguments:
 * `--slf N`: the multiplier to apply to multi-jump hops to account for imperfect system positions. Default: `0.9`
 * `--buffer-ly-route N`: The distance away from the optimal straight-line route to cache candidate stars for full routes. Default: `25`
 * `--buffer-ly-hop N`: The distance away from the optimal straight-line route to search the cache for viable jumps. Default: `20`
+* `--route-strategy R`: The method to use when searching for optimal routes. Valid options: `trundle` (a custom search algorithm written for EDTS), `astar` (A*, **experimental** and seemingly less effective at producing balanced routes). Default: `trundle`
 * `--eddb-systems-file F`: The file to use as the EDDB systems.json. Default: `eddb/systems.json`
 * `--eddb-stations-file F`: The file to use as the EDDB stations.json or stations_lite.json. Default: `eddb/stations_lite.json`
 * `--download-eddb-files`: Download the EDDB systems and stations files before executing.
