@@ -22,6 +22,7 @@ class Application:
     ap.add_argument("-p", "--pad-size", default="M", type=str, help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
     ap.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
+    ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
@@ -117,31 +118,38 @@ class Application:
     print route[0].to_string()
     for i in xrange(1, len(route)):
       cur_max_jump = self.args.jump_distance - (self.args.jump_decay * (i-1))
-      hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
-      jumpcount = len(hop_route)-1
-      jumpdist = (route[i-1].position - route[i].position).length
-      totaldist += jumpdist
-#      jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
+
+      if self.args.route:
+        hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
+        jumpcount = len(hop_route)-1
+      else:
+        jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
+
+      hopsldist = (route[i-1].position - route[i].position).length
+      totaldist += hopsldist
       totaljumps += jumpcount
       if route[i].distance != None:
         totalsc += route[i].distance
       else:
         totalsc_accurate = False
 
-      fulldist = (hop_route[0].position - hop_route[-1].position).length
-      lastdist = (hop_route[-1].position - hop_route[-2].position).length
-      if len(hop_route) > 2:
-        hopdist = 0.0
-        for j in xrange(1, len(hop_route)-1):
-          hdist = (hop_route[j-1].position - hop_route[j].position).length
-          hopdist += hdist
-          print "    --- {0: >6.2f}Ly ---> {1}".format(hdist, hop_route[j].name)
-        hopdist += lastdist
-      else:
-        hopdist = fulldist
+      if self.args.route:
+        lastdist = (hop_route[-1].position - hop_route[-2].position).length
+        if len(hop_route) > 2:
+          hopdist = 0.0
+          for j in xrange(1, len(hop_route)-1):
+            hdist = (hop_route[j-1].position - hop_route[j].position).length
+            hopdist += hdist
+            print "    --- {0: >6.2f}Ly ---> {1}".format(hdist, hop_route[j].name)
+          hopdist += lastdist
+        else:
+          hopdist = hopsldist
     
       route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(s.sc_cost(route[i].distance)) if route[i].distance != None else "???")
-      print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, fulldist)
+      if self.args.route:
+        print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, hopsldist)
+      else:
+        print "    === {0: >6.2f}Ly ===> {1}".format(hopsldist, route_str)
 
     print ""
     print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "")
