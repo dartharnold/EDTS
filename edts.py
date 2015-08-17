@@ -17,7 +17,7 @@ class Application:
 
   def __init__(self):
     ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@")
-    ap.add_argument("-j", "--jump-distance", type=float, required=True, help="The ship's max jump distance while empty")
+    ap.add_argument("-j", "--jump-range", type=float, required=True, help="The ship's max jump range with full fuel and empty cargo")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
