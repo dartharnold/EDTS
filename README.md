@@ -59,7 +59,7 @@ Optional arguments:
 
 ### File arguments ###
 
-You may also read arguments from files using the syntax `@filename` in place of arguments; arguments are one per line. In the case of the example above:
+You may also read arguments from files using the syntax `@filename` in place of arguments; within the file, arguments are one per line. In the case of the example above:
 
 `python edts.py -j 35.2 --start "Sol/Galileo" --end "Alioth/Irkutsk" "Wolf 359/Powell High" "Agartha/Enoch Port"`
 
