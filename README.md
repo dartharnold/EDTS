@@ -82,6 +82,7 @@ Agartha/Enoch Port
 
 This allows for easy recalculating of the same route with different parameters such as jump range.
 
+### Future improvements ###
 
-### Experimental/in-progress features ###
-* You may pass the "-r" flag, which generates a full route between each hop, instead of just the hop itself. This route is generated from the available EDDB data, which may be incomplete (and thus the route may not be optimal). This may also take a long time to execute (and take a lot of CPU time while it does so).
+* Making the cost algorithms aware of most in-system SC travel being slow (having to escape the start object's gravity well)
+* Supporting start/end/hops just being systems rather than stations
