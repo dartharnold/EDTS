@@ -1,5 +1,6 @@
 import logging
 import math
+import sys
 from system import System
 from vector3 import Vector3
 
@@ -8,7 +9,8 @@ log = logging.getLogger("route")
 
 class Routing:
 
-  def __init__(self, args, eddbSystems):
+  def __init__(self, args, solver, eddbSystems):
+    self._solver = solver
     self._systems = eddbSystems
     self._buffer_ly_route = args.buffer_ly_route
     self._buffer_ly_hop = args.buffer_ly_hop
@@ -57,6 +59,69 @@ class Routing:
 
 
   def plot(self, sys_from, sys_to, jump_range):
+    # My algorithm
+    return self.plot_mine(sys_from, sys_to, jump_range)
+    # A* search
+    # return self.plot_astar(sys_from, sys_to, jump_range)
+
+
+  def plot_astar(self, sys_from, sys_to, jump_range):
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly_route)
+
+    closedset = []          # The set of nodes already evaluated.
+    openset = [sys_from]    # The set of tentative nodes to be evaluated, initially containing the start node
+    came_from = dict()
+ 
+    g_score = dict()
+    g_score[sys_from] = 0    # Cost from sys_from along best known path.
+    f_score = dict() # map with default value of Infinity
+    f_score[sys_from] = self.astar_cost(sys_from, sys_to, [sys_from])
+     
+    while len(openset) > 0:
+      current = min(openset, key=f_score.get) # the node in openset having the lowest f_score[] value
+      if current == sys_to:
+        return self.astar_reconstruct_path(came_from, sys_to)
+      
+      openset.remove(current)
+      closedset.append(current)
+
+      neighbor_nodes = [n for n in stars if n != current and (n.position - current.position).length < jump_range]
+
+      for neighbor in neighbor_nodes:
+        if neighbor in closedset:
+          continue
+ 
+        tentative_g_score = g_score[current] + (current.position - neighbor.position).length
+
+        if neighbor not in g_score:
+          g_score[neighbor] = sys.float_info.max
+
+        if neighbor not in openset or tentative_g_score < g_score[neighbor]:
+          came_from[neighbor] = current
+          g_score[neighbor] = tentative_g_score
+          f_score[neighbor] = self.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor))
+          if neighbor not in openset:
+            openset.append(neighbor)
+ 
+    return None
+
+
+  def astar_cost(self, a, b, route):
+    hs_jumps = self._solver.jump_count(a, b, route) * self._solver.jump_time
+    hs_jdist = (a.position - b.position).length
+    var = self.route_variance(route, self.route_dist(route))
+    return (hs_jumps + hs_jdist + var * 100.0) # TODO: Better than this...
+
+
+  def astar_reconstruct_path(self, came_from, current):
+    total_path = [current]
+    while current in came_from:
+        current = came_from[current]
+        total_path.append(current)
+    return total_path
+
+
+  def plot_mine(self, sys_from, sys_to, jump_range):
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly_route)
    
     log.debug("Systems to search from: {0}".format(len(stars)))
@@ -94,6 +159,9 @@ class Routing:
     return dist
 
   def route_variance(self, route, dist):
+    if len(route) <= 1:
+      return 0.0
+
     meanjump = dist / (len(route)-1)
     cvar = 0.0
     for i in xrange(0, len(route)-1):

@@ -3,6 +3,7 @@ from vector3 import Vector3
 class Station:
   def __init__(self, sysobj, ls, stationname, stationtype, fuel, padsize):
     self.distance = ls
+    self.uses_sc = True
     self.system = sysobj
     self.name = stationname
     self.station_type = stationtype

@@ -103,7 +103,7 @@ class Application:
         log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
     s = Solver(self.args)
-    r = Routing(self.args, self.eddb_systems)
+    r = Routing(self.args, s, self.eddb_systems)
 
     if self.args.ordered:
       route = [start] + stations + [end]

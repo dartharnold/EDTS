@@ -28,7 +28,7 @@ class Solver:
     # Now calculate
     hs_jumps = self.jump_count(a, b, route) * self.jump_time
     hs_jdist = (a.position - b.position).length
-    sc = self.sc_cost(b.distance)
+    sc = self.sc_cost(b.distance) if b.uses_sc else 0.0
     return (hs_jumps + hs_jdist + sc)
 
   def solve(self, stations, start, end, maxstops):
