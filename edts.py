@@ -29,8 +29,9 @@ class Application:
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
+    ap.add_argument("--route-strategy", default="trundle", help="The strategy to use for route plotting. Valid options are 'trundle' and 'astar'")
     ap.add_argument("--buffer-ly-route", type=float, default=25.0, help="A buffer distance to help search for valid stars for routing")
-    ap.add_argument("--buffer-ly-hop", type=float, default=20.0, help="A buffer distance to help search for valid stars for routing")
+    ap.add_argument("--buffer-ly-hop", type=float, default=20.0, help="A buffer distance to help search for valid stars for routing. Only used by the 'trundle' strategy.")
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
     ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
     ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
@@ -83,7 +84,7 @@ class Application:
       log.error("Error: start station {0} could not be found. Stopping.".format(self.args.start))
       return
     if end == None:
-      log.error("Error: end station {0} could not be found. Stopping.".format(elf.args.end))
+      log.error("Error: end station {0} could not be found. Stopping.".format(self.args.end))
       return
 
     stations = []

@@ -1,6 +1,8 @@
 import logging
 import math
 
+log = logging.getLogger("solver")
+
 class Solver:
   def __init__(self, args):
     self.jump_range = args.jump_range
@@ -33,10 +35,11 @@ class Solver:
 
   def solve(self, stations, start, end, maxstops):
     vr = self.get_viable_routes([start], stations, end, maxstops)
-
+    log.debug("Viable routes: {0}".format(len(vr)))
+    
     mincost = None
     minroute = None
-
+    
     for route in vr:
       cost = 0
       for i in xrange(0, len(route)-1):

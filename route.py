@@ -14,6 +14,7 @@ class Routing:
     self._systems = eddbSystems
     self._buffer_ly_route = args.buffer_ly_route
     self._buffer_ly_hop = args.buffer_ly_hop
+    self._route_strategy = args.route_strategy
 
 
   def aabb(self, stars, vec_from, vec_to, buffer_from, buffer_to):
@@ -59,10 +60,15 @@ class Routing:
 
 
   def plot(self, sys_from, sys_to, jump_range):
-    # My algorithm
-    return self.plot_mine(sys_from, sys_to, jump_range)
-    # A* search
-    # return self.plot_astar(sys_from, sys_to, jump_range)
+    if self._route_strategy == "trundle":
+      # My algorithm - slower but pinpoint
+      return self.plot_mine(sys_from, sys_to, jump_range)
+    elif self._route_strategy == "astar":
+      # A* search - faster but worse fuel efficiency
+      return self.plot_astar(sys_from, sys_to, jump_range)
+    else:
+      log.error("Tried to use invalid route strategy {0}".format(self._route_strategy))
+      return None
 
 
   def plot_astar(self, sys_from, sys_to, jump_range):
@@ -74,9 +80,9 @@ class Routing:
  
     g_score = dict()
     g_score[sys_from] = 0    # Cost from sys_from along best known path.
-    f_score = dict() # map with default value of Infinity
+    f_score = dict()
     f_score[sys_from] = self.astar_cost(sys_from, sys_to, [sys_from])
-     
+    
     while len(openset) > 0:
       current = min(openset, key=f_score.get) # the node in openset having the lowest f_score[] value
       if current == sys_to:
@@ -110,7 +116,7 @@ class Routing:
     hs_jumps = self._solver.jump_count(a, b, route) * self._solver.jump_time
     hs_jdist = (a.position - b.position).length
     var = self.route_variance(route, self.route_dist(route))
-    return (hs_jumps + hs_jdist + var * 100.0) # TODO: Better than this...
+    return (hs_jumps + hs_jdist + var)
 
 
   def astar_reconstruct_path(self, came_from, current):
@@ -149,7 +155,7 @@ class Routing:
   def route_cost(self, route):
     jump_count = (len(route)-1) * 1000
     dist = self.route_dist(route)
-    var = self.route_variance(route, dist)
+    var = self.route_stdev(route, dist)
     return jump_count + dist + var
 
   def route_dist(self, route):
@@ -169,6 +175,17 @@ class Routing:
       cvar += (jdist - meanjump) * (jdist - meanjump)
     return cvar
     
+  def route_stdev(self, route, dist):
+    if len(route) <= 1:
+      return 0.0
+
+    meanjump = dist / (len(route)-1)
+    cvar = 0.0
+    for i in xrange(0, len(route)-1):
+      jdist = (route[i+1].position - route[i].position).length
+      cvar += (jdist - meanjump)
+    return cvar
+    
 
   def get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps):
     cur_dist = (route[-1].position - sys_to.position).length
@@ -180,14 +197,15 @@ class Routing:
       dir_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range)
       # Start looking halfway down the route, since we shouldn't really ever be jumping <50% of our range, especially + buffer
       start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range / 2)
-      mystars = self.cylinder(stars, start_vec, dir_vec, self._buffer_ly_hop)
+      # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
+      mystars = self.cylinder(stars, start_vec, dir_vec, self._buffer_ly_hop / (add_jumps + 1))
 
       # Get valid next hops
       vsnext = []
       for s in mystars:
         next_dist = (s.position - route[-1].position).length
-        dist_jumpN = (s.position - sys_to.position).length
         if next_dist < jump_range:
+          dist_jumpN = (s.position - sys_to.position).length
           maxd = (best_jump_count - len(route)) * jump_range
 #          log.debug("[%d] [%d] cur_dist = %.2f, next_dist = %.2f, dist_jumpN = %.2f, maxd = %.2f", best_jump_count, len(route)-1, cur_dist, next_dist, dist_jumpN, maxd)
           if dist_jumpN < maxd:
