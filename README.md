@@ -1,6 +1,6 @@
 # EDTS - A route decision maker for Elite: Dangerous #
 
-This script provides a way to determine optimal routes for visiting a set of stations.
+This script provides a way to determine good routes for visiting a set of stations.
 
 ### Features ###
 
