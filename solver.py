@@ -3,7 +3,7 @@ import math
 
 class Solver:
   def __init__(self, args):
-    self.jump_distance = args.jump_distance
+    self.jump_range = args.jump_range
     self.jump_time = args.jump_time
     self.diff_limit = args.diff_limit
     self.jump_decay = args.jump_decay
@@ -14,7 +14,7 @@ class Solver:
 
 
   def jump_count(self, a, b, route):
-    jumpdist = self.jump_distance - (self.jump_decay * (len(route) - 1))
+    jumpdist = self.jump_range - (self.jump_decay * (len(route) - 1))
     hopdist = (a.position - b.position).length
     # If we're doing multiple jumps, apply the SLF
     if hopdist > jumpdist:

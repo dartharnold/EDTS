@@ -119,7 +119,7 @@ class Application:
     print ""
     print route[0].to_string()
     for i in xrange(1, len(route)):
-      cur_max_jump = self.args.jump_distance - (self.args.jump_decay * (i-1))
+      cur_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
 
       if self.args.route:
         hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
