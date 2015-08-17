@@ -21,11 +21,14 @@ class Solver:
       jumpdist = jumpdist * self.straight_line_factor
     return int(math.ceil(hopdist / jumpdist))
 
+  def sc_cost(self, distance):
+    return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
+	
   def cost(self, a, b, route):
     # Now calculate
     hs_jumps = self.jump_count(a, b, route) * self.jump_time
     hs_jdist = (a.position - b.position).length
-    sc = self.sc_constant + (math.pow(b.distance, self.sc_power) * self.sc_multiplier)
+    sc = self.sc_cost(b.distance)
     return (hs_jumps + hs_jdist + sc)
 
   def solve(self, stations, start, end, maxstops):

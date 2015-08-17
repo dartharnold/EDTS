@@ -128,12 +128,20 @@ class Application:
       else:
         totalsc_accurate = False
 
+      fulldist = (hop_route[0].position - hop_route[-1].position).length
+      lastdist = (hop_route[-1].position - hop_route[-2].position).length
       if len(hop_route) > 2:
+        hopdist = 0.0
         for j in xrange(1, len(hop_route)-1):
           hdist = (hop_route[j-1].position - hop_route[j].position).length
+          hopdist += hdist
           print "    --- {0: >6.2f}Ly ---> {1}".format(hdist, hop_route[j].name)
-      lastdist = (hop_route[-1].position - hop_route[-2].position).length
-      print "    === {0: >6.2f}Ly ===> {1}".format(lastdist, route[i].to_string())
+        hopdist += lastdist
+      else:
+        hopdist = fulldist
+    
+      route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(s.sc_cost(route[i].distance)) if route[i].distance != None else "???")
+      print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, fulldist)
 
     print ""
     print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "")
