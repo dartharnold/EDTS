@@ -11,6 +11,7 @@ This script provides a way to determine good routes for visiting a set of statio
 ### How to use ###
 
 On first run, the latest [EDDB](http://eddb.io) system and station data must be downloaded:
+
 `python eddb.py --download`
 
 Once this is done, the script can be used:
@@ -44,7 +45,8 @@ Common optional arguments:
 * `-n N`/`--num-jumps N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-p [SML]`/`--pad-size [SML]`: the pad size of the ship. Default: `M` (medium pad).
 * `-d N`/`--jump-decay N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
-* `-o`/`--ordered`: indicates that the provided stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`.
+* `-o`/`--ordered`: indicates that the provided stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
+* `station ...` - additional stations to travel via
 
 Other optional arguments:
 
@@ -58,7 +60,6 @@ Other optional arguments:
 * `--eddb-stations-file F`: The file to use as the EDDB stations.json or stations_lite.json. Default: `eddb/stations_lite.json`
 * `--download-eddb-files`: Download the EDDB systems and stations files before executing.
 * `-r`/`--route`: **experimental** - causes a full route to be computed (every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal. May take a long time to execute, and eat CPU time while it does so.
-* `station ...` - additional stations to travel via
 
 ### File arguments ###
 
