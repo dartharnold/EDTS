@@ -59,6 +59,7 @@ Optional arguments:
 * `--eddb-stations-file F`: The file to use as the EDDB stations.json or stations_lite.json. Default: `eddb/stations_lite.json`
 * `--download-eddb-files`: Download the EDDB systems and stations files before executing.
 * `-r`/`--route`: **experimental** - causes a full route to be computed (every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal. May take a long time to execute, and eat CPU time while it does so.
+* `station ...` - additional stations to travel via
 
 ### Experimental/in-progress features ###
 * You may pass the "-r" flag, which generates a full route between each hop, instead of just the hop itself. This route is generated from the available EDDB data, which may be incomplete (and thus the route may not be optimal). This may also take a long time to execute (and take a lot of CPU time while it does so).
