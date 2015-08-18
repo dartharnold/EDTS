@@ -71,7 +71,13 @@ class Application:
           if st["system_id"] == sysid and st["name"].lower() == statname.lower():
             # Found station
             sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
-            return Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])  
+            stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
+            
+            if stobj.distance == None:
+              log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
+              stobj.distance = 0
+            
+            return stobj
     return None
 
 
@@ -90,16 +96,14 @@ class Application:
     stations = []
     for st in self.args.stations:
       sobj = self.get_station_from_string(st)
-      if sobj != None:
-        if sobj.distance != None:
-          if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-            log.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(s["name"], s.system))
-            continue
-          else:
-            log.debug("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
-            stations.append(sobj)
+      if sobj != None:      
+        if self.args.pad_size == "L" and sobj.max_pad_size != "L":
+          log.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(sobj.name, sobj.system_name))
+          continue
         else:
-          log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Discarding.".format(sobj.name, sobj.system))
+          log.debug("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
+          stations.append(sobj)
+          
       else:
         log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
