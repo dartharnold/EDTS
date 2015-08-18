@@ -1,5 +1,8 @@
+import logging
 import math
   
+log = logging.getLogger("calc")
+
 class Calc:
   def __init__(self, args):
     self.args = args
@@ -25,6 +28,15 @@ class Calc:
     return (hs_jumps + hs_jdist + sc)
 
   def route_cost(self, route):
+    if self.args.route_strategy == "trundle":
+      return self.trundle_cost(route)
+    elif self.args.route_strategy == "astar":
+      return self.astar_cost(route)
+    else:
+      log.error("Invalid route strategy {0} provided".format(self.args.route_strategy))
+      return None
+
+  def trundle_cost(self, route):
     jump_count = (len(route)-1) * 1000
     dist = self.route_dist(route)
     var = self.route_stdev(route, dist)

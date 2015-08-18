@@ -9,12 +9,12 @@ log = logging.getLogger("route")
 
 class Routing:
 
-  def __init__(self, args, calc, eddbSystems):
+  def __init__(self, calc, eddb_systems, bufroute, bufhop, route_strategy):
     self._calc = calc
-    self._systems = eddbSystems
-    self._buffer_ly_route = args.buffer_ly_route
-    self._buffer_ly_hop = args.buffer_ly_hop
-    self._route_strategy = args.route_strategy
+    self._systems = eddb_systems
+    self._buffer_ly_route = bufroute
+    self._buffer_ly_hop = bufhop
+    self._route_strategy = route_strategy
 
 
   def aabb(self, stars, vec_from, vec_to, buffer_from, buffer_to):
@@ -123,7 +123,7 @@ class Routing:
   def plot_trundle(self, sys_from, sys_to, jump_range):
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly_route)
    
-    log.debug("Systems to search from: {0}".format(len(stars)))
+    log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
 
     add_jumps = 0
     best_jump_count = int(math.ceil((sys_from.position - sys_to.position).length / jump_range))
@@ -135,7 +135,7 @@ class Routing:
       vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps)
       log.debug("Attempt %d, jump count: %d, viable routes: %d", add_jumps, best_jump_count + add_jumps, len(vr))
       for route in vr:
-        cost = self._calc.route_cost(route)
+        cost = self._calc.trundle_cost(route)
         if bestcost == None or cost < bestcost:
           best = route
           bestcost = cost
@@ -155,7 +155,7 @@ class Routing:
       # Start looking halfway down the route, since we shouldn't really ever be jumping <50% of our range, especially + buffer
       start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range / 2)
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
-      mystars = self.cylinder(stars, start_vec, dir_vec, self._buffer_ly_hop / min([add_jumps + 1, 2]))
+      mystars = self.cylinder(stars, start_vec, dir_vec, self._buffer_ly_hop)
 
       # Get valid next hops
       vsnext = []
