@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import eddb
+from calc import Calc
 from route import Routing
 from solver import Solver
 from station import Station
@@ -103,8 +104,9 @@ class Application:
       else:
         log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
-    s = Solver(self.args)
-    r = Routing(self.args, s, self.eddb_systems)
+    calc = Calc(self.args)
+    s = Solver(self.args, calc)
+    r = Routing(self.args, calc, self.eddb_systems)
 
     if self.args.ordered:
       route = [start] + stations + [end]
@@ -126,7 +128,7 @@ class Application:
         hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
         jumpcount = len(hop_route)-1
       else:
-        jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
+        jumpcount = calc.jump_count(route[i-1], route[i], route[0:i-1])
 
       hopsldist = (route[i-1].position - route[i].position).length
       totaldist += hopsldist
@@ -148,7 +150,7 @@ class Application:
         else:
           hopdist = hopsldist
     
-      route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(s.sc_cost(route[i].distance)) if route[i].distance != None else "???")
+      route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None else "???")
       if self.args.route:
         print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, hopsldist)
       else:
