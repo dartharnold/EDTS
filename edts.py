@@ -6,6 +6,7 @@ import logging
 import os
 import sys
 import eddb
+from calc import Calc
 from route import Routing
 from solver import Solver
 from station import Station
@@ -30,6 +31,7 @@ class Application:
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
     ap.add_argument("--route-strategy", default="trundle", help="The strategy to use for route plotting. Valid options are 'trundle' and 'astar'")
+    ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
     ap.add_argument("--buffer-ly-route", type=float, default=25.0, help="A buffer distance to help search for valid stars for routing")
     ap.add_argument("--buffer-ly-hop", type=float, default=20.0, help="A buffer distance to help search for valid stars for routing. Only used by the 'trundle' strategy.")
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
@@ -107,8 +109,9 @@ class Application:
       else:
         log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
-    s = Solver(self.args)
-    r = Routing(self.args, s, self.eddb_systems)
+    calc = Calc(self.args)
+    r = Routing(calc, self.eddb_systems, self.args.buffer_ly_route, self.args.buffer_ly_hop, self.args.route_strategy)
+    s = Solver(calc, r, self.args.jump_range, self.args.diff_limit, self.args.solve_full)
 
     if self.args.ordered:
       route = [start] + stations + [end]
@@ -130,7 +133,7 @@ class Application:
         hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
         jumpcount = len(hop_route)-1
       else:
-        jumpcount = s.jump_count(route[i-1], route[i], route[0:i-1])
+        jumpcount = calc.jump_count(route[i-1], route[i], route[0:i-1])
 
       hopsldist = (route[i-1].position - route[i].position).length
       totaldist += hopsldist
@@ -152,7 +155,7 @@ class Application:
         else:
           hopdist = hopsldist
     
-      route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(s.sc_cost(route[i].distance)) if route[i].distance != None else "???")
+      route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None else "???")
       if self.args.route:
         print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, hopsldist)
       else:
