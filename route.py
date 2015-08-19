@@ -9,12 +9,13 @@ log = logging.getLogger("route")
 
 class Routing:
 
-  def __init__(self, calc, eddb_systems, bufroute, bufhop, route_strategy):
+  def __init__(self, calc, eddb_systems, bufmulroute, buflyhop, route_strategy):
     self._calc = calc
     self._systems = eddb_systems
-    self._buffer_ly_route = bufroute
-    self._buffer_ly_hop = bufhop
+    self._buffer_mult_route = bufmulroute
+    self._buffer_ly_hop = buflyhop
     self._route_strategy = route_strategy
+    self._max_addjumps = 3
 
 
   def aabb(self, stars, vec_from, vec_to, buffer_from, buffer_to):
@@ -72,7 +73,8 @@ class Routing:
 
 
   def plot_astar(self, sys_from, sys_to, jump_range):
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly_route)
+    buffer_ly = (sys_from.position - sys_to.position).length * self._buffer_mult_route
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, buffer_ly)
 
     closedset = []          # The set of nodes already evaluated.
     openset = [sys_from]    # The set of tentative nodes to be evaluated, initially containing the start node
@@ -121,7 +123,8 @@ class Routing:
 
 
   def plot_trundle(self, sys_from, sys_to, jump_range):
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, self._buffer_ly_route)
+    buffer_ly = (sys_from.position - sys_to.position).length * self._buffer_mult_route
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, buffer_ly)
    
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
 
@@ -130,7 +133,7 @@ class Routing:
 
     best = None
     bestcost = None
-    while best == None:
+    while best == None and add_jumps <= self._max_addjumps:
       log.debug("Attempt %d, jump count: %d, calculating...", add_jumps, best_jump_count + add_jumps)
       vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps)
       log.debug("Attempt %d, jump count: %d, viable routes: %d", add_jumps, best_jump_count + add_jumps, len(vr))
@@ -141,7 +144,10 @@ class Routing:
           bestcost = cost
       add_jumps += 1
 
-    log.debug("Route, length = %d, cost = %.2f: %s", len(best)-1, bestcost, " --> ".join([p.name for p in best]))
+    if best != None:
+      log.debug("Route, length = %d, cost = %.2f: %s", len(best)-1, bestcost, " --> ".join([p.name for p in best]))
+    else:
+      log.debug("No route found")
     return best
 
   def trundle_get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps):
@@ -164,7 +170,6 @@ class Routing:
         if next_dist < jump_range:
           dist_jumpN = (s.position - sys_to.position).length
           maxd = (best_jump_count - len(route)) * jump_range
-#          log.debug("[%d] [%d] cur_dist = %.2f, next_dist = %.2f, dist_jumpN = %.2f, maxd = %.2f", best_jump_count, len(route)-1, cur_dist, next_dist, dist_jumpN, maxd)
           if dist_jumpN < maxd:
             vsnext.append(s)
 
