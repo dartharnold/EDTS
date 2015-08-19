@@ -36,31 +36,33 @@ All station arguments are provided in the form `System/Station`.
 
 Required arguments:
 
-* `-s S`/`--start S`: the station to start from
-* `-e S`/`--end S`: the station to end at
-* `-j N`/`--jump-range N`: the current jump range of the ship, in Ly
+* `-s S`/`--start=S`: the station to start from
+* `-e S`/`--end=S`: the station to end at
+* `-j N`/`--jump-range=N`: the current jump range of the ship, in Ly
 
 Common optional arguments:
 
-* `-n N`/`--num-jumps N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
-* `-p [SML]`/`--pad-size [SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-d N`/`--jump-decay N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
+* `-n N`/`--num-jumps=N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
+* `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
+* `-d N`/`--jump-decay=N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
 * `-r`/`--route`: causes a full route to be computed (for every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal. May take a long time to complete, and eat CPU time while it does so. To make it faster (but potentially slightly less optimal), use a lower `--buffer-ly-hop` value.
 * `-o`/`--ordered`: indicates that the provided stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
 * `station ...` - additional stations to travel via
 
 Other optional arguments:
 
-* `-v N`/`--verbose N`: causes more logging output to be provided
-* `--jump-time N`: the time taken to perform a single hyperspace jump (used as part of the route estimation). Default: `45`
-* `--diff-limit N`: the multiplier of the fastest route beyond which a route is considered "bad" and discounted. Default: `1.5`
-* `--slf N`: the multiplier to apply to multi-jump hops to account for imperfect system positions. Default: `0.9`
-* `--buffer-ly-route N`: The distance away from the optimal straight-line route to cache candidate stars for full routes. Default: `25`
-* `--buffer-ly-hop N`: The distance away from the optimal straight-line route to search the cache for viable jumps. Default: `20`
-* `--route-strategy R`: The method to use when searching for optimal routes. Valid options: `trundle` (a custom search algorithm written for EDTS), `astar` (A*, **experimental** and seemingly less effective at producing balanced routes). Default: `trundle`
+* `-v N`/`--verbose=N`: causes more logging output to be provided
+* `--jump-time=N`: the time taken to perform a single hyperspace jump (used as part of the route estimation). Default: `45`
+* `--diff-limit=N`: the multiplier of the fastest route beyond which a route is considered "bad" and discounted. Default: `1.5`
+* `--slf=N`: the multiplier to apply to multi-jump hops to account for imperfect system positions. Default: `0.9`
+* `--rbuffer-base=N`: The minimum distance away from the optimal straight-line route to build a cache of viable stars from. Default: `10`
+* `--rbuffer-mult=N`: The multiplier of the hop distance to add to rbuffer_base to determine the cache distance. Default: `0.15`
+* `--hbuffer-base=N`: The minimum distance away from the optimal straight-line route to search the cache for viable jumps. Default: `5`
+* `--hbuffer-mult=N`: The multiplier of a jump's distance to add to hbuffer_base to determine the valid stars to search with. Default: `0.3`
+* `--route-strategy=R`: The method to use when searching for optimal routes. Valid options: `trundle` (custom algorithm, slow in many cases but usually quite accurate), `astar` (A*, fast but sometimes produces less well-balanced routes). Default: `astar`
 * `--solve-full` - **experimental**: When enabled, uses the routing strategy to solve the optimal set of hops as well. **Very slow** and may not be effective.
-* `--eddb-systems-file F`: The file to use as the EDDB systems.json. Default: `eddb/systems.json`
-* `--eddb-stations-file F`: The file to use as the EDDB stations.json or stations_lite.json. Default: `eddb/stations_lite.json`
+* `--eddb-systems-file=F`: The file to use as the EDDB systems.json. Default: `eddb/systems.json`
+* `--eddb-stations-file=F`: The file to use as the EDDB stations.json or stations_lite.json. Default: `eddb/stations_lite.json`
 * `--download-eddb-files`: Download the EDDB systems and stations files before executing.
 
 ### File arguments ###
