@@ -31,7 +31,7 @@ class Calc:
     if self.args.route_strategy == "trundle":
       return self.trundle_cost(route)
     elif self.args.route_strategy == "astar":
-      return self.astar_cost(route)
+      return self.astar_cost(route[0], route[-1], route)
     else:
       log.error("Invalid route strategy {0} provided".format(self.args.route_strategy))
       return None

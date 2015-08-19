@@ -69,6 +69,8 @@ class Solver:
         if s.to_string() != t.to_string() and t not in hops[s]:
           log.debug("Calculating hop: {0} -> {1}".format(s.name, t.name))
           hop = self._route.plot(s, t, self._jump_range)
+          if hop == None:
+            log.warning("Hop route could not be calculated: {0} -> {1}".format(s.name, t.name))
           hops[s][t] = hop
           hops[t][s] = hop
 

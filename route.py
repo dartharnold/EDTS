@@ -9,11 +9,13 @@ log = logging.getLogger("route")
 
 class Routing:
 
-  def __init__(self, calc, eddb_systems, bufmulroute, buflyhop, route_strategy):
+  def __init__(self, calc, eddb_systems, rbuf_base, rbuf_mult, hbuf_base, hbuf_mult, route_strategy):
     self._calc = calc
     self._systems = eddb_systems
-    self._buffer_mult_route = bufmulroute
-    self._buffer_ly_hop = buflyhop
+    self._rbuffer_base = rbuf_base
+    self._rbuffer_mult = rbuf_mult
+    self._hbuffer_base = hbuf_base
+    self._hbuffer_mult = hbuf_mult
     self._route_strategy = route_strategy
     self._max_addjumps = 3
 
@@ -73,8 +75,8 @@ class Routing:
 
 
   def plot_astar(self, sys_from, sys_to, jump_range):
-    buffer_ly = (sys_from.position - sys_to.position).length * self._buffer_mult_route
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, buffer_ly)
+    rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
 
     closedset = []          # The set of nodes already evaluated.
     openset = [sys_from]    # The set of tentative nodes to be evaluated, initially containing the start node
@@ -123,8 +125,8 @@ class Routing:
 
 
   def plot_trundle(self, sys_from, sys_to, jump_range):
-    buffer_ly = (sys_from.position - sys_to.position).length * self._buffer_mult_route
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, buffer_ly)
+    rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
+    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
    
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
 
@@ -161,7 +163,8 @@ class Routing:
       # Start looking halfway down the route, since we shouldn't really ever be jumping <50% of our range, especially + buffer
       start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range / 2)
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
-      mystars = self.cylinder(stars, start_vec, dir_vec, self._buffer_ly_hop)
+      hbuffer_ly = self._hbuffer_base + (jump_range * self.hbuffer_mult)
+      mystars = self.cylinder(stars, start_vec, dir_vec, hbuffer_ly)
 
       # Get valid next hops
       vsnext = []

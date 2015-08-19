@@ -8,7 +8,7 @@ class System:
     self.needs_permit = permit
 
   def to_string(self):
-    return "%s (%.2f, %.2f, %.2f)" % (self.name, self.position.x, self.position.y, self.position.z)
+    return u"%s (%.2f, %.2f, %.2f)" % (self.name, self.position.x, self.position.y, self.position.z)
 
   def __eq__(self, other):
     if isinstance(other, System):
@@ -17,5 +17,5 @@ class System:
       return NotImplemented
 
   def __hash__(self):
-    return "{0}/{1},{2},{3}".format(self.name,self.position.x,self.position.y,self.position.z).__hash__()
+    return u"{0}/{1},{2},{3}".format(self.name,self.position.x,self.position.y,self.position.z).__hash__()
 

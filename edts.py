@@ -32,8 +32,10 @@ class Application:
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
     ap.add_argument("--route-strategy", default="astar", help="The strategy to use for route plotting. Valid options are 'trundle' and 'astar'")
     ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
-    ap.add_argument("--rbuffer-mult", type=float, default=0.15, help="A buffer distance to help search for valid stars for routing, defined in a multiple of hop straight-line distance")
-    ap.add_argument("--hbuffer-ly", type=float, default=15.0, help="A buffer distance to help search for valid stars for routing. Only used by the 'trundle' strategy.")
+    ap.add_argument("--rbuffer-base", type=float, default=10.0, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
+    ap.add_argument("--rbuffer-mult", type=float, default=0.1, help="A multiple of hop straight-line distance to add to rbuffer_base")
+    ap.add_argument("--hbuffer-base", type=float, default=5.0, help="A minimum buffer distance, in Ly, used to search for valid next hops. Only used by the 'trundle' strategy.")
+    ap.add_argument("--hbuffer-mult", type=float, default=0.3, help="A multiple of jump range to add to hbuffer_base. Only used by the 'trundle' strategy.")
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
     ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
     ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
@@ -110,7 +112,7 @@ class Application:
         log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
     calc = Calc(self.args)
-    r = Routing(calc, self.eddb_systems, self.args.rbuffer_mult, self.args.hbuffer_ly, self.args.route_strategy)
+    r = Routing(calc, self.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
     s = Solver(calc, r, self.args.jump_range, self.args.diff_limit, self.args.solve_full)
 
     if self.args.ordered:

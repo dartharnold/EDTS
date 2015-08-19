@@ -23,7 +23,7 @@ class Station:
     return self.system.name
 
   def to_string(self):
-    return "{0}, {1} ({2}Ls, {3})".format(self.system_name, self.name, self.distance if self.distance != None else "???", self.station_type if self.station_type != None else "???")
+    return u"{0}, {1} ({2}Ls, {3})".format(self.system_name, self.name, self.distance if self.distance != None else "???", self.station_type if self.station_type != None else "???")
 
   def __eq__(self, other):
     if isinstance(other, Station):
@@ -32,5 +32,5 @@ class Station:
       return NotImplemented
 
   def __hash__(self):
-    return "{0}/{1}".format(self.system_name, self.name).__hash__()
+    return u"{0}/{1}".format(self.system_name, self.name).__hash__()
 
