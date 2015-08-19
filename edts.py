@@ -33,7 +33,7 @@ class Application:
     ap.add_argument("--route-strategy", default="astar", help="The strategy to use for route plotting. Valid options are 'trundle' and 'astar'")
     ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
     ap.add_argument("--rbuffer-base", type=float, default=10.0, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
-    ap.add_argument("--rbuffer-mult", type=float, default=0.1, help="A multiple of hop straight-line distance to add to rbuffer_base")
+    ap.add_argument("--rbuffer-mult", type=float, default=0.15, help="A multiple of hop straight-line distance to add to rbuffer_base")
     ap.add_argument("--hbuffer-base", type=float, default=5.0, help="A minimum buffer distance, in Ly, used to search for valid next hops. Only used by the 'trundle' strategy.")
     ap.add_argument("--hbuffer-mult", type=float, default=0.3, help="A multiple of jump range to add to hbuffer_base. Only used by the 'trundle' strategy.")
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
