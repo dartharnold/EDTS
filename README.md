@@ -24,9 +24,9 @@ The output might look similar to the following:
 ```
 #!text
 Sol, Galileo (505Ls, Ocellus Starport)
-    ===   7.78Ly ===> Wolf 359, Powell High (99Ls, Coriolis Starport), SC: ~88s
-    === 152.54Ly ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~123s
-    === 230.65Ly ===> Alioth, Golden Gate (7783Ls, Unknown Starport), SC: ~229s
+    ===   7.78Ly ( 1 jump ) ===> Wolf 359, Powell High (99Ls, Coriolis Starport), SC: ~83s
+    === 152.54Ly ( 5 jumps) ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~118s
+    === 230.65Ly ( 8 jumps) ===> Alioth, Golden Gate (7783Ls, Unknown Starport), SC: ~224s
 
 Total distance: 390.97Ly; total jumps: 14; total SC distance: 8760Ls
 ```
