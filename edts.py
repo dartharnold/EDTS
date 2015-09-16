@@ -19,8 +19,8 @@ class Application:
   def __init__(self):
     ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@")
     ap.add_argument("-j", "--jump-range", type=float, required=True, help="The ship's max jump range with full fuel and empty cargo")
-    ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station'")
-    ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station'")
+    ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
+    ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
     ap.add_argument("-p", "--pad-size", default="M", type=str, help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
@@ -39,7 +39,7 @@ class Application:
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
     ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
     ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
-    ap.add_argument("stations", metavar="system/station", nargs="*", help="A station to travel via, in the form 'system/station'")
+    ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args()
 
     if self.args.num_jumps == None:
@@ -61,27 +61,31 @@ class Application:
   def get_station_from_string(self, statstr):
     parts = statstr.split("/", 1)
     sysname = parts[0]
-    statname = parts[1]
+    statname = parts[1] if len(parts) > 1 else None
 
     return self.get_station(sysname, statname)
 
-  def get_station(self, sysname, statname):
+  def get_station(self, sysname, statname = None):
     for sy in self.eddb_systems:
       if sy["name"].lower() == sysname.lower():
         # Found system
         sysid = sy["id"]
 
-        for st in self.eddb_stations:
-          if st["system_id"] == sysid and st["name"].lower() == statname.lower():
-            # Found station
-            sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
-            stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
-            
-            if stobj.distance == None:
-              log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
-              stobj.distance = 0
-            
-            return stobj
+        if statname is None:
+          sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
+          return Station.none(sysobj)
+        else:
+          for st in self.eddb_stations:
+            if st["system_id"] == sysid and st["name"].lower() == statname.lower():
+              # Found station
+              sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
+              stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
+              
+              if stobj.distance == None:
+                log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
+                stobj.distance = 0
+              
+              return stobj
     return None
 
 
@@ -159,7 +163,9 @@ class Application:
         else:
           hopdist = hopsldist
     
-      route_str = "{0}, SC: ~{1}s".format(route[i].to_string(), "{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None and route[i].distance != 0 else "???")
+      route_str = "{0}".format(route[i].to_string())
+      if route[i].name is not None:
+        route_str += ", SC: ~{0}s".format("{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None and route[i].distance != 0 else "???")
       if self.args.route and hop_route != None:
         print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, hopsldist)
       else:

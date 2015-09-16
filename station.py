@@ -10,6 +10,10 @@ class Station:
     self.has_fuel = fuel
     self.max_pad_size = padsize
 
+  @classmethod
+  def none(self, sysobj):
+    return self(sysobj, 0, None, None, False, 'L')
+
   @property
   def position(self):
     return self.system.position
@@ -23,6 +27,8 @@ class Station:
     return self.system.name
 
   def to_string(self):
+    if self.name is None:
+      return self.system_name
     return u"{0}, {1} ({2}Ls, {3})".format(self.system_name, self.name, self.distance if self.distance != None else "???", self.station_type if self.station_type != None else "???")
 
   def __eq__(self, other):
