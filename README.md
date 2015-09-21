@@ -1,10 +1,10 @@
 # EDTS - A route decision maker for Elite: Dangerous #
 
-This script provides a way to determine good routes for visiting a set of stations.
+This script provides a way to determine good routes for visiting a set of systems and/or stations.
 
 ### Features ###
 
-* Given a set of stations, find an optimal way to visit some or all of them
+* Given a set of systems and/or stations, find an optimal way to visit some or all of them
 * Includes an estimation of time taken to reach stations in supercruise
 * Includes an estimation of jump range decay due to picking up cargo en-route
 
@@ -16,28 +16,29 @@ On first run, the latest [EDDB](http://eddb.io) system and station data must be 
 
 Once this is done, the script can be used:
 
-`python edts.py -j 35.2 --start="Sol/Galileo" --end="Alioth/Golden Gate" "Wolf 359/Powell High" "Agartha/Enoch Port"`
+`python edts.py -j 35.2 --start="Sol/Galileo" --end="Alioth/Golden Gate" "Wolf 359/Powell High" "Agartha/Enoch Port" "Alpha Centauri"`
 
-This example assumes you wish to go from Galileo in Sol, to Golden Gate in Alioth, via both Powell High and Enoch Port. All of this will be done in a ship with a 35.2Ly jump range.
+This example assumes you wish to go from Galileo in Sol, to Golden Gate in Alioth, via Powell High, Enoch Port and Alpha Centauri. All of this will be done in a ship with a 35.2Ly jump range. Note that for the case of Alpha Centauri, we only specify the system name.
 
 The output might look similar to the following:
 ```
 #!text
 Sol, Galileo (505Ls, Ocellus Starport)
     ===   7.78Ly ( 1 jump ) ===> Wolf 359, Powell High (99Ls, Coriolis Starport), SC: ~83s
-    === 152.54Ly ( 5 jumps) ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~118s
+    ===   8.33Ly ( 1 jump ) ===> Alpha Centauri
+    === 145.96Ly ( 5 jumps) ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~118s
     === 230.65Ly ( 8 jumps) ===> Alioth, Golden Gate (7783Ls, Unknown Starport), SC: ~224s
 
-Total distance: 390.97Ly; total jumps: 14; total SC distance: 8760Ls
+Total distance: 392.72Ly; total jumps: 15; total SC distance: 8760Ls+
 ```
 
 ### Usage ###
-All station arguments are provided in the form `System/Station`.
+All station arguments are provided in the form `System/Station` or simply `System` to specify a system only.
 
 Required arguments:
 
-* `-s S`/`--start=S`: the station to start from
-* `-e S`/`--end=S`: the station to end at
+* `-s S`/`--start=S`: the system/station to start from
+* `-e S`/`--end=S`: the system/station to end at
 * `-j N`/`--jump-range=N`: the current jump range of the ship, in Ly
 
 Common optional arguments:
@@ -46,8 +47,8 @@ Common optional arguments:
 * `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
 * `-d N`/`--jump-decay=N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
 * `-r`/`--route`: causes a full route to be computed (for every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal. May take a long time to complete, and eat CPU time while it does so. To make it faster but potentially slightly less optimal, use lower `rbuffer` and `hbuffer` values (see below).
-* `-o`/`--ordered`: indicates that the provided stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
-* `station ...` - additional stations to travel via
+* `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
+* `system[/station] ...` - additional systems/stations to travel via
 
 Other optional arguments:
 
@@ -69,7 +70,7 @@ Other optional arguments:
 
 You may also read arguments from files using the syntax `@filename` in place of arguments; within the file, arguments are one per line. In the case of the example above:
 
-`python edts.py -j 35.2 --start "Sol/Galileo" --end "Alioth/Irkutsk" "Wolf 359/Powell High" "Agartha/Enoch Port"`
+`python edts.py -j 35.2 --start "Sol/Galileo" --end "Alioth/Irkutsk" "Wolf 359/Powell High" "Agartha/Enoch Port" "Alpha Centauri"`
 
 ... you could instead have a file called `sol-alioth.txt` containing the following:
 
@@ -79,6 +80,7 @@ You may also read arguments from files using the syntax `@filename` in place of 
 --end=Alioth/Golden Gate
 Wolf 359/Powell High
 Agartha/Enoch Port
+Alpha Centauri
 ```
 
 ... allowing for the following command to be run instead:
@@ -90,4 +92,7 @@ This allows for easy recalculating of the same route with different parameters s
 ### Future improvements ###
 
 * Making the cost algorithms aware of most in-system SC travel being slow (having to escape the start object's gravity well)
-* Supporting start/end/hops just being systems rather than stations
+
+### Thanks ###
+
+* CMDR furrycat - for patches! :)
