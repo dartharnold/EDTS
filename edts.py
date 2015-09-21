@@ -163,7 +163,7 @@ class Application:
         else:
           hopdist = hopsldist
     
-      route_str = "{0}".format(route[i].to_string())
+      route_str = route[i].to_string()
       if route[i].name is not None:
         route_str += ", SC: ~{0}s".format("{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None and route[i].distance != 0 else "???")
       if self.args.route and hop_route != None:
