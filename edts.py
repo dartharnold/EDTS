@@ -6,11 +6,13 @@ import logging
 import os
 import sys
 import eddb
+import coriolis
 from calc import Calc
 from route import Routing
 from solver import Solver
 from station import Station
 from system import System
+from fsd import FSD
 
 log = logging.getLogger("edts")
 
@@ -18,7 +20,11 @@ class Application:
 
   def __init__(self):
     ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@")
-    ap.add_argument("-j", "--jump-range", type=float, required=True, help="The ship's max jump range with full fuel and empty cargo")
+    ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
+    ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
+    ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
+    ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
+    ap.add_argument("-j", "--jump-range", type=float, required=False, help="The ship's max jump range with full fuel and empty cargo")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
@@ -39,6 +45,8 @@ class Application:
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
     ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
     ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
+    ap.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
+    ap.add_argument("--download-coriolis-files", nargs="?", const=True, help="Download Coriolis files (or re-download if already present).")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args()
 
@@ -56,6 +64,26 @@ class Application:
 
     self.eddb_systems = eddb.load_systems(self.args.eddb_systems_file)
     self.eddb_stations = eddb.load_stations(self.args.eddb_stations_file)
+
+    if self.args.jump_range is None:
+      if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
+        if self.args.download_coriolis_files:
+          coriolis.download_coriolis_files(self.args.coriolis_fsd_file)
+        elif not os.path.isfile(self.args.coriolis_fsd_file):
+          log.error("Error: Coriolis FSD file not found. Run this script with '--download-coriolis-files' to auto-download this.")
+          sys.exit(1)
+
+        self.unladen_mass = self.args.mass
+        self.fuel = self.args.tank
+        self.coriolis_frame_shift_drives = coriolis.load_frame_shift_drives(self.args.coriolis_fsd_file)
+        self.fsd = FSD(self.args.fsd, self.coriolis_frame_shift_drives)
+        if self.fsd is None:
+          sys.exit(1)
+      else:
+        log.error("Error: You must specify either --jump-range or all of --fsd, --mass and --tank.")
+        sys.exit(1)
+    else:
+      self.fsd = None
     
 
   def get_station_from_string(self, statstr):
@@ -115,9 +143,14 @@ class Application:
       else:
         log.warning("Warning: station {0} could not be found. Discarding.".format(st))
 
-    calc = Calc(self.args)
+    if self.fsd is not None:
+      jump_range = self.fsd.range(self.unladen_mass, self.fuel)
+    else:
+      jump_range = self.args.jump_range
+
+    calc = Calc(self.args, self.fsd)
     r = Routing(calc, self.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
-    s = Solver(calc, r, self.args.jump_range, self.args.diff_limit, self.args.solve_full)
+    s = Solver(calc, r, jump_range, self.args.diff_limit, self.args.solve_full)
 
     if self.args.ordered:
       route = [start] + stations + [end]
@@ -133,7 +166,10 @@ class Application:
     print ""
     print route[0].to_string()
     for i in xrange(1, len(route)):
-      cur_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
+      if self.fsd is None:
+        cur_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
+      else:
+        cur_max_jump = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (i-1))
 
       jumpcount = calc.jump_count(route[i-1], route[i], route[0:i-1])
       if self.args.route:

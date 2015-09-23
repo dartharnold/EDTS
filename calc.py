@@ -4,14 +4,18 @@ import math
 log = logging.getLogger("calc")
 
 class Calc:
-  def __init__(self, args):
+  def __init__(self, args, fsd):
     self.args = args
+    self.fsd = fsd
     self.sc_constant = 65
     self.sc_multiplier = 1.8
     self.sc_power = 0.5
 
   def jump_count(self, a, b, route):
-    jumpdist = self.args.jump_range - (self.args.jump_decay * (len(route) - 1))
+    if self.fsd is not None:
+      jumpdist = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (len(route) - 1))
+    else:
+      jumpdist = self.args.jump_range - (self.args.jump_decay * (len(route) - 1))
     hopdist = (a.position - b.position).length
     # If we're doing multiple jumps, apply the SLF
     if hopdist > jumpdist:
