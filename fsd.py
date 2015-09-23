@@ -23,7 +23,8 @@ class FSD:
 
     classrating = "{0}{1}".format(drive_class, drive_rating)
     if not classrating in fsdspec:
-      log.error("Error: No definition available for '{0} ' drive.".format(classrating))
+      log.error("Error: No definition available for '{0}' drive.".format(classrating))
+      return None
 
     self.drive = classrating
     fsdobj = fsdspec[self.drive]
