@@ -123,25 +123,25 @@ class Application:
     end = self.get_station_from_string(self.args.end)
 
     if start == None:
-      log.error("Error: start station {0} could not be found. Stopping.".format(self.args.start))
+      log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
       return
     if end == None:
-      log.error("Error: end station {0} could not be found. Stopping.".format(self.args.end))
+      log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
       return
 
     stations = []
     for st in self.args.stations:
       sobj = self.get_station_from_string(st)
       if sobj != None:      
+        log.debug("Adding system/station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
+        
         if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-          log.warning("Warning: station {0} ({1}) is not usable by the specified ship size. Discarding.".format(sobj.name, sobj.system_name))
-          continue
-        else:
-          log.debug("Adding station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
-          stations.append(sobj)
+          log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
+        stations.append(sobj)
           
       else:
-        log.warning("Warning: station {0} could not be found. Discarding.".format(st))
+        log.warning("Error: system/station {0} could not be found.".format(st))
+        return
 
     if self.fsd is not None:
       jump_range = self.fsd.range(self.unladen_mass, self.fuel)
