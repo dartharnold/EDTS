@@ -9,10 +9,10 @@ import sys
 import urllib
 
 default_systems_file = "eddb/systems.json"
-default_stations_file = "eddb/stations_lite.json"
+default_stations_file = "eddb/stations.json"
 
-eddb_systems_url = "http://eddb.io/archive/v3/systems.json"
-eddb_stations_url = "http://eddb.io/archive/v3/stations_lite.json"
+eddb_systems_url = "http://eddb.io/archive/v4/systems.json"
+eddb_stations_url = "http://eddb.io/archive/v4/stations.json"
 
 eddb_systems_file_size_limit = 100 * 1048576
 eddb_stations_file_size_limit = 500 * 1048576
