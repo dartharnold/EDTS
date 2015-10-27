@@ -43,7 +43,7 @@ class Application:
     ap.add_argument("--hbuffer-base", type=float, default=5.0, help="A minimum buffer distance, in Ly, used to search for valid next hops. Only used by the 'trundle' strategy.")
     ap.add_argument("--hbuffer-mult", type=float, default=0.3, help="A multiple of jump range to add to hbuffer_base. Only used by the 'trundle' strategy.")
     ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
-    ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations_lite.json or stations.json")
+    ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations.json")
     ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
     ap.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
     ap.add_argument("--download-coriolis-files", nargs="?", const=True, help="Download Coriolis files (or re-download if already present).")

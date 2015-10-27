@@ -63,7 +63,7 @@ Other optional arguments:
 * `--route-strategy=R`: The method to use when searching for optimal routes. Valid options: `trundle` (custom algorithm, slow in many cases but usually quite accurate), `astar` (A*, fast but sometimes produces less well-balanced routes). Default: `astar`
 * `--solve-full` - **experimental**: When enabled, uses the routing strategy to solve the optimal set of hops as well. **Very slow** and may not be effective.
 * `--eddb-systems-file=F`: The file to use as the EDDB systems.json. Default: `eddb/systems.json`
-* `--eddb-stations-file=F`: The file to use as the EDDB stations.json or stations_lite.json. Default: `eddb/stations_lite.json`
+* `--eddb-stations-file=F`: The file to use as the EDDB stations.json. Default: `eddb/stations.json`
 * `--download-eddb-files`: Download the EDDB systems and stations files before executing.
 
 ### File arguments ###
