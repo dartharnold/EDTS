@@ -30,7 +30,7 @@ Sol, Galileo (505Ls, Ocellus Starport)
     === 145.96Ly ( 5 jumps) ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~118s
     === 230.65Ly ( 8 jumps) ===> Alioth, Golden Gate (7783Ls, Unknown Starport), SC: ~224s
 
-Total distance: 392.72Ly; total jumps: 15; total SC distance: 8760Ls+
+Total distance: 392.72Ly; total jumps: 15; total SC distance: 8760Ls; ETT: 24:20
 ```
 
 ### Usage ###
