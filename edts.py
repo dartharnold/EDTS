@@ -32,7 +32,6 @@ class Application:
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
     ap.add_argument("-p", "--pad-size", default="M", type=str, help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
-    ap.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
@@ -49,9 +48,6 @@ class Application:
 
     if self.args.num_jumps == None:
       self.args.num_jumps = len(self.args.stations)
-
-    if self.args.verbose > 1:
-      logging.getLogger().setLevel(logging.DEBUG)
 
     if self.args.jump_range is None:
       if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
@@ -200,8 +196,6 @@ class Application:
 
 
 if __name__ == '__main__':
-  logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
-
   a = Application(sys.argv[1:])
   a.run()
 

@@ -1,11 +1,17 @@
 import sys
+import shlex
+import logging
+import time
 
 if __name__ == '__main__':
   print "Loading environment..."
 import env
 
+log = logging.getLogger("edi")
+
 import cmd
 import edts
+import close_to
 
 class EDI(cmd.Cmd):
 
@@ -15,12 +21,19 @@ class EDI(cmd.Cmd):
     self.prompt = "EDI> "
 
   def do_edts(self, args):
-    app = edts.Application(args.split())
-    app.run()
+    try:
+      app = edts.Application(shlex.split(args))
+      app.run()
+    except SystemExit:
+      pass
     return True
 
   def do_close_to(self, args):
-    print "close-to"
+    try:
+      app = close_to.Application(shlex.split(args))
+      app.run()
+    except SystemExit:
+      pass
     return True
 
 
@@ -30,7 +43,12 @@ class EDI(cmd.Cmd):
   def do_exit(self, args):
     return False
 
+  def precmd(self, line):
+    self.start_time = time.time()
+    return line
+
   def postcmd(self, retval, line):
+    log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
     if retval == False:
       return True
 
