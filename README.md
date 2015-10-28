@@ -10,9 +10,10 @@ This script provides a way to determine good routes for visiting a set of system
 
 ### How to use ###
 
-On first run, the latest [EDDB](http://eddb.io) system and station data must be downloaded:
+On first run, the latest [EDDB](http://eddb.io) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
 
-`python eddb.py --download`
+`python eddb.py --download`  
+`python coriolis.py --download`
 
 Once this is done, the script can be used:
 
@@ -33,19 +34,30 @@ Total distance: 392.72Ly; total jumps: 15; total SC distance: 8760Ls+
 ```
 
 ### Usage ###
-All station arguments are provided in the form `System/Station` or simply `System` to specify a system only.
+All station arguments are provided in the form `System/Station` or simply `System` to specify a system only.  
+The script can be run in Simple Mode (just provide the ship's jump range) or Accurate Mode (provide the FSD size, empty ship mass and fuel tank size).
 
 Required arguments:
 
-* `-s S`/`--start=S`: the system/station to start from
-* `-e S`/`--end=S`: the system/station to end at
-* `-j N`/`--jump-range=N`: the current jump range of the ship, in Ly
+* `-s S`/`--start=S`: the system/station to start from.
+* `-e S`/`--end=S`: the system/station to end at.
+
+Simple Mode arguments:
+
+* `-j N`/`--jump-range=N` (required): the current jump range of the ship, in Ly.
+* `-d N`/`--jump-decay=N` (optional): the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
+
+Accurate Mode arguments:
+
+* `-f N[A-E]`/`--fsd=N[A-E]` (required): the FSD fitted to the ship, e.g. `5A`.
+* `-m N`/`--mass=N` (required): the mass of the ship, in tonnes, with an empty fuel tank.
+* `-t N`/`--tank=N` (required): the size of the ship's fuel tank, in tonnes.
+* `-c N`/`--cargo=N` (optional): the amount of cargo to pick up at each stop. Default: `0`
 
 Common optional arguments:
 
 * `-n N`/`--num-jumps=N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-d N`/`--jump-decay=N`: the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
 * `-r`/`--route`: causes a full route to be computed (for every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal. May take a long time to complete, and eat CPU time while it does so. To make it faster but potentially slightly less optimal, use lower `rbuffer` and `hbuffer` values (see below).
 * `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
 * `system[/station] ...` - additional systems/stations to travel via
@@ -88,6 +100,10 @@ Alpha Centauri
 `python edts.py -j 35.2 @sol-alioth.txt`
 
 This allows for easy recalculating of the same route with different parameters such as jump range.
+
+You could also make a file containing the Accurate Mode parameters for a particular ship, allowing you to do similar to the following:
+
+`python edts.py @asp.txt @sol-alioth.txt`
 
 ### Future improvements ###
 
