@@ -80,8 +80,8 @@ class Application:
       if statname is None:
         return Station.none(sysobj)
       else:
-        for st in env.eddb_stations:
-          if st["system_id"] == sysid and st["name"].lower() == statname.lower():
+        for st in env.eddb_stations_by_system[sysid]:
+          if st["name"].lower() == statname.lower():
             # Found station
             stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
             
