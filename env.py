@@ -4,7 +4,7 @@ import os
 import sys
 import eddb
 import coriolis
-
+from itertools import izip
 
 def get_stations_by_system(stations):
   sbs = {}
@@ -15,6 +15,8 @@ def get_stations_by_system(stations):
     sbs[sid].append(st)
   return sbs
 
+def get_systems_by_name(stations):
+  return {el['name'].lower() : el for el in stations}
 
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
@@ -41,4 +43,4 @@ eddb_stations = eddb.load_stations(global_args.eddb_stations_file)
 coriolis_fsd_list = coriolis.load_frame_shift_drives(global_args.coriolis_fsd_file)
 
 eddb_stations_by_system = get_stations_by_system(eddb_stations)
-
+eddb_systems_by_name = get_systems_by_name(eddb_systems)

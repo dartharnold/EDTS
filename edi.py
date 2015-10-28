@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import sys
 import shlex
 import logging
@@ -28,6 +30,15 @@ class EDI(cmd.Cmd):
       pass
     return True
 
+
+  def do_distance(self, args):
+    try:
+      app = distance.Application(shlex.split(args))
+      app.run()
+    except SystemExit:
+      pass
+    return True
+
   def do_close_to(self, args):
     try:
       app = close_to.Application(shlex.split(args))
@@ -48,9 +59,9 @@ class EDI(cmd.Cmd):
     return line
 
   def postcmd(self, retval, line):
-    log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
     if retval == False:
       return True
+    log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
 
 if __name__ == '__main__':
   EDI().cmdloop()

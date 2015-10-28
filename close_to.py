@@ -22,16 +22,13 @@ class Application:
     self.allow_outposts = (self.args.pad_size != "L")
 
   def run(self):
-    start = None
-    asys = []
-    for s in env.eddb_systems:
-      if s["name"] == self.args.system[0]:
-        start = s
-
-    if start == None:
+    if not self.args.system[0] in env.eddb_systems_by_name:
       log.error("Could not find start system \"{0}\"!".format(self.args.system))
       return
 
+    start = env.eddb_systems_by_name[self.args.system[0].lower()]
+    asys = []
+    
     startpos = Vector3(start["x"], start["y"], start["z"])
     maxdist = None
 
