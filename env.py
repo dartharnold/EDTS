@@ -4,7 +4,12 @@ import os
 import sys
 import eddb
 import coriolis
-from itertools import izip
+from system import System
+from station import Station
+
+logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
+log = logging.getLogger("env")
+
 
 def get_stations_by_system(stations):
   sbs = {}
@@ -18,7 +23,35 @@ def get_stations_by_system(stations):
 def get_systems_by_name(stations):
   return {el['name'].lower() : el for el in stations}
 
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
+def get_station_from_string(statstr):
+  parts = statstr.split("/", 1)
+  sysname = parts[0]
+  statname = parts[1] if len(parts) > 1 else None
+
+  return get_station(sysname, statname)
+
+def get_station(sysname, statname = None):
+  if sysname.lower() in eddb_systems_by_name:
+    # Found system
+    sy = eddb_systems_by_name[sysname.lower()]
+    sysid = sy["id"]
+    sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
+
+    if statname is None:
+      return Station.none(sysobj)
+    else:
+      for st in eddb_stations_by_system[sysid]:
+        if st["name"].lower() == statname.lower():
+          # Found station
+          stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
+          
+          if stobj.distance == None:
+            log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
+            stobj.distance = 0
+          
+          return stobj
+  return None
+
 
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Tools", fromfile_prefix_chars="@", add_help=False)
 arg_parser.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")

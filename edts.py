@@ -63,40 +63,10 @@ class Application:
       self.fsd = None
     
 
-  def get_station_from_string(self, statstr):
-    parts = statstr.split("/", 1)
-    sysname = parts[0]
-    statname = parts[1] if len(parts) > 1 else None
-
-    return self.get_station(sysname, statname)
-
-  def get_station(self, sysname, statname = None):
-    if sysname.lower() in env.eddb_systems_by_name:
-      # Found system
-      sy = env.eddb_systems_by_name[sysname.lower()]
-      sysid = sy["id"]
-      sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
-
-      if statname is None:
-        return Station.none(sysobj)
-      else:
-        for st in env.eddb_stations_by_system[sysid]:
-          if st["name"].lower() == statname.lower():
-            # Found station
-            stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
-            
-            if stobj.distance == None:
-              log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
-              stobj.distance = 0
-            
-            return stobj
-    return None
-
-
   def run(self):
 
-    start = self.get_station_from_string(self.args.start)
-    end = self.get_station_from_string(self.args.end)
+    start = env.get_station_from_string(self.args.start)
+    end = env.get_station_from_string(self.args.end)
 
     if start == None:
       log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
@@ -107,7 +77,7 @@ class Application:
 
     stations = []
     for st in self.args.stations:
-      sobj = self.get_station_from_string(st)
+      sobj = env.get_station_from_string(st)
       if sobj != None:      
         log.debug("Adding system/station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
         

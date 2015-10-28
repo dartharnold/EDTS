@@ -14,6 +14,7 @@ log = logging.getLogger("edi")
 import cmd
 import edts
 import close_to
+import distance
 
 class EDI(cmd.Cmd):
 
