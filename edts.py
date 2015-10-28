@@ -6,6 +6,7 @@ import logging
 import math
 import os
 import sys
+import env
 import eddb
 import coriolis
 from calc import Calc
@@ -19,8 +20,8 @@ log = logging.getLogger("edts")
 
 class Application:
 
-  def __init__(self):
-    ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@")
+  def __init__(self, arg):
+    ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=[env.arg_parser])
     ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
@@ -43,13 +44,8 @@ class Application:
     ap.add_argument("--rbuffer-mult", type=float, default=0.15, help="A multiple of hop straight-line distance to add to rbuffer_base")
     ap.add_argument("--hbuffer-base", type=float, default=5.0, help="A minimum buffer distance, in Ly, used to search for valid next hops. Only used by the 'trundle' strategy.")
     ap.add_argument("--hbuffer-mult", type=float, default=0.3, help="A multiple of jump range to add to hbuffer_base. Only used by the 'trundle' strategy.")
-    ap.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
-    ap.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations.json")
-    ap.add_argument("--download-eddb-files", nargs="?", const=True, help="Download EDDB files (or re-download if already present).")
-    ap.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
-    ap.add_argument("--download-coriolis-files", nargs="?", const=True, help="Download Coriolis files (or re-download if already present).")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
-    self.args = ap.parse_args()
+    self.args = ap.parse_args(arg)
 
     if self.args.num_jumps == None:
       self.args.num_jumps = len(self.args.stations)
@@ -57,27 +53,11 @@ class Application:
     if self.args.verbose > 1:
       logging.getLogger().setLevel(logging.DEBUG)
 
-    if self.args.download_eddb_files:
-      eddb.download_eddb_files(self.args.eddb_systems_file, self.args.eddb_stations_file)
-    elif not os.path.isfile(self.args.eddb_systems_file) or not os.path.isfile(self.args.eddb_stations_file):
-      log.error("Error: EDDB system/station files not found. Run this script with '--download-eddb-files' to auto-download these.")
-      sys.exit(1)
-
-    self.eddb_systems = eddb.load_systems(self.args.eddb_systems_file)
-    self.eddb_stations = eddb.load_stations(self.args.eddb_stations_file)
-
     if self.args.jump_range is None:
       if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
-        if self.args.download_coriolis_files:
-          coriolis.download_coriolis_files(self.args.coriolis_fsd_file)
-        elif not os.path.isfile(self.args.coriolis_fsd_file):
-          log.error("Error: Coriolis FSD file not found. Run this script with '--download-coriolis-files' to auto-download this.")
-          sys.exit(1)
-
         self.unladen_mass = self.args.mass
         self.fuel = self.args.tank
-        self.coriolis_frame_shift_drives = coriolis.load_frame_shift_drives(self.args.coriolis_fsd_file)
-        self.fsd = FSD(self.args.fsd, self.coriolis_frame_shift_drives)
+        self.fsd = FSD(self.args.fsd, env.coriolis_fsd_list)
         if self.fsd is None:
           sys.exit(1)
       else:
@@ -95,7 +75,7 @@ class Application:
     return self.get_station(sysname, statname)
 
   def get_station(self, sysname, statname = None):
-    for sy in self.eddb_systems:
+    for sy in env.eddb_systems:
       if sy["name"].lower() == sysname.lower():
         # Found system
         sysid = sy["id"]
@@ -104,7 +84,7 @@ class Application:
           sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
           return Station.none(sysobj)
         else:
-          for st in self.eddb_stations:
+          for st in env.eddb_stations:
             if st["system_id"] == sysid and st["name"].lower() == statname.lower():
               # Found station
               sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
@@ -150,7 +130,7 @@ class Application:
       jump_range = self.args.jump_range
 
     calc = Calc(self.args, self.fsd)
-    r = Routing(calc, self.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
+    r = Routing(calc, env.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit, self.args.solve_full)
 
     if self.args.ordered:
@@ -221,7 +201,8 @@ class Application:
 
 if __name__ == '__main__':
   logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
-  a = Application()
+
+  a = Application(sys.argv[1:])
   a.run()
 
 
