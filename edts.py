@@ -3,6 +3,7 @@
 import argparse
 import json
 import logging
+import math
 import os
 import sys
 import eddb
@@ -184,7 +185,8 @@ class Application:
       totaljumps += jumpcount
       if route[i].distance != None and route[i].distance != 0:
         totalsc += route[i].distance
-      else:
+      elif route[i].name != None:
+        # Only say the SC time is inaccurate if it's actually a *station* we don't have the distance for
         totalsc_accurate = False
 
       if self.args.route and hop_route != None:
@@ -207,8 +209,12 @@ class Application:
       else:
         print "    === {0: >6.2f}Ly ({1:2d} jump{2}) ===> {3}".format(hopsldist, jumpcount, "s" if jumpcount != 1 else " ", route_str)
 
+    est_time = calc.route_time(route, totaljumps)
+    est_time_m = math.floor(est_time / 60)
+    est_time_s = int(est_time) % 60
+
     print ""
-    print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "")
+    print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}; ETT: {4:.0f}:{5:02.0f}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "", est_time_m, est_time_s)
     print ""
 
 

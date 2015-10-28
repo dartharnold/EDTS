@@ -1,5 +1,6 @@
 import logging
 import math
+from station import Station
   
 log = logging.getLogger("calc")
 
@@ -10,6 +11,9 @@ class Calc:
     self.sc_constant = 65
     self.sc_multiplier = 1.8
     self.sc_power = 0.5
+    self.jump_time = 45
+    self.stop_outpost_time = 75
+    self.stop_station_time = 90
 
   def jump_count(self, a, b, route):
     if self.fsd is not None:
@@ -75,4 +79,26 @@ class Calc:
     var = self.route_variance(route, self.route_dist(route))
     return (hs_jumps + hs_jdist + var)
 
+  def sc_time(self, stn):
+    if isinstance(stn, Station) and stn.name != None:
+      return self.sc_cost(stn.distance if stn.distance != None else 0.0)
+    else:
+      return 0.0
 
+  def station_time(self, stn):
+    if isinstance(stn, Station) and stn.name != None:
+      if stn.max_pad_size == 'L':
+        return self.stop_station_time
+      else:
+        return self.stop_outpost_time
+    else:
+      return 0.0
+
+  def route_time(self, route, jump_count):
+    hs_t = jump_count * self.jump_time
+    sc_t = sum(self.sc_time(stn) for stn in route[1:])
+    stn_t = sum(self.station_time(stn) for stn in route)
+
+    log.debug("hs_time = {0:.2f}, sc_time = {1:.2f}, stn_time = {2:.2f}".format(hs_t, sc_t, stn_t))
+
+    return hs_t + sc_t + stn_t
