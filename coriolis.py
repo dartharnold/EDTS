@@ -10,7 +10,7 @@ import urllib
 
 default_frame_shift_drive_file = "coriolis/frame_shift_drive.json"
 
-coriolis_frame_shift_drive_url = "https://raw.githubusercontent.com/cmmcleod/coriolis/master/data/components/common/frame_shift_drive.json"
+coriolis_frame_shift_drive_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/components/standard/frame_shift_drive.json"
 
 coriolis_frame_shift_drive_file_size_limit = 1 * 1048576
 
