@@ -14,7 +14,9 @@ log = logging.getLogger("edi")
 import cmd
 import edts
 import close_to
+import coords
 import distance
+import find
 
 class EDI(cmd.Cmd):
 
@@ -30,7 +32,6 @@ class EDI(cmd.Cmd):
     except SystemExit:
       pass
     return True
-
 
   def do_distance(self, args):
     try:
@@ -48,6 +49,19 @@ class EDI(cmd.Cmd):
       pass
     return True
 
+  def do_coords(self, args):
+    try:
+      app = coords.Application(shlex.split(args))
+      app.run()
+    except SystemExit:
+      return True
+
+  def do_find(self, args):
+    try:
+      app = find.Application(shlex.split(args))
+      app.run()
+    except SystemExit:
+      return True
 
   def do_quit(self, args):
     return False

@@ -22,7 +22,7 @@ class Application:
     self.allow_outposts = (self.args.pad_size != "L")
 
   def run(self):
-    if not self.args.system[0] in env.eddb_systems_by_name:
+    if not self.args.system[0].lower() in env.eddb_systems_by_name:
       log.error("Could not find start system \"{0}\"!".format(self.args.system))
       return
 

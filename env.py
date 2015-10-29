@@ -20,8 +20,20 @@ def get_stations_by_system(stations):
     sbs[sid].append(st)
   return sbs
 
-def get_systems_by_name(stations):
-  return {el['name'].lower() : el for el in stations}
+def get_systems_by_id(systems):
+  return {el['id'] : el for el in systems}
+
+def get_systems_by_name(systems):
+  return {el['name'].lower() : el for el in systems}
+
+def get_stations_by_name(stations):
+  sbn = {}
+  for st in stations:
+    name = st["name"].lower()
+    if not name in sbn:
+      sbn[name] = []
+    sbn[name].append(st)
+  return sbn
 
 def get_station_from_string(statstr):
   parts = statstr.split("/", 1)
@@ -30,7 +42,7 @@ def get_station_from_string(statstr):
 
   return get_station(sysname, statname)
 
-def get_station(sysname, statname = None):
+def get_station(sysname, statname = None, allow_none_distance = False):
   if sysname.lower() in eddb_systems_by_name:
     # Found system
     sy = eddb_systems_by_name[sysname.lower()]
@@ -45,7 +57,7 @@ def get_station(sysname, statname = None):
           # Found station
           stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
           
-          if stobj.distance == None:
+          if stobj.distance == None and not allow_none_distance:
             log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
             stobj.distance = 0
           
@@ -76,4 +88,6 @@ eddb_stations = eddb.load_stations(global_args.eddb_stations_file)
 coriolis_fsd_list = coriolis.load_frame_shift_drives(global_args.coriolis_fsd_file)
 
 eddb_stations_by_system = get_stations_by_system(eddb_stations)
+eddb_systems_by_id = get_systems_by_id(eddb_systems)
 eddb_systems_by_name = get_systems_by_name(eddb_systems)
+eddb_stations_by_name = get_stations_by_name(eddb_stations)
