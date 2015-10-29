@@ -5,13 +5,16 @@ import os
 import sys
 from vector3 import Vector3
 
-log = logging.getLogger("close_to")
+app_name = "close_to"
+
+log = logging.getLogger(app_name)
 
 
 class Application:
 
-  def __init__(self, arg):
-    ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents=[env.arg_parser])
+  def __init__(self, arg, hosted):
+    ap_parents = [env.arg_parser] if not hosted else []
+    ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
     ap.add_argument("-s", "--stations", default=False, action='store_true', help="Only show systems with stations")
@@ -57,6 +60,6 @@ class Application:
     print ""
 
 if __name__ == '__main__':
-  a = Application(sys.argv[1:])
+  a = Application(env.local_args, False)
   a.run()
 

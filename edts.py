@@ -16,12 +16,15 @@ from station import Station
 from system import System
 from fsd import FSD
 
-log = logging.getLogger("edts")
+app_name = "edts"
+
+log = logging.getLogger(app_name)
 
 class Application:
 
-  def __init__(self, arg):
-    ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=[env.arg_parser])
+  def __init__(self, arg, hosted):
+    ap_parents = [env.arg_parser] if not hosted else []
+    ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
     ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
@@ -165,7 +168,7 @@ class Application:
 
 
 if __name__ == '__main__':
-  a = Application(sys.argv[1:])
+  a = Application(env.local_args, False)
   a.run()
 
 

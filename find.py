@@ -6,13 +6,16 @@ import os
 import sys
 from vector3 import Vector3
 
-log = logging.getLogger("find")
+app_name = "find"
+
+log = logging.getLogger(app_name)
 
 
 class Application:
 
-  def __init__(self, arg):
-    ap = argparse.ArgumentParser(description = "Find System or Station", fromfile_prefix_chars="@", parents=[env.arg_parser])
+  def __init__(self, arg, hosted):
+    ap_parents = [env.arg_parser] if not hosted else []
+    ap = argparse.ArgumentParser(description = "Find System or Station", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
     ap.add_argument("system", metavar="system", type=str, nargs=1, help="The system or station to find")
     self.args = ap.parse_args(arg)
 
@@ -52,6 +55,6 @@ class Application:
 
 
 if __name__ == '__main__':
-  a = Application(sys.argv[1:])
+  a = Application(env.local_args, False)
   a.run()
 

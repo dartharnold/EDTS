@@ -27,7 +27,7 @@ class EDI(cmd.Cmd):
 
   def do_edts(self, args):
     try:
-      app = edts.Application(shlex.split(args))
+      app = edts.Application(shlex.split(args), True)
       app.run()
     except SystemExit:
       pass
@@ -35,7 +35,7 @@ class EDI(cmd.Cmd):
 
   def do_distance(self, args):
     try:
-      app = distance.Application(shlex.split(args))
+      app = distance.Application(shlex.split(args), True)
       app.run()
     except SystemExit:
       pass
@@ -43,7 +43,7 @@ class EDI(cmd.Cmd):
 
   def do_close_to(self, args):
     try:
-      app = close_to.Application(shlex.split(args))
+      app = close_to.Application(shlex.split(args), True)
       app.run()
     except SystemExit:
       pass
@@ -51,14 +51,14 @@ class EDI(cmd.Cmd):
 
   def do_coords(self, args):
     try:
-      app = coords.Application(shlex.split(args))
+      app = coords.Application(shlex.split(args), True)
       app.run()
     except SystemExit:
       return True
 
   def do_find(self, args):
     try:
-      app = find.Application(shlex.split(args))
+      app = find.Application(shlex.split(args), True)
       app.run()
     except SystemExit:
       return True

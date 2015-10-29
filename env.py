@@ -70,7 +70,7 @@ arg_parser.add_argument("-v", "--verbose", type=int, default=1, help="Increases 
 arg_parser.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
 arg_parser.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations.json")
 arg_parser.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
-global_args, unknown_args = arg_parser.parse_known_args(sys.argv[1:])
+global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 
 if global_args.verbose > 1:
   logging.getLogger().setLevel(logging.DEBUG)
