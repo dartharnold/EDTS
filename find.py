@@ -2,8 +2,6 @@ import argparse
 import env
 import fnmatch
 import logging
-import os
-import sys
 from vector3 import Vector3
 
 app_name = "find"

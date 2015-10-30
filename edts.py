@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 
 import argparse
-import json
 import logging
 import math
-import os
 import sys
 import env
-import eddb
-import coriolis
 from calc import Calc
 from route import Routing
 from solver import Solver
