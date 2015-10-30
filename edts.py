@@ -37,6 +37,7 @@ class Application:
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
+    ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
@@ -106,6 +107,9 @@ class Application:
     else:
       # Add 2 to the jump count for start + end
       route = s.solve(stations, start, end, self.args.num_jumps + 2)
+
+    if self.args.reverse:
+      route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
 
     totaldist = 0.0
     totaljumps = 0

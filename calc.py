@@ -35,6 +35,12 @@ class Calc:
     sc = self.sc_cost(b.distance) if b.uses_sc else 0.0
     return (hs_jumps + hs_jdist + sc)
 
+  def solve_route_cost(self, route):
+    cost = 0.0
+    for i in xrange(0, len(route)-1):
+      cost += self.solve_cost(route[i], route[i+1], route)
+    return cost
+
   def route_cost(self, route):
     if self.args.route_strategy == "trundle":
       return self.trundle_cost(route)

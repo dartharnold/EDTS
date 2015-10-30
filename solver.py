@@ -20,9 +20,12 @@ class Solver:
     minroute = None
 
     for route in vr:
-      cost = 0
-      for i in xrange(0, len(route)-1):
-        cost += self._calc.solve_cost(route[i], route[i+1], route)
+      cost_normal = self._calc.solve_route_cost(route)
+      route_reversed = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
+      cost_reversed = self._calc.solve_route_cost(route_reversed)
+
+      cost = cost_normal if (cost_normal <= cost_reversed) else cost_reversed
+      route = route if (cost_normal <= cost_reversed) else route_reversed
 
       costs.append(cost)
       if mincost == None or cost < mincost:
@@ -55,7 +58,6 @@ class Solver:
 
     else:
       return minroute
-
 
 
   def get_route_hops(self, stations):
