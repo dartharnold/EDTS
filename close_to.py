@@ -14,6 +14,8 @@ class Application:
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
+    ap.add_argument("-d", "--min-dist", type=int, required=False, help="Exclude systems less than this distance from reference")
+    ap.add_argument("-m", "--max-dist", type=int, required=False, help="Exclude systems further this distance from reference")
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
     ap.add_argument("-s", "--stations", default=False, action='store_true', help="Only show systems with stations")
     ap.add_argument("-p", "--pad-size", default="M", type=str, help="Only show systems with stations matching the specified pad size")
@@ -42,6 +44,10 @@ class Application:
           # If we *don't* have stations (because we don't care), or the stations match the requirements...
           if not has_stns or (s["id"] in env.eddb_stations_by_system and len([st for st in env.eddb_stations_by_system[s["id"]] if (self.allow_outposts or st["max_landing_pad_size"] == "L")])) > 0:
             dist = (Vector3(s["x"],s["y"],s["z"]) - startpos).length
+            if not self.args.min_dist is None and dist < self.args.min_dist:
+              continue
+            if not self.args.max_dist is None and dist > self.args.max_dist:
+              continue
             if len(asys) < self.args.num or dist < maxdist:
               # We have a new contender; add it, sort by distance, chop to length and set the new max distance
               asys.append(s)
@@ -53,7 +59,7 @@ class Application:
     print ""
     print "Matching systems close to {0}:".format(self.args.system[0])
     print ""
-    for i in xrange(0,self.args.num):
+    for i in xrange(0,len(asys)):
       print "  {0} ({1:.2f}Ly)".format(asys[i]["name"], (Vector3(asys[i]["x"],asys[i]["y"],asys[i]["z"]) - startpos).length)
     print ""
 
