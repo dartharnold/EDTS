@@ -69,6 +69,10 @@ class EDI(cmd.Cmd):
   def do_exit(self, args):
     return False
 
+  def do_EOF(self, args):
+    print
+    return False
+
   def precmd(self, line):
     self.start_time = time.time()
     return line
