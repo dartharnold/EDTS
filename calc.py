@@ -13,7 +13,7 @@ class Calc:
     self.sc_power = 0.5
     self.jump_spool_time = 20
     self.jump_witchspace_time = 15
-    self.jump_cooldown_time = 9
+    self.jump_cooldown_time = 10
     self.stop_outpost_time = 75
     self.stop_station_time = 90
 
