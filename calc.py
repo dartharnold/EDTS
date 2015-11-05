@@ -17,11 +17,14 @@ class Calc:
     self.stop_outpost_time = 75
     self.stop_station_time = 90
 
-  def jump_count(self, a, b, route):
+  def jump_count(self, a, b, route, allow_long = False):
     if self.fsd is not None:
-      jumpdist = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (len(route) - 1))
+      if allow_long:
+        jumpdist = self.fsd.max_range(self.args.mass, self.args.cargo * (len(route)-1))
+      else:
+        jumpdist = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (len(route)-1))
     else:
-      jumpdist = self.args.jump_range - (self.args.jump_decay * (len(route) - 1))
+      jumpdist = self.args.jump_range - (self.args.jump_decay * (len(route)-1))
     hopdist = (a.position - b.position).length
     # If we're doing multiple jumps, apply the SLF
     if hopdist > jumpdist:
@@ -81,11 +84,23 @@ class Calc:
       cvar += math.pow((jdist - meanjump), power)
     return cvar
 
-  def astar_cost(self, a, b, route):
-    hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
+  def astar_cost(self, a, b, route, dist_threshold = None):
+    jcount = self.jump_count(a, b, route, (dist_threshold is not None))
+    hs_jumps = self.time_for_jumps(jcount)
     hs_jdist = (a.position - b.position).length
     var = self.route_variance(route, self.route_dist(route))
-    return (hs_jumps + hs_jdist + var)
+
+    penalty = 0.0
+    if jcount == 1 and dist_threshold is not None and (a.position - b.position).length > dist_threshold:
+      penalty += 20
+
+    for i in xrange(0, len(route)-1):
+      cdist = (route[i+1].position - route[i].position).length
+      if dist_threshold is not None and cdist > dist_threshold:
+        penalty += 20
+
+    total = (hs_jumps + hs_jdist + var + penalty)
+    return total
 
   def sc_time(self, stn):
     if isinstance(stn, Station) and stn.name != None:

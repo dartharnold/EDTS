@@ -128,7 +128,7 @@ class Application:
 
       jumpcount = calc.jump_count(route[i-1], route[i], route[0:i-1])
       if self.args.route:
-        hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump)
+        hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
         if hop_route != None:
           jumpcount = len(hop_route)-1
         else:

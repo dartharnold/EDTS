@@ -62,19 +62,22 @@ class Routing:
     return candidates
 
 
-  def plot(self, sys_from, sys_to, jump_range):
+  def plot(self, sys_from, sys_to, jump_range, full_range = None):
+    if full_range is None:
+      full_range = jump_range
+
     if self._route_strategy == "trundle":
       # My algorithm - slower but pinpoint
-      return self.plot_trundle(sys_from, sys_to, jump_range)
+      return self.plot_trundle(sys_from, sys_to, jump_range, full_range)
     elif self._route_strategy == "astar":
       # A* search - faster but worse fuel efficiency
-      return self.plot_astar(sys_from, sys_to, jump_range)
+      return self.plot_astar(sys_from, sys_to, jump_range, full_range)
     else:
       log.error("Tried to use invalid route strategy {0}".format(self._route_strategy))
       return None
 
 
-  def plot_astar(self, sys_from, sys_to, jump_range):
+  def plot_astar(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
 
@@ -102,7 +105,7 @@ class Routing:
           continue
  
         # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
-        tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, self.astar_reconstruct_path(came_from, current))
+        tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, self.astar_reconstruct_path(came_from, current), full_range)
 
         if neighbor not in g_score:
           g_score[neighbor] = sys.float_info.max
@@ -110,7 +113,7 @@ class Routing:
         if neighbor not in openset or tentative_g_score < g_score[neighbor]:
           came_from[neighbor] = current
           g_score[neighbor] = tentative_g_score
-          f_score[neighbor] = self._calc.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor))
+          f_score[neighbor] = self._calc.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor), full_range)
           if neighbor not in openset:
             openset.add(neighbor)
  
@@ -125,7 +128,7 @@ class Routing:
     return list(reversed(total_path))
 
 
-  def plot_trundle(self, sys_from, sys_to, jump_range):
+  def plot_trundle(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
    
@@ -164,7 +167,7 @@ class Routing:
       # Start looking halfway down the route, since we shouldn't really ever be jumping <50% of our range, especially + buffer
       start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range / 2)
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
-      hbuffer_ly = self._hbuffer_base + (jump_range * self.hbuffer_mult)
+      hbuffer_ly = self._hbuffer_base + (jump_range * self._hbuffer_mult)
       mystars = self.cylinder(stars, start_vec, dir_vec, hbuffer_ly)
 
       # Get valid next hops
