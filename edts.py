@@ -53,7 +53,7 @@ class Application:
       if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
         self.unladen_mass = self.args.mass
         self.fuel = self.args.tank
-        self.fsd = FSD(self.args.fsd, env.coriolis_fsd_list)
+        self.fsd = FSD(self.args.fsd)
         if self.fsd is None:
           sys.exit(1)
       else:

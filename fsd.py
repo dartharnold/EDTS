@@ -1,11 +1,12 @@
 import logging
 import math
 import re
+import env
 
 log = logging.getLogger("fsd")
 
 class FSD:
-  def __init__(self, classrating, fsdspec):
+  def __init__(self, classrating):
     drive_class = None
     drive_rating = None
 
@@ -22,19 +23,23 @@ class FSD:
       return None
 
     classrating = "{0}{1}".format(drive_class, drive_rating)
-    if not classrating in fsdspec:
+    if not classrating in env.coriolis_fsd_list:
       log.error("Error: No definition available for '{0}' drive.".format(classrating))
       return None
 
     self.drive = classrating
-    fsdobj = fsdspec[self.drive]
+    fsdobj = env.coriolis_fsd_list[self.drive]
     self.optmass = float(fsdobj['optmass'])
     self.maxfuel = float(fsdobj['maxfuel'])
     self.fuelmul = float(fsdobj['fuelmul'])
     self.fuelpower = float(fsdobj['fuelpower'])
 
   def range(self, mass, fuel, cargo = 0):
-    return (self.optmass / (mass + fuel + cargo)) * math.pow((self.maxfuel / self.fuelmul), (1 / self.fuelpower))
+    cur_maxfuel = min(self.maxfuel, fuel)
+    return (self.optmass / (mass + fuel + cargo)) * math.pow((cur_maxfuel / self.fuelmul), (1 / self.fuelpower))
 
-  def cost(self, dist, mass, fuel, cargo):
-    return self.fuelmul * math.pow(dist * (mass / self.optmass), self.fuelpower)
+  def cost(self, dist, mass, fuel, cargo = 0):
+    return self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
+  
+  def max_range(self, mass):
+    return self.range(mass, self.maxfuel)
