@@ -34,6 +34,7 @@ class Application:
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
+    ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
@@ -91,8 +92,10 @@ class Application:
         return
 
     if self.fsd is not None:
-      jump_range = self.fsd.range(self.unladen_mass, self.fuel)
+      full_jump_range = self.fsd.range(self.unladen_mass, self.fuel)
+      jump_range = self.fsd.max_range(self.unladen_mass) if self.args.long_jumps else full_jump_range
     else:
+      full_jump_range = self.args.jump_range
       jump_range = self.args.jump_range
 
     calc = Calc(self.args, self.fsd)
@@ -117,9 +120,11 @@ class Application:
     print route[0].to_string()
     for i in xrange(1, len(route)):
       if self.fsd is None:
-        cur_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
+        full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
+        cur_max_jump = full_max_jump
       else:
-        cur_max_jump = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (i-1))
+        full_max_jump = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (i-1))
+        cur_max_jump = self.fsd.max_range(self.args.mass, self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
       jumpcount = calc.jump_count(route[i-1], route[i], route[0:i-1])
       if self.args.route:
@@ -145,7 +150,8 @@ class Application:
           for j in xrange(1, len(hop_route)-1):
             hdist = (hop_route[j-1].position - hop_route[j].position).length
             hopdist += hdist
-            print "    --- {0: >6.2f}Ly ---> {1}".format(hdist, hop_route[j].name)
+            is_long = (hdist > full_max_jump)
+            print "    -{0}- {1: >6.2f}Ly -{0}-> {2}".format("!" if is_long else "-", hdist, hop_route[j].name)
           hopdist += lastdist
         else:
           hopdist = hopsldist
@@ -154,7 +160,8 @@ class Application:
       if route[i].name is not None:
         route_str += ", SC: ~{0}s".format("{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None and route[i].distance != 0 else "???")
       if self.args.route and hop_route != None:
-        print "    === {0: >6.2f}Ly ===> {1} -- hop of {2:.2f}Ly for {3:.2f}Ly".format(lastdist, route_str, hopdist, hopsldist)
+        is_long = (lastdist > full_max_jump)
+        print "    ={0}= {1: >6.2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly".format("!" if is_long else "=", lastdist, route_str, hopdist, hopsldist)
       else:
         print "    === {0: >6.2f}Ly ({1:2d} jump{2}) ===> {3}".format(hopsldist, jumpcount, "s" if jumpcount != 1 else " ", route_str)
 

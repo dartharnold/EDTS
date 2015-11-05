@@ -104,7 +104,7 @@ class Calc:
 
   def time_for_jumps(self, jump_count):
     jump_witchspace_time = self.args.witchspace_time if self.args.witchspace_time is not None else self.jump_witchspace_time
-    return ((self.jump_spool_time + jump_witchspace_time) * jump_count) + (self.jump_cooldown_time * (jump_count - 1))
+    return max(0.0, ((self.jump_spool_time + jump_witchspace_time) * jump_count) + (self.jump_cooldown_time * (jump_count - 1)))
 
   def route_time(self, route, jump_count):
     hs_t = self.time_for_jumps(jump_count)

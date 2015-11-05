@@ -41,5 +41,5 @@ class FSD:
   def cost(self, dist, mass, fuel, cargo = 0):
     return self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
   
-  def max_range(self, mass):
-    return self.range(mass, self.maxfuel)
+  def max_range(self, mass, cargo = 0):
+    return self.range(mass, self.maxfuel, cargo)

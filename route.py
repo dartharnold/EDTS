@@ -78,8 +78,8 @@ class Routing:
     rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
 
-    closedset = []          # The set of nodes already evaluated.
-    openset = [sys_from]    # The set of tentative nodes to be evaluated, initially containing the start node
+    closedset = set()         # The set of nodes already evaluated.
+    openset = set([sys_from]) # The set of tentative nodes to be evaluated, initially containing the start node
     came_from = dict()
  
     g_score = dict()
@@ -93,7 +93,7 @@ class Routing:
         return self.astar_reconstruct_path(came_from, sys_to)
       
       openset.remove(current)
-      closedset.append(current)
+      closedset.add(current)
 
       neighbor_nodes = [n for n in stars if n != current and (n.position - current.position).length < jump_range]
 
@@ -101,7 +101,8 @@ class Routing:
         if neighbor in closedset:
           continue
  
-        tentative_g_score = g_score[current] + (current.position - neighbor.position).length
+        # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
+        tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, self.astar_reconstruct_path(came_from, current))
 
         if neighbor not in g_score:
           g_score[neighbor] = sys.float_info.max
@@ -111,7 +112,7 @@ class Routing:
           g_score[neighbor] = tentative_g_score
           f_score[neighbor] = self._calc.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor))
           if neighbor not in openset:
-            openset.append(neighbor)
+            openset.add(neighbor)
  
     return None
 
