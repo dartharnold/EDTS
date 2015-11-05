@@ -26,6 +26,7 @@ class Application:
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
     ap.add_argument("-j", "--jump-range", type=float, required=False, help="The ship's max jump range with full fuel and empty cargo")
+    ap.add_argument("-w", "--witchspace-time", type=int, required=False, help="Time in seconds spent in hyperspace jump")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")

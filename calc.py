@@ -11,7 +11,9 @@ class Calc:
     self.sc_constant = 65
     self.sc_multiplier = 1.8
     self.sc_power = 0.5
-    self.jump_time = 45
+    self.jump_spool_time = 20
+    self.jump_witchspace_time = 15
+    self.jump_cooldown_time = 10
     self.stop_outpost_time = 75
     self.stop_station_time = 90
 
@@ -30,7 +32,7 @@ class Calc:
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
 	
   def solve_cost(self, a, b, route):
-    hs_jumps = self.jump_count(a, b, route) * self.args.jump_time
+    hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
     hs_jdist = (a.position - b.position).length
     sc = self.sc_cost(b.distance) if b.uses_sc else 0.0
     return (hs_jumps + hs_jdist + sc)
@@ -80,7 +82,7 @@ class Calc:
     return cvar
 
   def astar_cost(self, a, b, route):
-    hs_jumps = self.jump_count(a, b, route) * self.args.jump_time
+    hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
     hs_jdist = (a.position - b.position).length
     var = self.route_variance(route, self.route_dist(route))
     return (hs_jumps + hs_jdist + var)
@@ -100,8 +102,12 @@ class Calc:
     else:
       return 0.0
 
+  def time_for_jumps(self, jump_count):
+    jump_witchspace_time = self.args.witchspace_time if self.args.witchspace_time is not None else self.jump_witchspace_time
+    return ((self.jump_spool_time + jump_witchspace_time) * jump_count) + (self.jump_cooldown_time * (jump_count - 1))
+
   def route_time(self, route, jump_count):
-    hs_t = jump_count * self.jump_time
+    hs_t = self.time_for_jumps(jump_count)
     sc_t = sum(self.sc_time(stn) for stn in route[1:])
     stn_t = sum(self.station_time(stn) for stn in route)
 
