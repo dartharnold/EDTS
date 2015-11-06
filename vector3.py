@@ -48,9 +48,8 @@ class Vector3(object):
     def from_iter(cls, iterable):
         """Creates a Vector3 from an iterable containing at least 3 values."""
         it = iter(iterable)
-        next = it.next
         v = cls.__new__(cls, object)
-        v._v = [ float(next()), float(next()), float(next()) ]        
+        v._v = [ float(next(it)), float(next(it)), float(next(it)) ]        
         return v
     
     def copy(self):
@@ -441,6 +440,10 @@ class Vector3(object):
         
         x, y, z = self._v
         return x and y and z
+        
+        
+    def __bool__(self):
+        return self.__nonzero__()
     
     
     def __call__(self, keys):

@@ -101,7 +101,7 @@ class EDI(cmd.Cmd):
     return False
 
   def do_EOF(self, args):
-    print
+    print()
     return False
 
   def precmd(self, line):

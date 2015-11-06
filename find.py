@@ -32,15 +32,15 @@ class Application:
 
     if not self.args.anagram:
       if self.args.systems or not self.args.stations:
-        sys_matches = fnmatch.filter(env.eddb_systems_by_name.keys(), searchname)
+        sys_matches = fnmatch.filter(list(env.eddb_systems_by_name.keys()), searchname)
       if self.args.stations or not self.args.systems:
-        stn_matches = fnmatch.filter(env.eddb_stations_by_name.keys(), searchname)
+        stn_matches = fnmatch.filter(list(env.eddb_stations_by_name.keys()), searchname)
 
     else:
       if self.args.systems or not self.args.stations:
-        sys_matches = self.anagram_find_matches(env.eddb_systems_by_name.keys(), searchname)
+        sys_matches = self.anagram_find_matches(list(env.eddb_systems_by_name.keys()), searchname)
       if self.args.stations or not self.args.systems:
-        stn_matches = self.anagram_find_matches(env.eddb_stations_by_name.keys(), searchname)
+        stn_matches = self.anagram_find_matches(list(env.eddb_stations_by_name.keys()), searchname)
 
     if (self.args.systems or not self.args.stations) and len(sys_matches) > 0:
       print("")
@@ -51,7 +51,7 @@ class Application:
         print("  " + stn.to_string())
       print("")
 
-    if (self.args.systems or not self.args.stations) and len(stn_matches) > 0:
+    if (self.args.stations or not self.args.systems) and len(stn_matches) > 0:
       print("")
       print("Matching stations:")
       print("")
