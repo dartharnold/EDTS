@@ -17,6 +17,7 @@ import close_to
 import coords
 import distance
 import find
+import galmath
 
 class EDI(cmd.Cmd):
 
@@ -29,6 +30,9 @@ class EDI(cmd.Cmd):
     try:
       app = edts.Application(shlex.split(args), True)
       app.run()
+    except KeyboardInterrupt:
+      log.debug("Interrupt detected")
+      pass
     except SystemExit:
       pass
     return True
@@ -37,6 +41,9 @@ class EDI(cmd.Cmd):
     try:
       app = distance.Application(shlex.split(args), True)
       app.run()
+    except KeyboardInterrupt:
+      log.debug("Interrupt detected")
+      pass
     except SystemExit:
       pass
     return True
@@ -45,6 +52,9 @@ class EDI(cmd.Cmd):
     try:
       app = close_to.Application(shlex.split(args), True)
       app.run()
+    except KeyboardInterrupt:
+      log.debug("Interrupt detected")
+      pass
     except SystemExit:
       pass
     return True
@@ -53,6 +63,9 @@ class EDI(cmd.Cmd):
     try:
       app = coords.Application(shlex.split(args), True)
       app.run()
+    except KeyboardInterrupt:
+      log.debug("Interrupt detected")
+      pass
     except SystemExit:
       return True
 
@@ -60,6 +73,19 @@ class EDI(cmd.Cmd):
     try:
       app = find.Application(shlex.split(args), True)
       app.run()
+    except KeyboardInterrupt:
+      log.debug("Interrupt detected")
+      pass
+    except SystemExit:
+      return True
+
+  def do_galmath(self, args):
+    try:
+      app = galmath.Application(shlex.split(args), True)
+      app.run()
+    except KeyboardInterrupt:
+      log.debug("Interrupt detected")
+      pass
     except SystemExit:
       return True
 
