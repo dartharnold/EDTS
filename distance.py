@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
 import argparse
 import env
 import logging
@@ -29,10 +32,10 @@ class Application:
       return
 
     
-    print ""
-    print start.to_string()
-    print "    === {0: >6.2f}Ly ===> {1}".format((end.position - start.position).length, end.to_string())
-    print ""
+    print("")
+    print(start.to_string())
+    print("    === {0: >6.2f}Ly ===> {1}".format((end.position - start.position).length, end.to_string()))
+    print("")
 
 if __name__ == '__main__':
   a = Application(env.local_args, False)

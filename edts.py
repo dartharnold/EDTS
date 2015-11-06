@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import argparse
 import logging
 import math
@@ -116,9 +117,9 @@ class Application:
     totalsc = 0
     totalsc_accurate = True
 
-    print ""
-    print route[0].to_string()
-    for i in xrange(1, len(route)):
+    print("")
+    print(route[0].to_string())
+    for i in range(1, len(route)):
       if self.fsd is None:
         full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
         cur_max_jump = full_max_jump
@@ -147,11 +148,11 @@ class Application:
         lastdist = (hop_route[-1].position - hop_route[-2].position).length
         if len(hop_route) > 2:
           hopdist = 0.0
-          for j in xrange(1, len(hop_route)-1):
+          for j in range(1, len(hop_route)-1):
             hdist = (hop_route[j-1].position - hop_route[j].position).length
             hopdist += hdist
             is_long = (hdist > full_max_jump)
-            print "    -{0}- {1: >6.2f}Ly -{0}-> {2}".format("!" if is_long else "-", hdist, hop_route[j].name)
+            print("    -{0}- {1: >6.2f}Ly -{0}-> {2}".format("!" if is_long else "-", hdist, hop_route[j].name))
           hopdist += lastdist
         else:
           hopdist = hopsldist
@@ -161,17 +162,17 @@ class Application:
         route_str += ", SC: ~{0}s".format("{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None and route[i].distance != 0 else "???")
       if self.args.route and hop_route != None:
         is_long = (lastdist > full_max_jump)
-        print "    ={0}= {1: >6.2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly".format("!" if is_long else "=", lastdist, route_str, hopdist, hopsldist)
+        print("    ={0}= {1: >6.2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly".format("!" if is_long else "=", lastdist, route_str, hopdist, hopsldist))
       else:
-        print "    === {0: >6.2f}Ly ({1:2d} jump{2}) ===> {3}".format(hopsldist, jumpcount, "s" if jumpcount != 1 else " ", route_str)
+        print("    === {0: >6.2f}Ly ({1:2d} jump{2}) ===> {3}".format(hopsldist, jumpcount, "s" if jumpcount != 1 else " ", route_str))
 
     est_time = calc.route_time(route, totaljumps)
     est_time_m = math.floor(est_time / 60)
     est_time_s = int(est_time) % 60
 
-    print ""
-    print "Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}; ETT: {4:.0f}:{5:02.0f}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "", est_time_m, est_time_s)
-    print ""
+    print("")
+    print("Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}; ETT: {4:.0f}:{5:02.0f}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "", est_time_m, est_time_s))
+    print("")
 
 
 

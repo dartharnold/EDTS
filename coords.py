@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
 import argparse
 import env
 import logging
@@ -24,12 +27,12 @@ class Application:
         log.error("Could not find system \"{0}\"!".format(self.args.system))
         return
 
-    print ""
+    print("")
     for name in self.args.system:
       s = env.eddb_systems_by_name[name.lower()]
       fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>8.2f}, {2:>8.2f}, {3:>8.2f}]"
-      print fmtstr.format(name, s["x"], s["y"], s["z"])
-    print ""
+      print(fmtstr.format(name, s["x"], s["y"], s["z"]))
+    print("")
 
     return True
 

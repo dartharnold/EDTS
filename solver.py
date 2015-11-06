@@ -44,7 +44,7 @@ class Solver:
         if costs[idx] < (mincost * self._diff_limit):
           # For each hop...
           rcost = 0.0
-          for i in xrange(0, len(route)-1):
+          for i in range(0, len(route)-1):
             hop = hops[route[i]][route[i+1]]
             rcost += self._calc.route_cost(hop)
 

@@ -42,7 +42,7 @@ class Calc:
 
   def solve_route_cost(self, route):
     cost = 0.0
-    for i in xrange(0, len(route)-1):
+    for i in range(0, len(route)-1):
       cost += self.solve_cost(route[i], route[i+1], route)
     return cost
 
@@ -63,7 +63,7 @@ class Calc:
 
   def route_dist(self, route):
     dist = 0.0
-    for i in xrange(0, len(route)-1):
+    for i in range(0, len(route)-1):
       dist += (route[i+1].position - route[i].position).length
     return dist
 
@@ -79,7 +79,7 @@ class Calc:
 
     meanjump = dist / (len(route)-1)
     cvar = 0.0
-    for i in xrange(0, len(route)-1):
+    for i in range(0, len(route)-1):
       jdist = (route[i+1].position - route[i].position).length
       cvar += math.pow((jdist - meanjump), power)
     return cvar
@@ -95,7 +95,7 @@ class Calc:
       if jcount == 1 and (a.position - b.position).length > dist_threshold:
         penalty += 20
 
-      for i in xrange(0, len(route)-1):
+      for i in range(0, len(route)-1):
         cdist = (route[i+1].position - route[i].position).length
         if cdist > dist_threshold:
           penalty += 20

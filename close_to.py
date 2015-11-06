@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+
+from __future__ import print_function
 import argparse
 import env
 import logging
@@ -66,7 +69,7 @@ class Application:
 
     asys = []
     
-    maxdist = None
+    maxdist = 0.0
 
     for s in env.eddb_systems:
       # If we don't care about allegiance, or we do and it matches...
@@ -105,26 +108,26 @@ class Application:
 
 
     if not len(asys):
-      print ""
-      print "No matching systems"
-      print ""
+      print("")
+      print("No matching systems")
+      print("")
     else:
-      print ""
-      print "Matching systems close to {0}:".format(', '.join([d["system"] for d in self.args.system]))
+      print("")
+      print("Matching systems close to {0}:".format(', '.join([d["system"] for d in self.args.system])))
       if len(self.args.system) > 1:
-        print ""
-        for i in xrange(0, len(asys)):
-          print "    {0}".format(asys[i]["name"])
-      print ""
+        print("")
+        for i in range(0, len(asys)):
+          print("    {0}".format(asys[i]["name"]))
+      print("")
       for d in self.args.system:
         if len(self.args.system) > 1:
-          print "  Distance from {0}:".format(d['system'])
-          print ""
+          print("  Distance from {0}:".format(d['system']))
+          print("")
         asys.sort(key=lambda t: (Vector3(t["x"],t["y"],t["z"]) - Vector3(d['sysobj']['x'], d['sysobj']['y'], d['sysobj']['z'])).length)
-        for i in xrange(0,len(asys)):
+        for i in range(0, len(asys)):
           # Print distance from the current candidate system to the current start system
-          print "    {0} ({1:.2f}Ly)".format(asys[i]["name"], (Vector3(asys[i]["x"],asys[i]["y"],asys[i]["z"]) - Vector3(d['sysobj']['x'], d['sysobj']['y'], d['sysobj']['z'])).length)
-        print ""
+          print("    {0} ({1:.2f}Ly)".format(asys[i]["name"], (Vector3(asys[i]["x"],asys[i]["y"],asys[i]["z"]) - Vector3(d['sysobj']['x'], d['sysobj']['y'], d['sysobj']['z'])).length))
+        print("")
 
 if __name__ == '__main__':
   a = Application(env.local_args, False)

@@ -1,6 +1,5 @@
 from math import *
 
-
 class Vector3(object):
     
     __slots__ = ('_v',)    
@@ -12,13 +11,13 @@ class Vector3(object):
                 
         """
         if len(args) == 3:
-            self._v = map(float, args[:3])            
+            self._v = [float(args[0]), float(args[1]), float(args[2])]
             return
         
         if not args:
             self._v = [0., 0., 0.]
         elif len(args) == 1:
-            self._v = map(float, args[0][:3])                        
+            self._v = [float(args[0][0]), float(args[0][1]), float(args[0][2])]
         else:
             raise ValueError("Vector3.__init__ takes 0, 1 or 3 parameters")
 
@@ -150,7 +149,7 @@ class Vector3(object):
     
     def __iter__(self):
         """Iterates the components in x, y, z order."""
-        return iter(self._v[:])
+        return iter(self._v)
         
     def __getitem__(self, index):
         """Retrieves a component, given its index.
@@ -161,7 +160,7 @@ class Vector3(object):
         try:
             return self._v[index]
         except IndexError:
-            raise IndexError, "There are 3 values in this object, index should be 0, 1 or 2!"                        
+            raise IndexError("There are 3 values in this object, index should be 0, 1 or 2!")                     
         
     def __setitem__(self, index, value):
         """Sets a component, given its index.
@@ -175,7 +174,7 @@ class Vector3(object):
         try:            
             self._v[index] = value
         except IndexError:
-            raise IndexError, "There are 3 values in this object, index should be 0, 1 or 2!"
+            raise IndexError("There are 3 values in this object, index should be 0, 1 or 2!")
 
 
     def __eq__(self, rhs):

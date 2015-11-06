@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import sys
 import shlex
 import logging
 import time
 
 if __name__ == '__main__':
-  print "Loading environment..."
+  print("Loading environment...")
 import env
 
 log = logging.getLogger("edi")
