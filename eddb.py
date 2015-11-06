@@ -80,7 +80,7 @@ if __name__ == '__main__':
     log.info("Systems file exists and loads OK ({0} systems)".format(syresult))
   else:
     log.error("!! Systems file does not exist or could not be loaded")
-  stresult = check_systems(default_stations_file)
+  stresult = check_stations(default_stations_file)
   if stresult != False:
     log.info("Stations file exists and loads OK ({0} stations)".format(stresult))
   else:
