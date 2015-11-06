@@ -92,10 +92,10 @@ class Solver:
         dist = self._calc.solve_cost(route[-1], stn, route)
         nexts[stn] = dist
 
-      mindist = min(nexts.itervalues())
+      mindist = min(nexts.values())
 
       vsnext = []
-      for stn, dist in nexts.iteritems():
+      for stn, dist in nexts.items():
         if dist < (mindist * self._diff_limit):
           vsnext.append(stn)
 
