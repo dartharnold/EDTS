@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import sys
-import urllib
+import util
 
 default_systems_file = "eddb/systems.json"
 default_stations_file = "eddb/stations.json"
@@ -30,11 +30,11 @@ def download_eddb_files(sys_file, station_file):
   # Download the systems.json
   log.info("Downloading EDDB Systems list from {0} ... ".format(eddb_systems_url))
   sys.stdout.flush()
-  urllib.urlretrieve(eddb_systems_url, sys_file)
+  util.download_file(eddb_systems_url, sys_file)
   log.info("Done.")
   log.info("Downloading EDDB Stations list from {0} ... ".format(eddb_stations_url))
   sys.stdout.flush()
-  urllib.urlretrieve(eddb_stations_url, station_file)
+  util.download_file(eddb_stations_url, station_file)
   log.info("Done.")
 
 

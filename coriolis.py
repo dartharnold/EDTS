@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import sys
-import urllib
+import util
 
 default_frame_shift_drive_file = "coriolis/frame_shift_drive.json"
 
@@ -24,7 +24,7 @@ def download_coriolis_files(frame_shift_drive_file):
   # Download the frame_shift_drive.json
   log.info("Downloading Coriolis FSD list from {0} ... ".format(coriolis_frame_shift_drive_url))
   sys.stdout.flush()
-  urllib.urlretrieve(coriolis_frame_shift_drive_url, frame_shift_drive_file)
+  util.download_file(coriolis_frame_shift_drive_url, frame_shift_drive_file)
   log.info("Done.")
 
 
