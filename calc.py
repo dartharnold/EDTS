@@ -91,13 +91,14 @@ class Calc:
     var = self.route_variance(route, self.route_dist(route))
 
     penalty = 0.0
-    if jcount == 1 and dist_threshold is not None and (a.position - b.position).length > dist_threshold:
-      penalty += 20
-
-    for i in xrange(0, len(route)-1):
-      cdist = (route[i+1].position - route[i].position).length
-      if dist_threshold is not None and cdist > dist_threshold:
+    if dist_threshold is not None:
+      if jcount == 1 and (a.position - b.position).length > dist_threshold:
         penalty += 20
+
+      for i in xrange(0, len(route)-1):
+        cdist = (route[i+1].position - route[i].position).length
+        if cdist > dist_threshold:
+          penalty += 20
 
     total = (hs_jumps + hs_jdist + var + penalty)
     return total

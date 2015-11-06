@@ -63,6 +63,10 @@ class EDI(cmd.Cmd):
     except SystemExit:
       return True
 
+  def do_set_verbosity(self, args):
+    env.set_verbosity(int(args))
+    return True
+
   def do_quit(self, args):
     return False
 

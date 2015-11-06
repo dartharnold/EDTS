@@ -70,7 +70,7 @@ class Application:
 
     for s in env.eddb_systems:
       # If we don't care about allegiance, or we do and it matches...
-      if s['name'].lower() not in start_names and self.args.allegiance == None or (s["allegiance"] == self.args.allegiance):
+      if s['name'].lower() not in start_names and (self.args.allegiance == None or s["allegiance"] == self.args.allegiance):
         has_stns = (s["allegiance"] != None)
         # If we have stations, or we don't care...
         if has_stns or not self.args.stations:

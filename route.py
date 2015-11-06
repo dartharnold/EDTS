@@ -100,12 +100,15 @@ class Routing:
 
       neighbor_nodes = [n for n in stars if n != current and (n.position - current.position).length < jump_range]
 
+      path = self.astar_reconstruct_path(came_from, current)
+      log.debug("current = {0}, path length = {1}".format(current.name, len(path)))
+
       for neighbor in neighbor_nodes:
         if neighbor in closedset:
           continue
  
-        # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
-        tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, self.astar_reconstruct_path(came_from, current), full_range)
+        # tentative_g_score = g_score[current] + (current.position - neighbor.position).length     
+        tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, path, full_range)
 
         if neighbor not in g_score:
           g_score[neighbor] = sys.float_info.max

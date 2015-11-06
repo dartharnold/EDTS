@@ -63,7 +63,16 @@ def get_station(sysname, statname = None, allow_none_distance = False):
           
           return stobj
   return None
-
+  
+def set_verbosity(level):
+  if level >= 3:
+    logging.getLogger().setLevel(logging.DEBUG)
+  elif level >= 2:
+    logging.getLogger().setLevel(logging.INFO)
+  elif level >= 1:
+    logging.getLogger().setLevel(logging.WARN)
+  else:
+    logging.getLogger().setLevel(logging.ERROR)
 
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Tools", fromfile_prefix_chars="@", add_help=False)
 arg_parser.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
@@ -72,8 +81,7 @@ arg_parser.add_argument("--eddb-stations-file", type=str, default=eddb.default_s
 arg_parser.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
 global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 
-if global_args.verbose > 1:
-  logging.getLogger().setLevel(logging.DEBUG)
+set_verbosity(global_args.verbose)
 
 if not os.path.isfile(global_args.eddb_systems_file) or not os.path.isfile(global_args.eddb_stations_file):
   log.error("Error: EDDB system/station files not found. Run the eddb.py script with the --download flag to auto-download these.")
