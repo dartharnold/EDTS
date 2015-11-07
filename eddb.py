@@ -15,7 +15,7 @@ eddb_systems_url = "http://eddb.io/archive/v4/systems.json"
 eddb_stations_url = "http://eddb.io/archive/v4/stations.json"
 
 eddb_systems_file_size_limit = 100 * 1048576
-eddb_stations_file_size_limit = 500 * 1048576
+eddb_stations_file_size_limit = 300 * 1048576
 
 log = logging.getLogger("eddb")
 
