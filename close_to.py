@@ -52,6 +52,8 @@ class Application:
     while remaining:
       args, remaining = ap.parse_known_args(remaining, namespace=args)
       self.args = args
+    if not hasattr(self, 'args'):
+      self.args = ap.parse_args(arg)
 
     self.allow_outposts = (self.args.pad_size != "L")
 
