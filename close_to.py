@@ -44,7 +44,7 @@ class Application:
     ap.add_argument("-m", "--max-dist", type=int, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
     ap.add_argument("-s", "--stations", default=False, action='store_true', help="Only show systems with stations")
-    ap.add_argument("-p", "--pad-size", default="M", type=str, help="Only show systems with stations matching the specified pad size")
+    ap.add_argument("-p", "--pad-size", required=False, type=str.upper, choices=['S','M','L'], help="Only show systems with stations matching the specified pad size")
     ap.add_argument("system", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
 
     remaining = arg
@@ -54,6 +54,9 @@ class Application:
       self.args = args
     if not hasattr(self, 'args'):
       self.args = ap.parse_args(arg)
+
+    if self.args.pad_size is not None:
+      self.args.stations = True
 
     self.allow_outposts = (self.args.pad_size != "L")
 
