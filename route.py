@@ -168,7 +168,7 @@ class Routing:
       # current_pos + (dir(current_pos --> sys_to) * jump_range)
       dir_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range)
       # Start looking halfway down the route, since we shouldn't really ever be jumping <50% of our range, especially + buffer
-      start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range / 2)
+      start_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range * 0.5)
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
       hbuffer_ly = self._hbuffer_base + (jump_range * self._hbuffer_mult)
       mystars = self.cylinder(stars, start_vec, dir_vec, hbuffer_ly)
