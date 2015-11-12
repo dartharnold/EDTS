@@ -113,13 +113,18 @@ class Application:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
 
     totaldist = 0.0
-    totaljumps = 0
+    totaljumps_min = 0
+    totaljumps_max = 0
     totalsc = 0
     totalsc_accurate = True
 
-    print("")
-    print(route[0].to_string())
+    output_data = []
+
+    output_data.append({'src': route[0].to_string()})
+
     for i in range(1, len(route)):
+      cur_data = {'dst': route[i].to_string()}
+
       if self.fsd is None:
         full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
         cur_max_jump = full_max_jump
@@ -127,17 +132,24 @@ class Application:
         full_max_jump = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (i-1))
         cur_max_jump = self.fsd.max_range(self.args.mass, self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
-      jumpcount = calc.jump_count(route[i-1], route[i], route[0:i-1])
+      cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
       if self.args.route:
+        log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system, route[i].system))
         hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
         if hop_route != None:
-          jumpcount = len(hop_route)-1
+          route_jcount = len(hop_route)-1
+          # For hoppy routes, always use stats for the jumps reported (less confusing)
+          cur_data['jumpcount_min'] = route_jcount
+          cur_data['jumpcount_max'] = route_jcount
+          # cur_data['jumpcount_min'] = min(cur_data['jumpcount_min'], route_jcount)
+          # cur_data['jumpcount_max'] = min(cur_data['jumpcount_max'], route_jcount)
         else:
           log.warning("No valid route found for hop: {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
 
-      hopsldist = (route[i-1].position - route[i].position).length
-      totaldist += hopsldist
-      totaljumps += jumpcount
+      cur_data['hopsldist'] = (route[i-1].position - route[i].position).length
+      totaldist += cur_data['hopsldist']
+      totaljumps_min += cur_data['jumpcount_min']
+      totaljumps_max += cur_data['jumpcount_max']
       if route[i].distance != None and route[i].distance != 0:
         totalsc += route[i].distance
       elif route[i].name != None:
@@ -145,33 +157,95 @@ class Application:
         totalsc_accurate = False
 
       if self.args.route and hop_route != None:
-        lastdist = (hop_route[-1].position - hop_route[-2].position).length
+        cur_data['hop_route'] = []
         if len(hop_route) > 2:
-          hopdist = 0.0
-          for j in range(1, len(hop_route)-1):
+          cur_data['hopdist'] = 0.0
+          for j in range(1, len(hop_route)):
             hdist = (hop_route[j-1].position - hop_route[j].position).length
-            hopdist += hdist
+            cur_data['hopdist'] += hdist
             is_long = (hdist > full_max_jump)
-            print("    -{0}- {1: >6.2f}Ly -{0}-> {2}".format("!" if is_long else "-", hdist, hop_route[j].name))
-          hopdist += lastdist
+            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[j].to_string()})
         else:
-          hopdist = hopsldist
+          cur_data['hopdist'] = cur_data['hopsldist']
+          hdist = (hop_route[0].position - hop_route[1].position).length
+          cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[1].to_string()})
     
-      route_str = route[i].to_string()
       if route[i].name is not None:
-        route_str += ", SC: ~{0}s".format("{0:.0f}".format(calc.sc_cost(route[i].distance)) if route[i].distance != None and route[i].distance != 0 else "???")
-      if self.args.route and hop_route != None:
-        is_long = (lastdist > full_max_jump)
-        print("    ={0}= {1: >6.2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly".format("!" if is_long else "=", lastdist, route_str, hopdist, hopsldist))
-      else:
-        print("    === {0: >6.2f}Ly ({1:2d} jump{2}) ===> {3}".format(hopsldist, jumpcount, "s" if jumpcount != 1 else " ", route_str))
+        cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance != None and route[i].distance != 0) else "???"
+      # Add current route to list
+      output_data.append(cur_data)
 
-    est_time = calc.route_time(route, totaljumps)
-    est_time_m = math.floor(est_time / 60)
-    est_time_s = int(est_time) % 60
+    # Get suitably formatted ETA string
+    est_time_min = calc.route_time(route, totaljumps_min)
+    est_time_min_m = math.floor(est_time_min / 60)
+    est_time_min_s = int(est_time_min) % 60
+    est_time_str = "{0:.0f}:{1:02.0f}".format(est_time_min_m, est_time_min_s)
+    if totaljumps_min != totaljumps_max:
+      est_time_max = calc.route_time(route, totaljumps_max)
+      est_time_max_m = math.floor(est_time_max / 60)
+      est_time_max_s = int(est_time_max) % 60
+      est_time_str += " - {0:.0f}:{1:02.0f}".format(est_time_max_m, est_time_max_s)
+
+    totaljumps_str = "{0:d}".format(totaljumps_max) if totaljumps_min == totaljumps_max else "{0:d} - {1:d}".format(totaljumps_min, totaljumps_max)
+
+    # Work out the max length of the jump distances and jump counts to be printed
+    d_max_len = 0
+    jmin_max_len = 0
+    jmax_max_len = 0
+    has_var_jcounts = False
+    for i in range(1, len(output_data)):
+      od = output_data[i]
+      # If we have a hoppy route, we'll only be printing single-jump ranges. If not, we'll be using full leg distances.
+      if 'hop_route' in od:
+        if len(od['hop_route']) > 0:
+          d_max_len = max(d_max_len, max([h['hdist'] for h in od['hop_route']]))
+      else:
+        d_max_len = max(d_max_len, max(1, od['hopsldist']))
+      # If we have estimated jump counts, work out how long the strings will be
+      if 'jumpcount_min' in od:
+        jmin_max_len = max(jmin_max_len, od['jumpcount_min'])
+        jmax_max_len = max(jmax_max_len, od['jumpcount_max'])
+        has_var_jcounts = has_var_jcounts or (od['jumpcount_min'] != od['jumpcount_max'])
+    
+    # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
+    d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
+    # Work out max length of jump counts, ensuring >= 1 char
+    jmin_max_len = int(math.floor(max(1, math.log10(jmin_max_len))))
+    jmax_max_len = int(math.floor(max(1, math.log10(jmax_max_len))))
+    # If we have the form "N - M" anywhere, pad appropriately. If not, just use the normal length
+    jall_max_len = str(jmin_max_len + jmax_max_len + 3) if has_var_jcounts else str(jmin_max_len)
+    jmin_max_len = str(jmin_max_len)
+    jmax_max_len = str(jmax_max_len)
 
     print("")
-    print("Total distance: {0:.2f}Ly; total jumps: {1:d}; total SC distance: {2:d}Ls{3}; ETT: {4:.0f}:{5:02.0f}".format(totaldist, totaljumps, totalsc, "+" if not totalsc_accurate else "", est_time_m, est_time_s))
+    print(route[0].to_string())
+
+    # For each hop (not including start point)
+    for i in range(1, len(route)):
+      od = output_data[i]
+      if 'hop_route' in od:
+        # For every jump except the last...
+        for j in range(0, len(od['hop_route'])-1):
+          hd = od['hop_route'][j]
+          print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst']))
+        # For the last jump...
+        hd = od['hop_route'][-1]
+        print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'], od['hopdist'], od['hopsldist']))
+      else:
+        # If we don't have "N - M", just print simple result
+        if od['jumpcount_min'] == od['jumpcount_max']:
+          jumps_str = ("{0:>"+jall_max_len+"d} jump{1}").format(od['jumpcount_max'], "s" if od['jumpcount_max'] != 1 else " ")
+        else:
+          jumps_str = ("{0:>"+jmin_max_len+"d} - {1:>"+jmax_max_len+"d} jumps").format(od['jumpcount_min'], od['jumpcount_max'])
+        route_str = od['dst']
+        # If the destination is a station, include estimated SC time
+        if 'sc_time' in od:
+          route_str += ", SC: ~{0}s".format(od['sc_time'])
+        print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}").format(od['hopsldist'], jumps_str, route_str))
+
+
+    print("")
+    print("Total distance: {0:.2f}Ly; total jumps: {1}; total SC distance: {2:d}Ls{3}; ETT: {4}".format(totaldist, totaljumps_str, totalsc, "+" if not totalsc_accurate else "", est_time_str))
     print("")
 
 

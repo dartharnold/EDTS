@@ -101,7 +101,6 @@ class Routing:
       neighbor_nodes = [n for n in stars if n != current and (n.position - current.position).length < jump_range]
 
       path = self.astar_reconstruct_path(came_from, current)
-      log.debug("current = {0}, path length = {1}".format(current.name, len(path)))
 
       for neighbor in neighbor_nodes:
         if neighbor in closedset:

@@ -7,8 +7,11 @@ class System:
     self.name = sysname
     self.needs_permit = permit
 
-  def to_string(self):
-    return u"%s (%.2f, %.2f, %.2f)" % (self.name, self.position.x, self.position.y, self.position.z)
+  def to_string(self, use_long = False):
+    if use_long:
+      return u"%s (%.2f, %.2f, %.2f)" % (self.name, self.position.x, self.position.y, self.position.z)
+    else:
+      return u"%s" % self.name
 
   def __eq__(self, other):
     if isinstance(other, System):

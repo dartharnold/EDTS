@@ -18,6 +18,10 @@ class Calc:
     self.stop_station_time = 90
 
   def jump_count(self, a, b, route, allow_long = False):
+    _, maxjumps = self.jump_count_range(a, b, route, allow_long)
+    return maxjumps
+
+  def jump_count_range(self, a, b, route, allow_long = False):
     if self.fsd is not None:
       if allow_long:
         jumpdist = self.fsd.max_range(self.args.mass, self.args.cargo * (len(route)-1))
@@ -26,10 +30,13 @@ class Calc:
     else:
       jumpdist = self.args.jump_range - (self.args.jump_decay * (len(route)-1))
     hopdist = (a.position - b.position).length
+
+    minjumps = int(math.ceil(hopdist / jumpdist))
     # If we're doing multiple jumps, apply the SLF
     if hopdist > jumpdist:
       jumpdist = jumpdist * self.args.slf
-    return int(math.ceil(hopdist / jumpdist))
+    maxjumps = int(math.ceil(hopdist / jumpdist))
+    return minjumps, maxjumps
 
   def sc_cost(self, distance):
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
