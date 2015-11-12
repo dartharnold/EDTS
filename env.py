@@ -2,6 +2,7 @@ import argparse
 import logging
 import os
 import sys
+import threading
 import eddb
 import coriolis
 from system import System
@@ -11,7 +12,7 @@ logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] 
 log = logging.getLogger("env")
 
 
-def get_stations_by_system(stations):
+def _get_stations_by_system(stations):
   sbs = {}
   for st in stations:
     sid = st["system_id"]
@@ -20,13 +21,13 @@ def get_stations_by_system(stations):
     sbs[sid].append(st)
   return sbs
 
-def get_systems_by_id(systems):
+def _get_systems_by_id(systems):
   return {el['id'] : el for el in systems}
 
-def get_systems_by_name(systems):
+def _get_systems_by_name(systems):
   return {el['name'].lower() : el for el in systems}
 
-def get_stations_by_name(stations):
+def _get_stations_by_name(stations):
   sbn = {}
   for st in stations:
     name = st["name"].lower()
@@ -63,7 +64,34 @@ def get_station(sysname, statname = None, allow_none_distance = False):
           
           return stobj
   return None
-  
+
+
+is_eddb_data_loaded = False
+
+eddb_systems = []
+eddb_stations = []
+
+eddb_stations_by_system = {}
+eddb_systems_by_id = {}
+eddb_systems_by_name = {}
+eddb_stations_by_name = {}
+
+def load_eddb_data():
+  global eddb_systems, eddb_stations
+  eddb_systems = eddb.load_systems(global_args.eddb_systems_file)
+  eddb_stations = eddb.load_stations(global_args.eddb_stations_file)
+
+  global eddb_stations_by_system, eddb_systems_by_id, eddb_systems_by_name, eddb_stations_by_name
+  eddb_stations_by_system = _get_stations_by_system(eddb_stations)
+  eddb_systems_by_id = _get_systems_by_id(eddb_systems)
+  eddb_systems_by_name = _get_systems_by_name(eddb_systems)
+  eddb_stations_by_name = _get_stations_by_name(eddb_stations)
+
+  global is_eddb_data_loaded
+  is_eddb_data_loaded = True
+  log.debug("EDDB data loaded")
+
+
 def set_verbosity(level):
   if level >= 3:
     logging.getLogger().setLevel(logging.DEBUG)
@@ -91,11 +119,9 @@ if not os.path.isfile(global_args.coriolis_fsd_file):
   log.error("Error: Coriolis FSD file not found. Run the coriolis.py script with the --download flag to auto-download this.")
   sys.exit(1)
 
-eddb_systems = eddb.load_systems(global_args.eddb_systems_file)
-eddb_stations = eddb.load_stations(global_args.eddb_stations_file)
+# FSD list is fast enough we can just do it synchronously
 coriolis_fsd_list = coriolis.load_frame_shift_drives(global_args.coriolis_fsd_file)
 
-eddb_stations_by_system = get_stations_by_system(eddb_stations)
-eddb_systems_by_id = get_systems_by_id(eddb_systems)
-eddb_systems_by_name = get_systems_by_name(eddb_systems)
-eddb_stations_by_name = get_stations_by_name(eddb_stations)
+_eddb_load_thread = threading.Thread(name = "eddb_load", target = load_eddb_data)
+_eddb_load_thread.start()
+
