@@ -45,11 +45,27 @@ class FSD:
     return self.range(mass, self.maxfuel, cargo)
 
   def max_fuel_weight(self, dist, mass, cargo = 0):
+    _, wmax = self.fuel_weight_range(dist, mass, cargo)
+    return wmax
+
+  def fuel_weight_range(self, dist, mass, cargo = 0):
+    # self.maxfuel == cost
     # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) == dist * ((mass + fuel + cargo) / self.optmass)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) / dist == ((mass + fuel + cargo) / self.optmass)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
     # (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo) == fuel
-    return (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo)
+    wmax = (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo)
 
+    # Iterative check to narrow down the minimum fuel requirement
+    clast = self.maxfuel
+    c = clast
+    # 30 iterations seems to result in at least 6 decimal places accuracy
+    for i in range(0, 30):
+      c = self.cost(dist, mass, clast, cargo)
+      clast = c + (clast - c) / 2.0
+      log.debug("c = {0:.6f}, clast = {1:.6f}".format(c, clast))
+    wmin = c
+
+    return wmin, wmax
