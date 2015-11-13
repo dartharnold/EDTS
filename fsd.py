@@ -43,3 +43,13 @@ class FSD:
   
   def max_range(self, mass, cargo = 0):
     return self.range(mass, self.maxfuel, cargo)
+
+  def max_fuel_weight(self, dist, mass, cargo = 0):
+    # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
+    # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
+    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) == dist * ((mass + fuel + cargo) / self.optmass)
+    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) / dist == ((mass + fuel + cargo) / self.optmass)
+    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
+    # (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo) == fuel
+    return (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo)
+
