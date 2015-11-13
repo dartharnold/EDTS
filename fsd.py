@@ -61,10 +61,10 @@ class FSD:
     # Iterative check to narrow down the minimum fuel requirement
     clast = self.maxfuel
     c = clast
-    # 30 iterations seems to result in at least 6 decimal places accuracy
-    for i in range(0, 30):
+    # 15 iterations seems to result in at least 6 decimal places accuracy
+    for i in range(0, 15):
       c = self.cost(dist, mass, clast, cargo)
-      clast = c + (clast - c) / 2.0
+      clast = c + (clast - c) / 4.0
       log.debug("c = {0:.6f}, clast = {1:.6f}".format(c, clast))
     wmin = c
 
