@@ -68,8 +68,8 @@ class Application:
 
   def run(self):
 
-    start = env.get_station_from_string(self.args.start)
-    end = env.get_station_from_string(self.args.end)
+    start = env.data.get_station_from_string(self.args.start)
+    end = env.data.get_station_from_string(self.args.end)
 
     if start == None:
       log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
@@ -80,7 +80,7 @@ class Application:
 
     stations = []
     for st in self.args.stations:
-      sobj = env.get_station_from_string(st)
+      sobj = env.data.get_station_from_string(st)
       if sobj != None:      
         log.debug("Adding system/station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance))
         
@@ -100,7 +100,7 @@ class Application:
       jump_range = self.args.jump_range
 
     calc = Calc(self.args, self.fsd)
-    r = Routing(calc, env.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
+    r = Routing(calc, env.data.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit, self.args.solve_full)
 
     if self.args.ordered:
@@ -134,7 +134,7 @@ class Application:
 
       cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
       if self.args.route:
-        log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system, route[i].system))
+        log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system.name, route[i].system.name))
         hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
         if hop_route != None:
           route_jcount = len(hop_route)-1
@@ -210,8 +210,8 @@ class Application:
     # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
     d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
     # Work out max length of jump counts, ensuring >= 1 char
-    jmin_max_len = int(math.floor(max(1, math.log10(jmin_max_len))))
-    jmax_max_len = int(math.floor(max(1, math.log10(jmax_max_len))))
+    jmin_max_len = int(math.floor(max(1, math.log10(jmin_max_len)+1)))
+    jmax_max_len = int(math.floor(max(1, math.log10(jmax_max_len)+1)))
     # If we have the form "N - M" anywhere, pad appropriately. If not, just use the normal length
     jall_max_len = str(jmin_max_len + jmax_max_len + 3) if has_var_jcounts else str(jmin_max_len)
     jmin_max_len = str(jmin_max_len)

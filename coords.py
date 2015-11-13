@@ -23,13 +23,13 @@ class Application:
     maxlen = 0
     for name in self.args.system:
       maxlen = max(maxlen, len(name))
-      if not name.lower() in env.eddb_systems_by_name:
+      if not name.lower() in env.data.eddb_systems_by_name:
         log.error("Could not find system \"{0}\"!".format(self.args.system))
         return
 
     print("")
     for name in self.args.system:
-      s = env.eddb_systems_by_name[name.lower()]
+      s = env.data.eddb_systems_by_name[name.lower()]
       fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>8.2f}, {2:>8.2f}, {3:>8.2f}]"
       print(fmtstr.format(name, s["x"], s["y"], s["z"]))
     print("")

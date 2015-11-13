@@ -23,12 +23,12 @@ class FSD:
       return None
 
     classrating = "{0}{1}".format(drive_class, drive_rating)
-    if not classrating in env.coriolis_fsd_list:
+    if not classrating in env.data.coriolis_fsd_list:
       log.error("Error: No definition available for '{0}' drive.".format(classrating))
       return None
 
     self.drive = classrating
-    fsdobj = env.coriolis_fsd_list[self.drive]
+    fsdobj = env.data.coriolis_fsd_list[self.drive]
     self.optmass = float(fsdobj['optmass'])
     self.maxfuel = float(fsdobj['maxfuel'])
     self.fuelmul = float(fsdobj['fuelmul'])

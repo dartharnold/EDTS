@@ -32,22 +32,22 @@ class Application:
 
     if not self.args.anagram:
       if self.args.systems or not self.args.stations:
-        sys_matches = fnmatch.filter(list(env.eddb_systems_by_name.keys()), searchname)
+        sys_matches = fnmatch.filter(list(env.data.eddb_systems_by_name.keys()), searchname)
       if self.args.stations or not self.args.systems:
-        stn_matches = fnmatch.filter(list(env.eddb_stations_by_name.keys()), searchname)
+        stn_matches = fnmatch.filter(list(env.data.eddb_stations_by_name.keys()), searchname)
 
     else:
       if self.args.systems or not self.args.stations:
-        sys_matches = self.anagram_find_matches(list(env.eddb_systems_by_name.keys()), searchname)
+        sys_matches = self.anagram_find_matches(list(env.data.eddb_systems_by_name.keys()), searchname)
       if self.args.stations or not self.args.systems:
-        stn_matches = self.anagram_find_matches(list(env.eddb_stations_by_name.keys()), searchname)
+        stn_matches = self.anagram_find_matches(list(env.data.eddb_stations_by_name.keys()), searchname)
 
     if (self.args.systems or not self.args.stations) and len(sys_matches) > 0:
       print("")
       print("Matching systems:")
       print("")
       for sys in sys_matches:
-        stn = env.get_station(sys, None, True)
+        stn = env.data.get_station(sys, None, True)
         print("  " + stn.to_string())
       print("")
 
@@ -56,9 +56,9 @@ class Application:
       print("Matching stations:")
       print("")
       for stn_name in stn_matches:
-        stns = env.eddb_stations_by_name[stn_name]
+        stns = env.data.eddb_stations_by_name[stn_name]
         for stn in stns:
-          stn_obj = env.get_station(env.eddb_systems_by_id[stn["system_id"]]["name"], stn["name"], True)
+          stn_obj = env.data.get_station(env.data.eddb_systems_by_id[stn["system_id"]]["name"], stn["name"], True)
           print("  " + stn_obj.to_string())
       print("")
 

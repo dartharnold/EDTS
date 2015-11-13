@@ -62,13 +62,13 @@ class Application:
 
   def run(self):
     for d in self.args.system:
-      if not d['system'].lower() in env.eddb_systems_by_name:
+      if not d['system'].lower() in env.data.eddb_systems_by_name:
         log.error("Could not find start system \"{0}\"!".format(d['system']))
         return
 
     # Add the system object to each system arg
     for d in self.args.system:
-      d['sysobj'] = env.eddb_systems_by_name[d['system'].lower()]
+      d['sysobj'] = env.data.eddb_systems_by_name[d['system'].lower()]
     # Create a list of names for quick checking in the main loop
     start_names = [d['system'].lower() for d in self.args.system]
 
@@ -76,14 +76,14 @@ class Application:
     
     maxdist = 0.0
 
-    for s in env.eddb_systems:
+    for s in env.data.eddb_systems:
       # If we don't care about allegiance, or we do and it matches...
       if s['name'].lower() not in start_names and (self.args.allegiance == None or s["allegiance"] == self.args.allegiance):
         has_stns = (s["allegiance"] != None)
         # If we have stations, or we don't care...
         if has_stns or not self.args.stations:
           # If we *don't* have stations (because we don't care), or the stations match the requirements...
-          if not has_stns or (s["id"] in env.eddb_stations_by_system and len([st for st in env.eddb_stations_by_system[s["id"]] if (self.allow_outposts or st["max_landing_pad_size"] == "L")])) > 0:
+          if not has_stns or (s["id"] in env.data.eddb_stations_by_system and len([st for st in env.data.eddb_stations_by_system[s["id"]] if (self.allow_outposts or st["max_landing_pad_size"] == "L")])) > 0:
             dist = 0.0 # The total distance from this system to ALL start systems
             is_ok = True
             for d in self.args.system:

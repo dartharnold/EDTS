@@ -21,8 +21,8 @@ class Application:
 
   def run(self):
 
-    start = env.get_station_from_string(self.args.system[0].lower())
-    end = env.get_station_from_string(self.args.system[1].lower())
+    start = env.data.get_station_from_string(self.args.system[0].lower())
+    end = env.data.get_station_from_string(self.args.system[1].lower())
     
     if start == None:
       log.error("Could not find start system \"{0}\"!".format(self.args.system[0]))
