@@ -1,11 +1,13 @@
 from vector3 import Vector3
 
 class System:
-  def __init__(self, x, y, z, sysname, permit):
-    self.position = Vector3(x, y, z)
+  def __init__(self, obj):
+    self.id = obj['id']
+    self.position = Vector3(float(obj['x']), float(obj['y']), float(obj['z']))
+    self.name = obj['name']
+    self.needs_permit = obj['needs_permit']
+    self.allegiance = obj['allegiance']
     self.uses_sc = False
-    self.name = sysname
-    self.needs_permit = permit
 
   def to_string(self, use_long = False):
     if use_long:
@@ -15,7 +17,7 @@ class System:
 
   def __eq__(self, other):
     if isinstance(other, System):
-      return (self.name == other.name and self.position == other.position)
+      return (self.id == other.id and self.name == other.name and self.position == other.position)
     else:
       return NotImplemented
 

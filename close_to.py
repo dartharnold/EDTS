@@ -45,6 +45,7 @@ class Application:
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
     ap.add_argument("-s", "--stations", default=False, action='store_true', help="Only show systems with stations")
     ap.add_argument("-p", "--pad-size", required=False, type=str.upper, choices=['S','M','L'], help="Only show systems with stations matching the specified pad size")
+    ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
     ap.add_argument("system", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
 
     remaining = arg
@@ -78,17 +79,17 @@ class Application:
 
     for s in env.data.eddb_systems:
       # If we don't care about allegiance, or we do and it matches...
-      if s['name'].lower() not in start_names and (self.args.allegiance == None or s["allegiance"] == self.args.allegiance):
-        has_stns = (s["allegiance"] != None)
+      if s.name.lower() not in start_names and (self.args.allegiance == None or s.allegiance == self.args.allegiance):
+        has_stns = (s.allegiance != None)
         # If we have stations, or we don't care...
         if has_stns or not self.args.stations:
           # If we *don't* have stations (because we don't care), or the stations match the requirements...
-          if not has_stns or (s["id"] in env.data.eddb_stations_by_system and len([st for st in env.data.eddb_stations_by_system[s["id"]] if (self.allow_outposts or st["max_landing_pad_size"] == "L")])) > 0:
+          if not has_stns or (s.id in env.data.eddb_stations_by_system and len([st for st in env.data.eddb_stations_by_system[s.id] if (self.allow_outposts or st.max_pad_size == "L")])) > 0:
             dist = 0.0 # The total distance from this system to ALL start systems
             is_ok = True
             for d in self.args.system:
               start = d['sysobj']
-              this_dist = (Vector3(s["x"],s["y"],s["z"]) - Vector3(start["x"],start["y"],start["z"])).length
+              this_dist = (s.position - start.position).length
               if 'min_dist' in d and this_dist < d['min_dist']:
                 is_ok = False
                 break
@@ -104,9 +105,7 @@ class Application:
               # We have a new contender; add it, sort by distance, chop to length and set the new max distance
               asys.append(s)
               # Sort the list by distance to ALL start systems
-              asys.sort(key=lambda t: math.fsum([
-                (Vector3(t['x'],t['y'],t['z']) - Vector3(d['sysobj']['x'], d['sysobj']['y'], d['sysobj']['z'])).length
-                for d in self.args.system]))
+              asys.sort(key=lambda t: math.fsum([(t.position - d['sysobj'].position).length for d in self.args.system]))
 
               asys = asys[0:self.args.num]
               maxdist = max(dist, maxdist)
@@ -119,20 +118,27 @@ class Application:
     else:
       print("")
       print("Matching systems close to {0}:".format(', '.join([d["system"] for d in self.args.system])))
-      if len(self.args.system) > 1:
-        print("")
-        for i in range(0, len(asys)):
-          print("    {0}".format(asys[i]["name"]))
       print("")
-      for d in self.args.system:
-        if len(self.args.system) > 1:
+      for i in range(0, len(asys)):
+        if len(self.args.system) == 1:
+          print("    {0} ({1:.2f}Ly)".format(asys[i].name, (asys[i].position - self.args.system[0]['sysobj'].position).length))
+        else:
+          print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format((asys[i].position - self.args.system[0]['sysobj'].position).length)))
+        if self.args.list_stations and asys[i].id in env.eddb_stations_by_system:
+          stlist = env.eddb_stations_by_system[asys[i].id]
+          stlist.sort(key=lambda t: t.distance)
+          for stn in stlist:
+            print("        {0}".format(stn.to_string(False)))
+      print("")
+      if len(self.args.system) > 1:
+        for d in self.args.system:
           print("  Distance from {0}:".format(d['system']))
           print("")
-        asys.sort(key=lambda t: (Vector3(t["x"],t["y"],t["z"]) - Vector3(d['sysobj']['x'], d['sysobj']['y'], d['sysobj']['z'])).length)
-        for i in range(0, len(asys)):
-          # Print distance from the current candidate system to the current start system
-          print("    {0} ({1:.2f}Ly)".format(asys[i]["name"], (Vector3(asys[i]["x"],asys[i]["y"],asys[i]["z"]) - Vector3(d['sysobj']['x'], d['sysobj']['y'], d['sysobj']['z'])).length))
-        print("")
+          asys.sort(key=lambda t: (t.position - d['sysobj'].position).length)
+          for i in range(0, len(asys)):
+            # Print distance from the current candidate system to the current start system
+            print("    {0} ({1:.2f}Ly)".format(asys[i].name, (asys[i].position - d['sysobj'].position).length))
+          print("")
 
 if __name__ == '__main__':
   a = Application(env.local_args, False)

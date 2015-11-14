@@ -25,22 +25,22 @@ class Env(object):
   def _get_stations_by_system(self, stations):
     sbs = {}
     for st in stations:
-      sid = st["system_id"]
+      sid = st.system.id
       if not sid in sbs:
         sbs[sid] = []
       sbs[sid].append(st)
     return sbs
   
   def _get_systems_by_id(self, systems):
-    return {el['id'] : el for el in systems}
+    return {el.id : el for el in systems}
   
   def _get_systems_by_name(self, systems):
-    return {el['name'].lower() : el for el in systems}
+    return {el.name.lower() : el for el in systems}
   
   def _get_stations_by_name(self, stations):
     sbn = {}
     for st in stations:
-      name = st["name"].lower()
+      name = st.name.lower()
       if not name in sbn:
         sbn[name] = []
       sbn[name].append(st)
@@ -50,40 +50,27 @@ class Env(object):
     parts = statstr.split("/", 1)
     sysname = parts[0]
     statname = parts[1] if len(parts) > 1 else None
-
     return self.get_station(sysname, statname)
   
-  def get_station(self, sysname, statname = None, allow_none_distance = False):
-    if sysname.lower() in self.eddb_systems_by_name:
-      # Found system
-      sy = self.eddb_systems_by_name[sysname.lower()]
-      sysid = sy["id"]
-      sysobj = System(sy["x"], sy["y"], sy["z"], sy["name"], bool(sy["needs_permit"]))
-
-      if statname is None:
-        return Station.none(sysobj)
-      else:
-        for st in self.eddb_stations_by_system[sysid]:
-          if st["name"].lower() == statname.lower():
-            # Found station
-            stobj = Station(sysobj, st["distance_to_star"], st["name"], st["type"], bool(st["has_refuel"]), st["max_landing_pad_size"])
-            
-            if stobj.distance == None and not allow_none_distance:
-              log.warning("Warning: station {0} ({1}) is missing SC distance in EDDB. Assuming 0.".format(stobj.name, stobj.system_name))
-              stobj.distance = 0
-            
-            return stobj
+  def get_station(self, sysname, statname = None):
+    if statname is not None:
+      for stn in self.eddb_stations_by_name[statname.lower()]:
+        if sysname.lower() == stn.system.name.lower():
+          return stn
+    else:
+      if sysname.lower() in self.eddb_systems_by_name:
+        return Station.none(self.eddb_systems_by_name[sysname.lower()])
     return None
   
   def _load_eddb_data(self):
     with self._eddb_load_lock:
-      self._eddb_systems = eddb.load_systems(global_args.eddb_systems_file)
-      self._eddb_stations = eddb.load_stations(global_args.eddb_stations_file)
-
-      self._eddb_stations_by_system = self._get_stations_by_system(self._eddb_stations)
+      self._eddb_systems = [System(s) for s in eddb.load_systems(global_args.eddb_systems_file)]
       self._eddb_systems_by_id = self._get_systems_by_id(self._eddb_systems)
       self._eddb_systems_by_name = self._get_systems_by_name(self._eddb_systems)
+      
+      self._eddb_stations = [Station(t, self._eddb_systems_by_id[t["system_id"]]) for t in eddb.load_stations(global_args.eddb_stations_file)]
       self._eddb_stations_by_name = self._get_stations_by_name(self._eddb_stations)
+      self._eddb_stations_by_system = self._get_stations_by_system(self._eddb_stations)
 
       self.is_eddb_data_loaded = True
       log.debug("EDDB data loaded")
@@ -195,4 +182,3 @@ if not os.path.isfile(global_args.coriolis_fsd_file):
 
 # Create the object
 data = Env()
-

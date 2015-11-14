@@ -131,7 +131,7 @@ class Vector3(object):
     def __str__(self):
         
         x, y, z = self._v
-        return "(%s, %s, %s)" % (format_number(x),
+        return "[%s, %s, %s]" % (format_number(x),
                                  format_number(y),
                                  format_number(z))
         

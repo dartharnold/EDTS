@@ -57,8 +57,7 @@ class Application:
       print("")
       for stn_name in stn_matches:
         stns = env.data.eddb_stations_by_name[stn_name]
-        for stn in stns:
-          stn_obj = env.data.get_station(env.data.eddb_systems_by_id[stn["system_id"]]["name"], stn["name"], True)
+        for stn_obj in stns:
           print("  " + stn_obj.to_string())
       print("")
 

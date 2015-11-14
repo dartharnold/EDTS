@@ -31,7 +31,7 @@ class Application:
     for name in self.args.system:
       s = env.data.eddb_systems_by_name[name.lower()]
       fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>8.2f}, {2:>8.2f}, {3:>8.2f}]"
-      print(fmtstr.format(name, s["x"], s["y"], s["z"]))
+      print(fmtstr.format(name, s.position.x, s.position.y, s.position.z))
     print("")
 
     return True
