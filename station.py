@@ -2,7 +2,7 @@ from vector3 import Vector3
 
 class Station:
   def __init__(self, obj, sysobj):
-    self.distance = float(obj['distance_to_star']) if (obj is not None and 'distance_to_star' in obj) else None
+    self.distance = int(obj['distance_to_star']) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] != None) else None
     self.uses_sc = (self.distance is not None)
     self.system = sysobj
     self.name = obj['name'] if obj is not None else None
