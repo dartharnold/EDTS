@@ -14,12 +14,14 @@ class Solver:
   def solve(self, stations, start, end, maxstops):
     vr = self.get_viable_routes([start], stations, end, maxstops)
     log.debug("Viable routes: {0}".format(len(vr)))
-    
+
+    count = 0
     costs = []
     mincost = None
     minroute = None
 
     for route in vr:
+      count += 1
       cost_normal = self._calc.solve_route_cost(route)
       route_reversed = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
       cost_reversed = self._calc.solve_route_cost(route_reversed)
@@ -29,6 +31,7 @@ class Solver:
 
       costs.append(cost)
       if mincost == None or cost < mincost:
+        log.debug("New minimum cost: {0} on route {1}".format(cost, count))
         mincost = cost
         minroute = route
 
