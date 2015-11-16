@@ -44,7 +44,7 @@ class Calc:
   def solve_cost(self, a, b, route):
     hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
     hs_jdist = (a.position - b.position).length
-    sc = self.sc_cost(b.distance) if b.uses_sc else 0.0
+    sc = self.sc_cost(b.distance if b.uses_sc else 0.0)
     return (hs_jumps + hs_jdist + sc)
 
   def solve_route_cost(self, route):

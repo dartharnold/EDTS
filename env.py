@@ -53,7 +53,7 @@ class Env(object):
     return self.get_station(sysname, statname)
   
   def get_station(self, sysname, statname = None):
-    if statname is not None:
+    if statname is not None and statname.lower() in self.eddb_stations_by_name:
       for stn in self.eddb_stations_by_name[statname.lower()]:
         if sysname.lower() == stn.system.name.lower():
           return stn
