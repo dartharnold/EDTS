@@ -49,7 +49,7 @@ class Application:
     print('')
 
     # If we have many systems, generate a Raikogram
-    if len(self.args.systems) > 2:
+    if len(self.args.systems) > 2 or self.args.csv:
 
       if not self.args.ordered:
         self.args.systems.sort()
