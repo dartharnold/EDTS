@@ -4,38 +4,79 @@ from __future__ import print_function
 import argparse
 import env
 import logging
+import math
+import sys
 from vector3 import Vector3
 
 app_name = "distance"
 
 log = logging.getLogger(app_name)
 
-
 class Application:
 
   def __init__(self, arg, hosted):
     ap_parents = [env.arg_parser] if not hosted else []
-    ap = argparse.ArgumentParser(description = "Calculate Distance Between Systems", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
-    ap.add_argument("system", metavar="start end", type=str, nargs=2, help="The systems to find the distance between")
+    ap = argparse.ArgumentParser(description = "Plot jump distance matrix", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
+    ap.add_argument("-c", "--csv", action='store_true', default=False, help="Output in CSV")
+    ap.add_argument("-o", "--ordered", action='store_true', default=False, help="List is ordered (do not sort alphabetically)")
+    ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
+
     self.args = ap.parse_args(arg)
+    self.longest = 6
+
+  def print_system(self, name, is_line_start):
+    if self.args.csv:
+      sys.stdout.write('%s%s' % ('' if is_line_start else ',', name))
+    else:
+      pad = 2 + self.longest - len(name)
+      sys.stdout.write('%s%s' % (' ' * pad, name))
+
+  def distance(self, a, b):
+    start = env.data.eddb_systems_by_name[a]
+    end = env.data.eddb_systems_by_name[b]
+    fmt = '{0:.2f}' if self.args.csv else '{0: >7.2f}'
+    return fmt.format((end.position - start.position).length)
 
   def run(self):
+    if not self.args.csv:
+      self.longest = max([len(s) for s in self.args.systems])
 
-    start = env.data.get_station_from_string(self.args.system[0].lower())
-    end = env.data.get_station_from_string(self.args.system[1].lower())
-    
-    if start == None:
-      log.error("Could not find start system \"{0}\"!".format(self.args.system[0]))
-      return
-    if end == None:
-      log.error("Could not find end system \"{0}\"!".format(self.args.system[1]))
-      return
+    for y in self.args.systems:
+      if not y.lower() in env.data.eddb_systems_by_name:
+        log.error("Could not find system \"{0}\"!".format(y))
+        return
 
-    
-    print("")
-    print(start.to_string())
-    print("    === {0: >6.2f}Ly ===> {1}".format((end.position - start.position).length, end.to_string()))
-    print("")
+    print('')
+
+    # If we have many systems, generate a Raikogram
+    if len(self.args.systems) > 2:
+
+      if not self.args.ordered:
+        self.args.systems.sort()
+
+      if not self.args.csv:
+        self.print_system('', True)
+
+      for y in self.args.systems:
+        self.print_system(y, False)
+      print('')
+
+      for x in self.args.systems:
+        self.print_system(x, True)
+        for y in self.args.systems:
+          self.print_system('-' if y == x else self.distance(x.lower(), y.lower()), False)
+        print('')
+
+    # Otherwise, just return the simple output
+    else:
+      
+      start = env.data.eddb_systems_by_name[self.args.systems[0].lower()]
+      end = env.data.eddb_systems_by_name[self.args.systems[1].lower()]
+
+      print(start.to_string())
+      print('    === {0: >7.2f}Ly ===> {1}'.format((end.position - start.position).length, end.to_string()))
+
+    print('')
 
 if __name__ == '__main__':
   a = Application(env.local_args, False)

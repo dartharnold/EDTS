@@ -19,7 +19,6 @@ import coords
 import distance
 import find
 import galmath
-import distance_matrix
 
 class EDI(cmd.Cmd):
 
@@ -49,6 +48,9 @@ class EDI(cmd.Cmd):
     except SystemExit:
       pass
     return True
+
+  def do_raikogram(self, args):
+    return self.do_distance(args)
 
   def do_close_to(self, args):
     try:
@@ -84,22 +86,6 @@ class EDI(cmd.Cmd):
   def do_galmath(self, args):
     try:
       app = galmath.Application(shlex.split(args), True)
-      app.run()
-    except KeyboardInterrupt:
-      log.debug("Interrupt detected")
-      pass
-    except SystemExit:
-      return True
-
-  def do_raikogram(self, args):
-    return self.do_matrix(args)
-
-  def do_distance_matrix(self, args):
-    return self.do_matrix(args)
-
-  def do_matrix(self, args):
-    try:
-      app = distance_matrix.Application(shlex.split(args), True)
       app.run()
     except KeyboardInterrupt:
       log.debug("Interrupt detected")
