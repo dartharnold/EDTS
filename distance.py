@@ -19,17 +19,23 @@ class Application:
     ap = argparse.ArgumentParser(description = "Plot jump distance matrix", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument("-c", "--csv", action='store_true', default=False, help="Output in CSV")
     ap.add_argument("-o", "--ordered", action='store_true', default=False, help="List is ordered (do not sort alphabetically)")
+    ap.add_argument("-f", "--full-width", action='store_true', default=False, help="Do not truncate heading names for readability")
     ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
 
     self.args = ap.parse_args(arg)
     self.longest = 6
+    self._max_heading = 1000 if self.args.full_width else 10
+    self._padding_width = 2
 
-  def print_system(self, name, is_line_start):
+  def print_system(self, name, is_line_start, max_len = None):
     if self.args.csv:
       sys.stdout.write('%s%s' % ('' if is_line_start else ',', name))
     else:
-      pad = 2 + self.longest - len(name)
-      sys.stdout.write('%s%s' % (' ' * pad, name))
+      # If name length is > max, truncate name and append ".."
+      tname = name if (max_len is None or len(name) <= max_len) else (name[0:max_len-2] + '..')
+      # If we have a max length, account for it when working out padding
+      pad = (min(self.longest, max_len) if max_len is not None else self.longest) + self._padding_width - len(tname)
+      sys.stdout.write('%s%s' % (' ' * pad, tname))
 
   def distance(self, a, b):
     start = env.data.eddb_systems_by_name[a]
@@ -58,13 +64,13 @@ class Application:
         self.print_system('', True)
 
       for y in self.args.systems:
-        self.print_system(y, False)
+        self.print_system(y, False, self._max_heading)
       print('')
 
       for x in self.args.systems:
         self.print_system(x, True)
         for y in self.args.systems:
-          self.print_system('-' if y == x else self.distance(x.lower(), y.lower()), False)
+          self.print_system('-' if y == x else self.distance(x.lower(), y.lower()), False, self._max_heading)
         print('')
 
     # Otherwise, just return the simple output
