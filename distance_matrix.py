@@ -8,7 +8,7 @@ import math
 import sys
 from vector3 import Vector3
 
-app_name = "matrix"
+app_name = "distance_matrix"
 
 log = logging.getLogger(app_name)
 
@@ -23,15 +23,12 @@ class Application:
     self.args = ap.parse_args(arg)
     self.longest = 6
 
-  def print_system(self, name, suffix = False):
+  def print_system(self, name, is_line_start):
     if self.args.csv:
-      sys.stdout.write('%s%s' % ('' if suffix else ',', name))
+      sys.stdout.write('%s%s' % ('' if is_line_start else ',', name))
     else:
-      pad = 1 + self.longest - len(name)
-      if suffix:
-        sys.stdout.write('%s%s' % (name, ' ' * pad))
-      else:
-        sys.stdout.write('%s%s' % (' ' * pad, name))
+      pad = 2 + self.longest - len(name)
+      sys.stdout.write('%s%s' % (' ' * pad, name))
 
   def distance(self, a, b):
     start = env.data.eddb_systems_by_name[a]
@@ -41,8 +38,7 @@ class Application:
 
   def run(self):
     if not self.args.csv:
-      for system in self.args.systems:
-        self.longest = max(len(system), self.longest)
+      self.longest = max([len(s) for s in self.args.systems])
 
     for y in self.args.systems:
       if not y.lower() in env.data.eddb_systems_by_name:
@@ -57,14 +53,16 @@ class Application:
       self.print_system('', True)
 
     for y in self.args.systems:
-      self.print_system(y)
+      self.print_system(y, False)
     print('')
 
     for x in self.args.systems:
       self.print_system(x, True)
       for y in self.args.systems:
-        self.print_system('-' if y == x else self.distance(x.lower(), y.lower()))
+        self.print_system('-' if y == x else self.distance(x.lower(), y.lower()), False)
       print('')
+
+    print('')
 
 if __name__ == '__main__':
   a = Application(env.local_args, False)
