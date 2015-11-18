@@ -49,13 +49,9 @@ class FSD:
     return wmax
 
   def fuel_weight_range(self, dist, mass, cargo = 0):
-    # self.maxfuel == cost
     # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
-    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) == dist * ((mass + fuel + cargo) / self.optmass)
-    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) / dist == ((mass + fuel + cargo) / self.optmass)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
-    # (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo) == fuel
     wmax = (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo)
 
     # Iterative check to narrow down the minimum fuel requirement
