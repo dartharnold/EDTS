@@ -31,11 +31,12 @@ class Application:
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
-    ap.add_argument("-p", "--pad-size", default="M", type=str, help="The landing pad size of the ship (S/M/L)")
+    ap.add_argument("-p", "--pad-size", default="M", type=str.upper, choices=['S','M','L'], help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
+    ap.add_argument("--format", default='long', type=str.lower, choices=['long','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
@@ -124,7 +125,7 @@ class Application:
       output_data.append({'src': route[0].to_string()})
 
       for i in range(1, len(route)):
-        cur_data = {'dst': route[i].to_string()}
+        cur_data = {'dst': route[i]}
 
         if self.fsd is None:
           full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
@@ -165,11 +166,11 @@ class Application:
               hdist = (hop_route[j-1].position - hop_route[j].position).length
               cur_data['hopdist'] += hdist
               is_long = (hdist > full_max_jump)
-              cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[j].to_string()})
+              cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[j]})
           else:
             cur_data['hopdist'] = cur_data['hopsldist']
             hdist = (hop_route[0].position - hop_route[1].position).length
-            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[1].to_string()})
+            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[1]})
 
         if route[i].name is not None:
           cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance != None and route[i].distance != 0) else "???"
@@ -218,36 +219,64 @@ class Application:
       jmin_max_len = str(jmin_max_len)
       jmax_max_len = str(jmax_max_len)
 
-      print("")
-      print(route[0].to_string())
+      print_summary = True
 
-      # For each hop (not including start point)
-      for i in range(1, len(route)):
-        od = output_data[i]
-        if 'hop_route' in od:
-          # For every jump except the last...
-          for j in range(0, len(od['hop_route'])-1):
-            hd = od['hop_route'][j]
-            print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst']))
-          # For the last jump...
-          hd = od['hop_route'][-1]
-          print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'], od['hopdist'], od['hopsldist']))
-        else:
-          # If we don't have "N - M", just print simple result
-          if od['jumpcount_min'] == od['jumpcount_max']:
-            jumps_str = ("{0:>"+jall_max_len+"d} jump{1}").format(od['jumpcount_max'], "s" if od['jumpcount_max'] != 1 else " ")
+      if self.args.format == 'long':
+        print("")
+        print(route[0].to_string())
+
+        # For each hop (not including start point)
+        for i in range(1, len(route)):
+          od = output_data[i]
+          if 'hop_route' in od:
+            # For every jump except the last...
+            for j in range(0, len(od['hop_route'])-1):
+              hd = od['hop_route'][j]
+              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string()))
+            # For the last jump...
+            hd = od['hop_route'][-1]
+            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist']))
           else:
-            jumps_str = ("{0:>"+jmin_max_len+"d} - {1:>"+jmax_max_len+"d} jumps").format(od['jumpcount_min'], od['jumpcount_max'])
-          route_str = od['dst']
-          # If the destination is a station, include estimated SC time
-          if 'sc_time' in od:
-            route_str += ", SC: ~{0}s".format(od['sc_time'])
-          print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}").format(od['hopsldist'], jumps_str, route_str))
+            # If we don't have "N - M", just print simple result
+            if od['jumpcount_min'] == od['jumpcount_max']:
+              jumps_str = ("{0:>"+jall_max_len+"d} jump{1}").format(od['jumpcount_max'], "s" if od['jumpcount_max'] != 1 else " ")
+            else:
+              jumps_str = ("{0:>"+jmin_max_len+"d} - {1:>"+jmax_max_len+"d} jumps").format(od['jumpcount_min'], od['jumpcount_max'])
+            route_str = od['dst'].to_string()
+            # If the destination is a station, include estimated SC time
+            if 'sc_time' in od:
+              route_str += ", SC: ~{0}s".format(od['sc_time'])
+            print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}").format(od['hopsldist'], jumps_str, route_str))
 
+      elif self.args.format == 'short':
+        print("")
+        sys.stdout.write(str(route[0]))
+        for i in range(1, len(route)):
+          od = output_data[i]
+          if 'hop_route' in od:
+            for j in range(0, len(od['hop_route'])):
+              hd = od['hop_route'][j]
+              sys.stdout.write(", {0}".format(str(hd['dst'])))
+          else:
+            sys.stdout.write(", {0}".format(str(od['dst'])))
+        print("")
 
-      print("")
-      print("Total distance: {0:.2f}Ly; total jumps: {1}; total SC distance: {2:d}Ls{3}; ETT: {4}".format(totaldist, totaljumps_str, totalsc, "+" if not totalsc_accurate else "", est_time_str))
-      print("")
+      elif self.args.format == 'csv':
+        print("{0},{1},{2},{3}".format(route[0].system.name, route[0].name if route[0].name is not None else '', 0.0, 0))
+        for i in range(1, len(route)):
+          od = output_data[i]
+          if 'hop_route' in od:
+            for j in range(0, len(od['hop_route'])):
+              hd = od['hop_route'][j]
+              print("{0},{1},{2},{3}".format(hd['dst'].system.name, hd['dst'].name if hd['dst'].name is not None else '', hd['hdist'], hd['dst'].distance if hd['dst'].distance is not None else 0))
+          else:
+            print("{0},{1},{2},{3}".format(od['dst'].system.name, od['dst'].name if od['dst'].name is not None else '', od['hopsldist'], od['dst'].distance if od['dst'].distance is not None else 0))
+        print_summary = False
+
+      if print_summary:
+        print("")
+        print("Total distance: {0:.2f}Ly; total jumps: {1}; total SC distance: {2:d}Ls{3}; ETT: {4}".format(totaldist, totaljumps_str, totalsc, "+" if not totalsc_accurate else "", est_time_str))
+        print("")
 
     else:
       print("")

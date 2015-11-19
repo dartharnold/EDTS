@@ -10,6 +10,12 @@ class Station:
     self.has_fuel = bool(obj['has_refuel']) if obj is not None else False
     self.max_pad_size = obj['max_landing_pad_size'] if obj is not None else 'L'
 
+  def __str__(self):
+    if self.name is not None:
+      return "{0}/{1}".format(self.system_name, self.name)
+    else:
+      return self.system_name
+
   @classmethod
   def none(self, sysobj):
     return self(None, sysobj)
