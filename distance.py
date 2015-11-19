@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import argparse
+import calc
 import env
 import logging
 import math
@@ -27,6 +28,9 @@ class Application:
     self._max_heading = 1000 if self.args.full_width else 10
     self._padding_width = 2
 
+    self._calc = calc.Calc(self.args, None)
+
+
   def print_system(self, name, is_line_start, max_len = None):
     if self.args.csv:
       sys.stdout.write('%s%s' % ('' if is_line_start else ',', name))
@@ -40,8 +44,11 @@ class Application:
   def distance(self, a, b):
     start = env.data.eddb_systems_by_name[a]
     end = env.data.eddb_systems_by_name[b]
+    return (end.position - start.position).length
+
+  def format_distance(self, dist):
     fmt = '{0:.2f}' if self.args.csv else '{0: >7.2f}'
-    return fmt.format((end.position - start.position).length)
+    return fmt.format(dist)
 
   def run(self):
     if not self.args.csv:
@@ -58,6 +65,11 @@ class Application:
     if len(self.args.systems) > 2 or self.args.csv:
 
       if not self.args.ordered:
+        # Remove duplicates
+        seen = set()
+        seen_add = seen.add
+        self.args.systems = [x for x in self.args.systems if not (x in seen or seen_add(x))]
+        # Sort alphabetically
         self.args.systems.sort()
 
       if not self.args.csv:
@@ -70,8 +82,16 @@ class Application:
       for x in self.args.systems:
         self.print_system(x, True)
         for y in self.args.systems:
-          self.print_system('-' if y == x else self.distance(x.lower(), y.lower()), False, self._max_heading)
+          self.print_system('-' if y == x else self.format_distance(self.distance(x.lower(), y.lower())), False, self._max_heading)
         print('')
+
+      if self.args.ordered:
+        print('')
+        self.print_system('Total:', True)
+        total_dist = self._calc.route_dist([env.data.eddb_systems_by_name[x.lower()] for x in self.args.systems])
+        self.print_system(self.format_distance(total_dist), False, self._max_heading)
+
+      print('')
 
     # Otherwise, just return the simple output
     else:
