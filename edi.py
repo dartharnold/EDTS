@@ -27,6 +27,13 @@ class EDI(cmd.Cmd):
     cmd.Cmd.__init__(self)
     self.prompt = "EDI> "
 
+  def help_edts(self):
+    try:
+      edts.Application(['-h'], True).run()
+    except SystemExit:
+      pass
+    return True
+
   def do_edts(self, args):
     try:
       app = edts.Application(shlex.split(args), True)
@@ -34,6 +41,13 @@ class EDI(cmd.Cmd):
     except KeyboardInterrupt:
       log.debug("Interrupt detected")
       pass
+    except SystemExit:
+      pass
+    return True
+
+  def help_distance(self):
+    try:
+      distance.Application(['-h'], True).run()
     except SystemExit:
       pass
     return True
@@ -49,8 +63,18 @@ class EDI(cmd.Cmd):
       pass
     return True
 
+  def help_raikogram(self):
+    return self.help_distance()
+
   def do_raikogram(self, args):
     return self.do_distance(args)
+
+  def help_close_to(self):
+    try:
+      close_to.Application(['-h'], True).run()
+    except SystemExit:
+      pass
+    return True
 
   def do_close_to(self, args):
     try:
@@ -59,6 +83,13 @@ class EDI(cmd.Cmd):
     except KeyboardInterrupt:
       log.debug("Interrupt detected")
       pass
+    except SystemExit:
+      pass
+    return True
+
+  def help_coords(self):
+    try:
+      coords.Application(['-h'], True).run()
     except SystemExit:
       pass
     return True
@@ -73,6 +104,13 @@ class EDI(cmd.Cmd):
     except SystemExit:
       return True
 
+  def help_find(self):
+    try:
+      find.Application(['-h'], True).run()
+    except SystemExit:
+      pass
+    return True
+
   def do_find(self, args):
     try:
       app = find.Application(shlex.split(args), True)
@@ -82,6 +120,13 @@ class EDI(cmd.Cmd):
       pass
     except SystemExit:
       return True
+
+  def help_galmath(self):
+    try:
+      find.Application(['-h'], True).run()
+    except SystemExit:
+      pass
+    return True
 
   def do_galmath(self, args):
     try:
@@ -93,15 +138,31 @@ class EDI(cmd.Cmd):
     except SystemExit:
       return True
 
+  def help_set_verbosity(self):
+    print("usage: set_verbosity N")
+    print("")
+    print("Set log level (0-3)")
+    return True
+
   def do_set_verbosity(self, args):
     env.set_verbosity(int(args))
+    return True
+
+  def help_quit(self):
+    print("Exit this shell by typing \"exit\", \"quit\" or Control-D.")
     return True
 
   def do_quit(self, args):
     return False
 
+  def help_exit(self):
+    return self.help_quit()
+
   def do_exit(self, args):
     return False
+
+  def help_EOF(self):
+    return self.help_quit()
 
   def do_EOF(self, args):
     print()
