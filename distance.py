@@ -21,6 +21,7 @@ class Application:
     ap.add_argument("-c", "--csv", action='store_true', default=False, help="Output in CSV")
     ap.add_argument("-o", "--ordered", action='store_true', default=False, help="List is ordered (do not sort alphabetically)")
     ap.add_argument("-f", "--full-width", action='store_true', default=False, help="Do not truncate heading names for readability")
+    ap.add_argument("-s", "--start", type=str, required=False, help="Defines a start system to calculate all other distances from")
     ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
 
     self.args = ap.parse_args(arg)
@@ -54,6 +55,9 @@ class Application:
     if not self.args.csv:
       self.longest = max([len(s) for s in self.args.systems])
 
+    if self.args.start != None and not self.args.start.lower() in env.data.eddb_systems_by_name:
+      log.error("Could not find start system \"{0}\"!".format(self.args.start))
+      return
     for y in self.args.systems:
       if not y.lower() in env.data.eddb_systems_by_name:
         log.error("Could not find system \"{0}\"!".format(y))
@@ -61,46 +65,60 @@ class Application:
 
     print('')
 
-    # If we have many systems, generate a Raikogram
-    if len(self.args.systems) > 2 or self.args.csv:
+    if self.args.start != None:
+      start = env.data.eddb_systems_by_name[self.args.start.lower()]
 
-      if not self.args.ordered:
-        # Remove duplicates
-        seen = set()
-        seen_add = seen.add
-        self.args.systems = [x for x in self.args.systems if not (x in seen or seen_add(x))]
-        # Sort alphabetically
-        self.args.systems.sort()
+      distances = {}
+      for s in self.args.systems:
+        sobj = env.data.eddb_systems_by_name[s.lower()]
+        distances[sobj] = (sobj.position - start.position).length
 
-      if not self.args.csv:
-        self.print_system('', True)
+      for sobj in sorted(distances, key=distances.get):
+        print(' {0} === {1: >7.2f}Ly ===> {2}'.format(start.to_string(), (sobj.position - start.position).length, sobj.to_string()))
 
-      for y in self.args.systems:
-        self.print_system(y, False, self._max_heading)
-      print('')
+    
 
-      for x in self.args.systems:
-        self.print_system(x, True)
-        for y in self.args.systems:
-          self.print_system('-' if y == x else self.format_distance(self.distance(x.lower(), y.lower())), False, self._max_heading)
-        print('')
-
-      if self.args.ordered:
-        print('')
-        self.print_system('Total:', True)
-        total_dist = self._calc.route_dist([env.data.eddb_systems_by_name[x.lower()] for x in self.args.systems])
-        self.print_system(self.format_distance(total_dist), False, self._max_heading)
-
-      print('')
-
-    # Otherwise, just return the simple output
     else:
-      
-      start = env.data.eddb_systems_by_name[self.args.systems[0].lower()]
-      end = env.data.eddb_systems_by_name[self.args.systems[1].lower()]
+      # If we have many systems, generate a Raikogram
+      if len(self.args.systems) > 2 or self.args.csv:
 
-      print(start.to_string())
-      print('    === {0: >7.2f}Ly ===> {1}'.format((end.position - start.position).length, end.to_string()))
+        if not self.args.ordered:
+          # Remove duplicates
+          seen = set()
+          seen_add = seen.add
+          self.args.systems = [x for x in self.args.systems if not (x in seen or seen_add(x))]
+          # Sort alphabetically
+          self.args.systems.sort()
+
+        if not self.args.csv:
+          self.print_system('', True)
+
+        for y in self.args.systems:
+          self.print_system(y, False, self._max_heading)
+        print('')
+
+        for x in self.args.systems:
+          self.print_system(x, True)
+          for y in self.args.systems:
+            self.print_system('-' if y == x else self.format_distance(self.distance(x.lower(), y.lower())), False, self._max_heading)
+          print('')
+
+        if self.args.ordered:
+          print('')
+          self.print_system('Total:', True)
+          total_dist = self._calc.route_dist([env.data.eddb_systems_by_name[x.lower()] for x in self.args.systems])
+          self.print_system(self.format_distance(total_dist), False, self._max_heading)
+
+        print('')
+
+      # Otherwise, just return the simple output
+      else:
+        
+        start = env.data.eddb_systems_by_name[self.args.systems[0].lower()]
+        end = env.data.eddb_systems_by_name[self.args.systems[1].lower()]
+
+        print(start.to_string())
+        print('    === {0: >7.2f}Ly ===> {1}'.format((end.position - start.position).length, end.to_string()))
 
     print('')
 
