@@ -160,6 +160,7 @@ class Application:
 
         if self.args.route and hop_route != None:
           cur_data['hop_route'] = []
+          is_long = False
           if len(hop_route) > 2:
             cur_data['hopdist'] = 0.0
             for j in range(1, len(hop_route)):

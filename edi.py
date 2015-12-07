@@ -5,6 +5,7 @@ import sys
 import shlex
 import logging
 import time
+import cmd
 
 if __name__ == '__main__':
   print("Loading environment...")
@@ -12,7 +13,6 @@ import env
 
 log = logging.getLogger("edi")
 
-import cmd
 import edts
 import close_to
 import coords

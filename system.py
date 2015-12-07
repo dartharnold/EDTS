@@ -5,8 +5,8 @@ class System:
     self.id = obj['id']
     self.position = Vector3(float(obj['x']), float(obj['y']), float(obj['z']))
     self.name = obj['name']
-    self.needs_permit = obj['needs_permit']
-    self.allegiance = obj['allegiance']
+    self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
+    self.allegiance = obj['allegiance'] if 'allegiance' in obj else False
     self.uses_sc = False
 
   def to_string(self, use_long = False):

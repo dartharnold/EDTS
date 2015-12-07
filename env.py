@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import re
 import sys
 import threading
 import eddb
@@ -21,6 +22,13 @@ class Env(object):
     
     self.load_coriolis_data(False)
     self.load_eddb_data(True)
+    
+    # Match a float such as "33", "-33", "-33.1"
+    rgx_float = r'[-+]?\d+(?:\.\d+)?'
+    # Match a set of coords such as "[33, -45.6, 78.910]"
+    rgx_coords = r'\[\s*({0})\s*,\s*({0})\s*,\s*({0})\s*\]'.format(rgx_float)
+    # Compile the regex for faster execution later
+    self._regex_coords = re.compile(rgx_coords)
 
   def _get_stations_by_system(self, stations):
     sbs = {}
@@ -47,10 +55,24 @@ class Env(object):
     return sbn
   
   def get_station_from_string(self, statstr):
-    parts = statstr.split("/", 1)
-    sysname = parts[0]
-    statname = parts[1] if len(parts) > 1 else None
-    return self.get_station(sysname, statname)
+    # Check the input against the "fake" station format of "[123.4,56.7,-89.0]"...
+    rx_match = self._regex_coords.match(statstr)
+    if rx_match != None:
+      # If it matches, make a fake system and station at those coordinates
+      try:
+        cx = float(rx_match.group(1))
+        cy = float(rx_match.group(2))
+        cz = float(rx_match.group(3))
+        sysobj = {'id': -1, 'name': statstr, 'x': cx, 'y': cy, 'z': cz}
+        return Station.none(System(sysobj))
+      except:
+        return None
+    else:
+      # If not, use a real system from the EDDB data
+      parts = statstr.split("/", 1)
+      sysname = parts[0]
+      statname = parts[1] if len(parts) > 1 else None
+      return self.get_station(sysname, statname)
   
   def get_station(self, sysname, statname = None):
     if statname is not None and statname.lower() in self.eddb_stations_by_name:

@@ -80,6 +80,9 @@ class Routing:
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
+    # Ensure the target system is present, in case it's a "fake" system not in the main list
+    if sys_to not in stars:
+      stars.append(sys_to)
 
     closedset = set()         # The set of nodes already evaluated.
     openset = set([sys_from]) # The set of tentative nodes to be evaluated, initially containing the start node
