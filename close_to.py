@@ -62,14 +62,12 @@ class Application:
     self.allow_outposts = (self.args.pad_size != "L")
 
   def run(self):
-    for d in self.args.system:
-      if not d['system'].lower() in env.data.eddb_systems_by_name:
-        log.error("Could not find start system \"{0}\"!".format(d['system']))
-        return
-
     # Add the system object to each system arg
     for d in self.args.system:
-      d['sysobj'] = env.data.eddb_systems_by_name[d['system'].lower()]
+      d['sysobj'] = env.data.parse_system(d['system'])
+      if d['sysobj'] == None:
+        log.error("Could not find start system \"{0}\"!".format(d['system']))
+        return
     # Create a list of names for quick checking in the main loop
     start_names = [d['system'].lower() for d in self.args.system]
 

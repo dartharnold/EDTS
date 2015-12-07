@@ -54,25 +54,14 @@ class Env(object):
       sbn[name].append(st)
     return sbn
   
-  def get_station_from_string(self, statstr):
-    # Check the input against the "fake" station format of "[123.4,56.7,-89.0]"...
-    rx_match = self._regex_coords.match(statstr)
-    if rx_match != None:
-      # If it matches, make a fake system and station at those coordinates
-      try:
-        cx = float(rx_match.group(1))
-        cy = float(rx_match.group(2))
-        cz = float(rx_match.group(3))
-        sysobj = {'id': -1, 'name': statstr, 'x': cx, 'y': cy, 'z': cz}
-        return Station.none(System(sysobj))
-      except:
-        return None
-    else:
-      # If not, use a real system from the EDDB data
-      parts = statstr.split("/", 1)
-      sysname = parts[0]
-      statname = parts[1] if len(parts) > 1 else None
-      return self.get_station(sysname, statname)
+  def parse_station(self, statstr):
+    parts = statstr.split("/", 1)
+    sysname = parts[0]
+    statname = parts[1] if len(parts) > 1 else None
+    return self.get_station(sysname, statname)
+    
+  def parse_system(self, sysstr):
+    return self.get_system(sysstr)
   
   def get_station(self, sysname, statname = None):
     if statname is not None and statname.lower() in self.eddb_stations_by_name:
@@ -80,10 +69,29 @@ class Env(object):
         if sysname.lower() == stn.system.name.lower():
           return stn
     else:
-      if sysname.lower() in self.eddb_systems_by_name:
-        return Station.none(self.eddb_systems_by_name[sysname.lower()])
+      return Station.none(self.get_system(sysname))
     return None
   
+  def get_system(self, sysname):
+    if sysname.lower() in self.eddb_systems_by_name:
+      return self.eddb_systems_by_name[sysname.lower()]
+    else:
+      # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
+      rx_match = self._regex_coords.match(sysname)
+      if rx_match != None:
+        # If it matches, make a fake system and station at those coordinates
+        try:
+          cx = float(rx_match.group(1))
+          cy = float(rx_match.group(2))
+          cz = float(rx_match.group(3))
+          sysobj = {'id': -1, 'name': sysname, 'x': cx, 'y': cy, 'z': cz}
+          return System(sysobj)
+        except:
+          return None
+      else:
+        return None
+
+
   def _load_eddb_data(self):
     with self._eddb_load_lock:
       self._eddb_systems = [System(s) for s in eddb.load_systems(global_args.eddb_systems_file)]

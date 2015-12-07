@@ -43,8 +43,8 @@ class Application:
       sys.stdout.write('%s%s' % (' ' * pad, tname))
 
   def distance(self, a, b):
-    start = env.data.eddb_systems_by_name[a]
-    end = env.data.eddb_systems_by_name[b]
+    start = env.data.parse_system(a)
+    end = env.data.parse_system(b)
     return (end.position - start.position).length
 
   def format_distance(self, dist):
@@ -55,22 +55,22 @@ class Application:
     if not self.args.csv:
       self.longest = max([len(s) for s in self.args.systems])
 
-    if self.args.start != None and not self.args.start.lower() in env.data.eddb_systems_by_name:
+    if self.args.start != None and env.data.parse_system(self.args.start) == None:
       log.error("Could not find start system \"{0}\"!".format(self.args.start))
       return
     for y in self.args.systems:
-      if not y.lower() in env.data.eddb_systems_by_name:
+      if env.data.parse_system(y) == None:
         log.error("Could not find system \"{0}\"!".format(y))
         return
 
     print('')
 
     if self.args.start != None:
-      start = env.data.eddb_systems_by_name[self.args.start.lower()]
+      start = env.data.parse_system(self.args.start)
 
       distances = {}
       for s in self.args.systems:
-        sobj = env.data.eddb_systems_by_name[s.lower()]
+        sobj = env.data.parse_system(s)
         distances[sobj] = (sobj.position - start.position).length
 
       for sobj in sorted(distances, key=distances.get):
@@ -106,7 +106,7 @@ class Application:
         if self.args.ordered:
           print('')
           self.print_system('Total:', True)
-          total_dist = self._calc.route_dist([env.data.eddb_systems_by_name[x.lower()] for x in self.args.systems])
+          total_dist = self._calc.route_dist([env.data.parse_system(x) for x in self.args.systems])
           self.print_system(self.format_distance(total_dist), False, self._max_heading)
 
         print('')
@@ -114,8 +114,8 @@ class Application:
       # Otherwise, just return the simple output
       else:
         
-        start = env.data.eddb_systems_by_name[self.args.systems[0].lower()]
-        end = env.data.eddb_systems_by_name[self.args.systems[1].lower()]
+        start = env.data.parse_system(self.args.systems[0])
+        end = env.data.parse_system(self.args.systems[1])
 
         print(start.to_string())
         print('    === {0: >7.2f}Ly ===> {1}'.format((end.position - start.position).length, end.to_string()))

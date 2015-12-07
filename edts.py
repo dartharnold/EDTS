@@ -69,8 +69,8 @@ class Application:
 
   def run(self):
 
-    start = env.data.get_station_from_string(self.args.start)
-    end = env.data.get_station_from_string(self.args.end)
+    start = env.data.parse_station(self.args.start)
+    end = env.data.parse_station(self.args.end)
 
     if start == None:
       log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
@@ -81,7 +81,7 @@ class Application:
 
     stations = []
     for st in self.args.stations:
-      sobj = env.data.get_station_from_string(st)
+      sobj = env.data.parse_station(st)
       if sobj != None:
         log.debug("Adding system/station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance if sobj.distance != None else "???"))
 

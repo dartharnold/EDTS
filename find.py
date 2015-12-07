@@ -47,7 +47,7 @@ class Application:
       print("Matching systems:")
       print("")
       for sys in sys_matches:
-        stn = env.data.get_station(sys, None)
+        stn = env.data.get_station(sys)
         print("  " + stn.to_string())
       print("")
 
