@@ -6,7 +6,8 @@ import logging
 import math
 import sys
 import env
-from calc import Calc
+import calc as c
+import ship
 from route import Routing
 from solver import Solver
 from station import Station
@@ -19,7 +20,7 @@ log = logging.getLogger(app_name)
 
 class Application:
 
-  def __init__(self, arg, hosted):
+  def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
     ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
@@ -27,7 +28,7 @@ class Application:
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
     ap.add_argument("-j", "--jump-range", type=float, required=False, help="The ship's max jump range with full fuel and empty cargo")
-    ap.add_argument("-w", "--witchspace-time", type=int, required=False, help="Time in seconds spent in hyperspace jump")
+    ap.add_argument("-w", "--witchspace-time", type=int, default=c.default_ws_time, help="Time in seconds spent in hyperspace jump")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
@@ -40,8 +41,8 @@ class Application:
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
-    ap.add_argument("--slf", type=float, default=0.9, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
-    ap.add_argument("--route-strategy", default="astar", help="The strategy to use for route plotting. Valid options are 'trundle' and 'astar'")
+    ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
+    ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle' and 'astar'")
     ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
     ap.add_argument("--rbuffer-base", type=float, default=10.0, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
     ap.add_argument("--rbuffer-mult", type=float, default=0.15, help="A multiple of hop straight-line distance to add to rbuffer_base")
@@ -55,16 +56,15 @@ class Application:
 
     if self.args.jump_range is None:
       if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
-        self.unladen_mass = self.args.mass
-        self.fuel = self.args.tank
-        self.fsd = FSD(self.args.fsd)
-        if self.fsd is None:
-          sys.exit(1)
+        # TODO: support cargo capacity?
+        self.ship = ship.Ship(FSD(self.args.fsd), self.args.mass, self.args.tank)
+      elif 'ship' in state:
+        self.ship = state['ship']
       else:
         log.error("Error: You must specify either --jump-range or all of --fsd, --mass and --tank.")
         sys.exit(1)
     else:
-      self.fsd = None
+      self.ship = None
 
 
   def run(self):
@@ -93,14 +93,14 @@ class Application:
         log.warning("Error: system/station {0} could not be found.".format(st))
         return
 
-    if self.fsd is not None:
-      full_jump_range = self.fsd.range(self.unladen_mass, self.fuel)
-      jump_range = self.fsd.max_range(self.unladen_mass) if self.args.long_jumps else full_jump_range
+    if self.ship is not None:
+      full_jump_range = self.ship.range()
+      jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
     else:
       full_jump_range = self.args.jump_range
       jump_range = self.args.jump_range
 
-    calc = Calc(self.args, self.fsd)
+    calc = c.Calc(ship = self.ship, jump_range = self.args.jump_range, witchspace_time = self.args.witchspace_time, route_strategy = self.args.route_strategy, slf = self.args.slf)
     r = Routing(calc, env.data.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit, self.args.solve_full)
 
@@ -127,12 +127,12 @@ class Application:
       for i in range(1, len(route)):
         cur_data = {'dst': route[i]}
 
-        if self.fsd is None:
+        if self.ship is None:
           full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
           cur_max_jump = full_max_jump
         else:
-          full_max_jump = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (i-1))
-          cur_max_jump = self.fsd.max_range(self.args.mass, self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
+          full_max_jump = self.ship.range(cargo = self.args.cargo * (i-1))
+          cur_max_jump = self.ship.max_range(cargo = self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
         if self.args.route:
@@ -148,7 +148,7 @@ class Application:
           else:
             log.warning("No valid route found for hop: {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
 
-        cur_data['hopsldist'] = (route[i-1].position - route[i].position).length
+        cur_data['hopsldist'] = route[i-1].distance_to(route[i])
         totaldist += cur_data['hopsldist']
         totaljumps_min += cur_data['jumpcount_min']
         totaljumps_max += cur_data['jumpcount_max']
@@ -164,13 +164,13 @@ class Application:
           if len(hop_route) > 2:
             cur_data['hopdist'] = 0.0
             for j in range(1, len(hop_route)):
-              hdist = (hop_route[j-1].position - hop_route[j].position).length
+              hdist = hop_route[j-1].distance_to(hop_route[j])
               cur_data['hopdist'] += hdist
               is_long = (hdist > full_max_jump)
               cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[j]})
           else:
             cur_data['hopdist'] = cur_data['hopsldist']
-            hdist = (hop_route[0].position - hop_route[1].position).length
+            hdist = hop_route[0].distance_to(hop_route[1])
             cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[1]})
 
         if route[i].name is not None:

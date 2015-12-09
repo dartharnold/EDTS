@@ -36,7 +36,7 @@ class ApplicationAction(argparse.Action):
 
 class Application:
 
-  def __init__(self, arg, hosted):
+  def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
@@ -87,7 +87,7 @@ class Application:
             is_ok = True
             for d in self.args.system:
               start = d['sysobj']
-              this_dist = (s.position - start.position).length
+              this_dist = s.distance_to(start)
               if 'min_dist' in d and this_dist < d['min_dist']:
                 is_ok = False
                 break
@@ -103,7 +103,7 @@ class Application:
               # We have a new contender; add it, sort by distance, chop to length and set the new max distance
               asys.append(s)
               # Sort the list by distance to ALL start systems
-              asys.sort(key=lambda t: math.fsum([(t.position - d['sysobj'].position).length for d in self.args.system]))
+              asys.sort(key=lambda t: math.fsum([t.distance_to(e['sysobj']) for e in self.args.system]))
 
               asys = asys[0:self.args.num]
               maxdist = max(dist, maxdist)
@@ -119,9 +119,9 @@ class Application:
       print("")
       for i in range(0, len(asys)):
         if len(self.args.system) == 1:
-          print("    {0} ({1:.2f}Ly)".format(asys[i].name, (asys[i].position - self.args.system[0]['sysobj'].position).length))
+          print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
         else:
-          print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format((asys[i].position - self.args.system[0]['sysobj'].position).length)))
+          print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format(asys[i].distance_to(self.args.system[0]['sysobj']))))
         if self.args.list_stations and asys[i].id in env.data.eddb_stations_by_system:
           stlist = env.data.eddb_stations_by_system[asys[i].id]
           stlist.sort(key=lambda t: t.distance)
@@ -132,10 +132,10 @@ class Application:
         for d in self.args.system:
           print("  Distance from {0}:".format(d['system']))
           print("")
-          asys.sort(key=lambda t: (t.position - d['sysobj'].position).length)
+          asys.sort(key=lambda t: t.distance_to(d['sysobj']))
           for i in range(0, len(asys)):
             # Print distance from the current candidate system to the current start system
-            print("    {0} ({1:.2f}Ly)".format(asys[i].name, (asys[i].position - d['sysobj'].position).length))
+            print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
           print("")
 
 if __name__ == '__main__':

@@ -78,7 +78,7 @@ class Routing:
 
 
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
-    rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
+    rbuffer_ly = self._rbuffer_base + (sys_from.distance_to(sys_to) * self._rbuffer_mult)
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
@@ -101,7 +101,7 @@ class Routing:
       openset.remove(current)
       closedset.add(current)
 
-      neighbor_nodes = [n for n in stars if n != current and (n.position - current.position).length < jump_range]
+      neighbor_nodes = [n for n in stars if n != current and n.distance_to(current) < jump_range]
 
       path = self.astar_reconstruct_path(came_from, current)
 
@@ -134,13 +134,13 @@ class Routing:
 
 
   def plot_trundle(self, sys_from, sys_to, jump_range, full_range):
-    rbuffer_ly = self._rbuffer_base + ((sys_from.position - sys_to.position).length * self._rbuffer_mult)
+    rbuffer_ly = self._rbuffer_base + (sys_from.distance_to(sys_to) * self._rbuffer_mult)
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
    
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
 
     add_jumps = 0
-    best_jump_count = int(math.ceil((sys_from.position - sys_to.position).length / jump_range))
+    best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
 
     best = None
     bestcost = None
@@ -162,10 +162,10 @@ class Routing:
     return best
 
   def trundle_get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps):
-    cur_dist = (route[-1].position - sys_to.position).length
+    cur_dist = route[-1].distance_to(sys_to)
     if cur_dist > jump_range:
       # Multiple jumps to go
-      best_jump_count = int(math.ceil((route[0].position - sys_to.position).length / jump_range)) + add_jumps
+      best_jump_count = int(math.ceil(route[0].distance_to(sys_to) / jump_range)) + add_jumps
 
       # current_pos + (dir(current_pos --> sys_to) * jump_range)
       dir_vec = route[-1].position + ((sys_to.position - route[-1].position).normalise() * jump_range)
@@ -178,9 +178,9 @@ class Routing:
       # Get valid next hops
       vsnext = []
       for s in mystars:
-        next_dist = (s.position - route[-1].position).length
+        next_dist = s.distance_to(route[-1])
         if next_dist < jump_range:
-          dist_jumpN = (s.position - sys_to.position).length
+          dist_jumpN = s.distance_to(sys_to)
           maxd = (best_jump_count - len(route)) * jump_range
           if dist_jumpN < maxd:
             vsnext.append(s)

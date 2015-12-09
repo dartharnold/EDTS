@@ -13,7 +13,7 @@ log = logging.getLogger(app_name)
 
 class Application:
 
-  def __init__(self, arg, hosted):
+  def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Display System Coordinates", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
     ap.add_argument("system", metavar="system", type=str, nargs="*", help="The system to print the coordinates for")

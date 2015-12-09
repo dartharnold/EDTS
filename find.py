@@ -14,7 +14,7 @@ log = logging.getLogger(app_name)
 
 class Application:
 
-  def __init__(self, arg, hosted):
+  def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Find System or Station", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
     ap.add_argument("-a", "--anagram", default=False, action='store_true', help="Find names matching an anagram of the provided string")

@@ -15,6 +15,9 @@ class Station:
       return "{0}/{1}".format(self.system_name, self.name)
     else:
       return self.system_name
+  
+  def distance_to(self, other):
+    return (self.position - other.position).length
 
   @classmethod
   def none(self, sysobj):

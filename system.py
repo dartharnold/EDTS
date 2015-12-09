@@ -15,6 +15,9 @@ class System:
     else:
       return u"%s" % self.name
 
+  def distance_to(self, other):
+    return (self.position - other.position).length
+
   def __eq__(self, other):
     if isinstance(other, System):
       return (self.id == other.id and self.name == other.name and self.position == other.position)

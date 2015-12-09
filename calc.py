@@ -1,40 +1,50 @@
 import logging
 import math
+import ship
 from station import Station
   
 log = logging.getLogger("calc")
 
+default_slf = 0.9
+default_strategy = "astar"
+default_ws_time = 15
+
 class Calc:
-  def __init__(self, args, fsd):
-    self.args = args
-    self.fsd = fsd
+  def __init__(self, ship = None, jump_range = None, witchspace_time = default_ws_time, route_strategy = default_strategy, slf = default_slf):
+    self.ship = ship
+    self.jump_range = jump_range
     self.sc_constant = 65
     self.sc_multiplier = 1.8
     self.sc_power = 0.5
     self.jump_spool_time = 20
-    self.jump_witchspace_time = 15
+    self.jump_witchspace_time = witchspace_time
     self.jump_cooldown_time = 10
     self.stop_outpost_time = 75
     self.stop_station_time = 90
+    self.slf = slf
+    self.route_strategy = route_strategy
 
-  def jump_count(self, a, b, route, allow_long = False):
-    _, maxjumps = self.jump_count_range(a, b, route, allow_long)
+  def jump_count(self, a, b, route, allow_long = False, cargo = 0, jump_decay = 0.0):
+    _, maxjumps = self.jump_count_range(a, b, route, allow_long, cargo, jump_decay)
     return maxjumps
 
-  def jump_count_range(self, a, b, route, allow_long = False):
-    if self.fsd is not None:
+  def jump_count_range(self, a, b, route, allow_long = False, cargo = 0, jump_decay = 0.0):
+    if self.ship is not None:
       if allow_long:
-        jumpdist = self.fsd.max_range(self.args.mass, self.args.cargo * (len(route)-1))
+        jumpdist = self.ship.max_range(cargo = cargo * (len(route)-1))
       else:
-        jumpdist = self.fsd.range(self.args.mass, self.args.tank, self.args.cargo * (len(route)-1))
+        jumpdist = self.ship.range(cargo = cargo * (len(route)-1))
+    elif self.jump_range is not None:
+      jumpdist = self.jump_range - (jump_decay * (len(route)-1))
     else:
-      jumpdist = self.args.jump_range - (self.args.jump_decay * (len(route)-1))
-    hopdist = (a.position - b.position).length
+      raise Exception("Tried to calculate jump counts without either valid ship or jump range")
+
+    hopdist = a.distance_to(b)
 
     minjumps = int(math.ceil(hopdist / jumpdist))
     # If we're doing multiple jumps, apply the SLF
     if hopdist > jumpdist:
-      jumpdist = jumpdist * self.args.slf
+      jumpdist = jumpdist * self.slf
     maxjumps = int(math.ceil(hopdist / jumpdist))
     return minjumps, maxjumps
 
@@ -43,7 +53,7 @@ class Calc:
 	
   def solve_cost(self, a, b, route):
     hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
-    hs_jdist = (a.position - b.position).length
+    hs_jdist = a.distance_to(b)
     sc = self.sc_cost(b.distance if b.uses_sc else 0.0)
     return (hs_jumps + hs_jdist + sc)
 
@@ -54,12 +64,12 @@ class Calc:
     return cost
 
   def route_cost(self, route):
-    if self.args.route_strategy == "trundle":
+    if self.route_strategy == "trundle":
       return self.trundle_cost(route)
-    elif self.args.route_strategy == "astar":
+    elif self.route_strategy == "astar":
       return self.astar_cost(route[0], route[-1], route)
     else:
-      log.error("Invalid route strategy {0} provided".format(self.args.route_strategy))
+      log.error("Invalid route strategy {0} provided".format(self.route_strategy))
       return None
 
   def trundle_cost(self, route):
@@ -71,7 +81,7 @@ class Calc:
   def route_dist(self, route):
     dist = 0.0
     for i in range(0, len(route)-1):
-      dist += (route[i+1].position - route[i].position).length
+      dist += route[i+1].distance_to(route[i])
     return dist
 
   def route_variance(self, route, dist):
@@ -87,23 +97,24 @@ class Calc:
     meanjump = dist / (len(route)-1)
     cvar = 0.0
     for i in range(0, len(route)-1):
-      jdist = (route[i+1].position - route[i].position).length
+      jdist = route[i+1].distance_to(route[i])
       cvar += math.pow((jdist - meanjump), power)
     return cvar
 
   def astar_cost(self, a, b, route, dist_threshold = None):
     jcount = self.jump_count(a, b, route, (dist_threshold is not None))
     hs_jumps = self.time_for_jumps(jcount)
-    hs_jdist = (a.position - b.position).length
-    var = self.route_variance(route, self.route_dist(route))
+    hs_jdist = a.distance_to(b)
+    # var = self.route_variance(route, self.route_dist(route))
+    var = self.route_variance(route, route[0].distance_to(route[-1]))
 
     penalty = 0.0
     if dist_threshold is not None:
-      if jcount == 1 and (a.position - b.position).length > dist_threshold:
+      if jcount == 1 and a.distance_to(b) > dist_threshold:
         penalty += 20
 
       for i in range(0, len(route)-1):
-        cdist = (route[i+1].position - route[i].position).length
+        cdist = route[i+1].distance_to(route[i])
         if cdist > dist_threshold:
           penalty += 20
 
@@ -126,8 +137,7 @@ class Calc:
       return 0.0
 
   def time_for_jumps(self, jump_count):
-    jump_witchspace_time = self.args.witchspace_time if self.args.witchspace_time is not None else self.jump_witchspace_time
-    return max(0.0, ((self.jump_spool_time + jump_witchspace_time) * jump_count) + (self.jump_cooldown_time * (jump_count - 1)))
+    return max(0.0, ((self.jump_spool_time + self.jump_witchspace_time) * jump_count) + (self.jump_cooldown_time * (jump_count - 1)))
 
   def route_time(self, route, jump_count):
     hs_t = self.time_for_jumps(jump_count)

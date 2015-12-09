@@ -15,7 +15,7 @@ log = logging.getLogger(app_name)
 
 class Application:
 
-  def __init__(self, arg, hosted):
+  def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Plot jump distance matrix", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument("-c", "--csv", action='store_true', default=False, help="Output in CSV")
@@ -29,7 +29,7 @@ class Application:
     self._max_heading = 1000 if self.args.full_width else 10
     self._padding_width = 2
 
-    self._calc = calc.Calc(self.args, None)
+    self._calc = calc.Calc()
 
 
   def print_system(self, name, is_line_start, max_len = None):
@@ -45,7 +45,7 @@ class Application:
   def distance(self, a, b):
     start = env.data.parse_system(a)
     end = env.data.parse_system(b)
-    return (end.position - start.position).length
+    return start.distance_to(end)
 
   def format_distance(self, dist):
     fmt = '{0:.2f}' if self.args.csv else '{0: >7.2f}'
@@ -71,10 +71,10 @@ class Application:
       distances = {}
       for s in self.args.systems:
         sobj = env.data.parse_system(s)
-        distances[sobj] = (sobj.position - start.position).length
+        distances[sobj] = sobj.distance_to(start)
 
       for sobj in sorted(distances, key=distances.get):
-        print(' {0} === {1: >7.2f}Ly ===> {2}'.format(start.to_string(), (sobj.position - start.position).length, sobj.to_string()))
+        print(' {0} === {1: >7.2f}Ly ===> {2}'.format(start.to_string(), sobj.distance_to(start), sobj.to_string()))
 
     
 
@@ -118,7 +118,7 @@ class Application:
         end = env.data.parse_system(self.args.systems[1])
 
         print(start.to_string())
-        print('    === {0: >7.2f}Ly ===> {1}'.format((end.position - start.position).length, end.to_string()))
+        print('    === {0: >7.2f}Ly ===> {1}'.format(start.distance_to(end), end.to_string()))
 
     print('')
 
