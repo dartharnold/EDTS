@@ -57,7 +57,7 @@ class Application:
     if self.args.jump_range is None:
       if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
         # TODO: support cargo capacity?
-        self.ship = ship.Ship(FSD(self.args.fsd), self.args.mass, self.args.tank)
+        self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
       elif 'ship' in state:
         self.ship = state['ship']
       else:
