@@ -17,7 +17,7 @@ class Ship:
   def range(self, fuel = None, cargo = 0):
     return self.fsd.range(self.mass, fuel if fuel is not None else self.tank_size, cargo)
 
-  def cost(self, dist, mass, fuel = None, cargo = 0):
+  def cost(self, dist, fuel = None, cargo = 0):
     return self.fsd.cost(dist, self.mass, fuel if fuel is not None else self.tank_size, cargo)
 
   def max_fuel_weight(self, dist, cargo = 0):

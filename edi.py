@@ -22,6 +22,7 @@ import coords
 import distance
 import find
 import galmath
+import fuel_usage
 
 class EDI(cmd.Cmd):
 
@@ -98,6 +99,12 @@ class EDI(cmd.Cmd):
 
   def do_galmath(self, args):
     return self.do_application(galmath, args)
+
+  def help_fuel_usage(self):
+    return self.help_application(fuel_usage)
+
+  def do_fuel_usage(self, args):
+    return self.do_application(fuel_usage, args)
 
   def help_set_verbosity(self):
     print("usage: set_verbosity N")
