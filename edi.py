@@ -7,6 +7,7 @@ import logging
 import time
 import cmd
 import argparse
+import traceback
 
 if __name__ == '__main__':
   print("Loading environment...")
@@ -43,6 +44,7 @@ class EDI(cmd.Cmd):
       pass
     except Exception, e:
       log.error("Error in application: {}".format(e))
+      log.debug(traceback.format_exc())
       pass
     return True
 
