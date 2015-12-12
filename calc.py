@@ -48,6 +48,18 @@ class Calc:
     maxjumps = int(math.ceil(hopdist / jumpdist))
     return minjumps, maxjumps
 
+  def route_fuel_cost(self, route, track_usage, starting_fuel = None):
+    if self.ship is not None:
+      cost = 0.0
+      cur_fuel = starting_fuel if starting_fuel != None else self.ship.tank_size
+      for i in range(1, len(route)):
+        cost += self.ship.cost(route[i-1].distance_to(route[i]), cur_fuel)
+        if track_usage == True:
+          cur_fuel -= cost
+      return cost
+    else:
+      raise Exception("Tried to calculate route fuel cost without a valid ship")
+
   def sc_cost(self, distance):
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
 	
@@ -75,7 +87,10 @@ class Calc:
   def trundle_cost(self, route):
     jump_count = (len(route)-1) * 1000
     dist = self.route_dist(route)
-    var = self.route_stdev(route, dist)
+    if self.ship is not None:
+      var = self.ship.range() * (self.route_fuel_cost(route, False) / self.ship.fsd.maxfuel)
+    else:
+      var = self.route_stdev(route, dist)
     return jump_count + dist + var
 
   def route_dist(self, route):
