@@ -160,7 +160,7 @@ class Routing:
       next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
       log.debug("factor = {0}, optimistic_count = {1}, next_pos = {2}".format(factor, optimistic_count, next_pos))
       # If this isn't our final leg...
-      if (next_pos - sys_cur.position).length < sys_cur.distance_to(sys_to):
+      if self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
         # Get a circle of stars around the estimate
         next_stars = self.circle(stars, next_pos, self._trunkle_search_radius)
         # Limit them to only ones where it's possible we'll get a valid route
