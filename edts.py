@@ -125,7 +125,7 @@ class Application:
       output_data.append({'src': route[0].to_string()})
 
       for i in range(1, len(route)):
-        cur_data = {'dst': route[i]}
+        cur_data = {'src': route[i-1], 'dst': route[i]}
 
         if self.ship is None:
           full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
@@ -167,11 +167,11 @@ class Application:
               hdist = hop_route[j-1].distance_to(hop_route[j])
               cur_data['hopdist'] += hdist
               is_long = (hdist > full_max_jump)
-              cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[j]})
+              cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': hop_route[j-1], 'dst': hop_route[j]})
           else:
             cur_data['hopdist'] = cur_data['hopsldist']
             hdist = hop_route[0].distance_to(hop_route[1])
-            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'dst': hop_route[1]})
+            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': hop_route[0], 'dst': hop_route[1]})
 
         if route[i].name is not None:
           cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance != None and route[i].distance != 0) else "???"
@@ -278,6 +278,15 @@ class Application:
         print("")
         print("Total distance: {0:.2f}Ly; total jumps: {1}; total SC distance: {2:d}Ls{3}; ETT: {4}".format(totaldist, totaljumps_str, totalsc, "+" if not totalsc_accurate else "", est_time_str))
         print("")
+
+      if self.ship != None:
+        for i in range(1, len(route)):
+          od = output_data[i]
+          if 'hop_route' in od:
+            fcost = 0.0
+            for j in range(0, len(od['hop_route'])):
+              fcost += self.ship.cost(od['hop_route'][j]['src'].distance_to(od['hop_route'][j]['dst']))
+            log.debug("Hop {0} -> {1}, highball fuel cost: {2:.2f}T".format(od['src'].system_name, od['dst'].system_name, fcost))
 
     else:
       print("")
