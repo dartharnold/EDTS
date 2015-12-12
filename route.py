@@ -155,12 +155,12 @@ class Routing:
     route = [sys_from]
     # While we haven't hit our limit to bomb out...
     while optimistic_count - best_jump_count <= self._trunkle_max_addjumps:
-      factor = sldistance * (trunc_jcount / optimistic_count)
-      # Work out the next position to get a circle of stars from
-      next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
-      log.debug("factor = {0}, optimistic_count = {1}, next_pos = {2}".format(factor, optimistic_count, next_pos))
       # If this isn't our final leg...
       if self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
+        factor = sldistance * (trunc_jcount / optimistic_count)
+        # Work out the next position to get a circle of stars from
+        next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
+        log.debug("factor = {0}, optimistic_count = {1}, next_pos = {2}".format(factor, optimistic_count, next_pos))
         # Get a circle of stars around the estimate
         next_stars = self.circle(stars, next_pos, self._trunkle_search_radius)
         # Limit them to only ones where it's possible we'll get a valid route
@@ -193,7 +193,7 @@ class Routing:
       if self._ocount_reset_full == True:
         optimistic_count = best_jump_count - self._ocount_initial_boost
       else:
-        optimistic_count -= self._ocount_reset_dec
+        optimistic_count = math.max(1.0, self._ocount_reset_dec)
       # If we've hit the destination, return with successful route
       if sys_cur == sys_to:
         log.debug("Arrived at {0}".format(sys_to.to_string()))
