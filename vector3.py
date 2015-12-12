@@ -131,9 +131,7 @@ class Vector3(object):
     def __str__(self):
         
         x, y, z = self._v
-        return "[%s, %s, %s]" % (format_number(x),
-                                 format_number(y),
-                                 format_number(z))
+        return "[%.4f, %.4f, %.4f]" % (x, y, z)
         
         
     def __repr__(self):
