@@ -5,7 +5,7 @@ import argparse
 import calc
 import env
 import logging
-import math
+from math import log10, floor, fabs
 import sys
 from vector3 import Vector3
 import ship
@@ -62,17 +62,18 @@ class Application:
       is_ok = (fuel_cost < self.ship.fsd.maxfuel and cur_fuel >= 0.0)
       output_data.append({'src': systems[i-1], 'dst': systems[i], 'distance': distance, 'cost': fuel_cost, 'remaining': cur_fuel, 'ok': is_ok})
 
-    d_max_len = 0
-    c_max_len = 0
-    f_max_len = 0
+    d_max_len = 1.0
+    c_max_len = 1.0
+    f_max_len = 1.0
     for i in range(1, len(output_data)):
-      d_max_len = max(d_max_len, max(1, output_data[i]['distance']))
-      c_max_len = max(c_max_len, max(1, output_data[i]['cost']))
-      f_max_len = max(f_max_len, max(1, output_data[i]['remaining']))
+      d_max_len = max(d_max_len, output_data[i]['distance'])
+      c_max_len = max(c_max_len, output_data[i]['cost'])
+      if fabs(output_data[i]['remaining']) > fabs(f_max_len):
+        f_max_len = output_data[i]['remaining']
     # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
-    d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
-    c_max_len = str(int(math.floor(math.log10(c_max_len))) + 4)
-    f_max_len = str(int(math.floor(math.log10(f_max_len))) + 4)
+    d_max_len = str(int(floor(log10(fabs(d_max_len)))) + 4)
+    c_max_len = str(int(floor(log10(fabs(c_max_len)))) + 4)
+    f_max_len = str(int(floor(log10(fabs(f_max_len)))) + (4 if f_max_len >= 0.0 else 5))
 
     print(output_data[0]['src'].to_string())
     for i in range(1, len(output_data)):
