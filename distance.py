@@ -69,14 +69,19 @@ class Application:
       start = env.data.parse_system(self.args.start)
 
       distances = {}
+      d_max_len = 0.0
       for s in self.args.systems:
         sobj = env.data.parse_system(s)
-        distances[sobj] = sobj.distance_to(start)
+        distances[s] = sobj.distance_to(start)
+        d_max_len = max(d_max_len, distances[s])
 
-      for sobj in sorted(distances, key=distances.get):
-        print(' {0} === {1: >7.2f}Ly ===> {2}'.format(start.to_string(), sobj.distance_to(start), sobj.to_string()))
+      if not self.args.ordered:
+        self.args.systems.sort(key=distances.get)
 
-    
+      d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
+      for s in self.args.systems:
+        sobj = env.data.parse_system(s)
+        print((' {0} === {1: >'+d_max_len+'.2f}Ly ===> {2}').format(start.to_string(), sobj.distance_to(start), sobj.to_string()))
 
     else:
       # If we have many systems, generate a Raikogram
