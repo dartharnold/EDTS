@@ -25,7 +25,7 @@ class Application:
     ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
     ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
-
+    
     self.args = ap.parse_args(arg)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
@@ -65,21 +65,25 @@ class Application:
     d_max_len = 1.0
     c_max_len = 1.0
     f_max_len = 1.0
+    f_min_len = 1.0
     for i in range(1, len(output_data)):
-      d_max_len = max(d_max_len, output_data[i]['distance'])
-      c_max_len = max(c_max_len, output_data[i]['cost'])
-      if fabs(output_data[i]['remaining']) > fabs(f_max_len):
-        f_max_len = output_data[i]['remaining']
+      od = output_data[i]
+      d_max_len = max(d_max_len, od['distance'])
+      c_max_len = max(c_max_len, od['cost'])
+      f_max_len = max(f_max_len, od['remaining'])
+      f_min_len = min(f_min_len, od['remaining'])
     # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
     d_max_len = str(int(floor(log10(fabs(d_max_len)))) + 4)
     c_max_len = str(int(floor(log10(fabs(c_max_len)))) + 4)
-    f_max_len = str(int(floor(log10(fabs(f_max_len)))) + (4 if f_max_len >= 0.0 else 5))
+    f_max_len = int(floor(log10(fabs(f_max_len)))) + 4
+    f_min_len = int(floor(abs(log10(fabs(f_min_len))))) + 5
+    f_len = str(max(f_max_len, f_min_len))
 
     print(output_data[0]['src'].to_string())
     for i in range(1, len(output_data)):
       hop = output_data[i]
       dist = hop['src'].distance_to(hop['dst'])
-      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_max_len+'.2f}T ={4}=> {3}').format(dist, hop['cost'], hop['remaining'], hop['dst'].to_string(), '=' if hop['ok'] else '!'))
+      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(dist, hop['cost'], hop['remaining'], hop['dst'].to_string(), '=' if hop['ok'] else '!'))
 
     print('')
 
