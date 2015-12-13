@@ -7,7 +7,9 @@ from vector3 import Vector3
 log = logging.getLogger("route")
 
 default_rbuffer_ly = 40.0
-default_hbuffer_ly = 25.0
+default_hbuffer_ly = 10.0
+hbuffer_relax_increment = 5.0
+hbuffer_relax_max = 31.0
 
 class Routing:
 
@@ -236,15 +238,18 @@ class Routing:
     bestcost = None
 
     while best == None and add_jumps <= self._trundle_max_addjumps and (addj_limit is None or add_jumps <= addj_limit):
-      log.debug("Attempt %d at hbuffer %.1f, jump count: %d, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
-      vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly)
-      log.debug("Attempt %d at hbuffer %.1f, jump count: %d, viable routes: %d", add_jumps, hbuffer_ly, best_jump_count + add_jumps, len(vr))
-      for route in vr:
-        cost = self._calc.trundle_cost(route)
-        if bestcost == None or cost < bestcost:
-          best = route
-          bestcost = cost
+      while best == None and (hbuffer_ly < hbuffer_relax_max or hbuffer_ly == self._hbuffer_base):
+        log.debug("Attempt %d at hbuffer %.1f, jump count: %d, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
+        vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly)
+        log.debug("Attempt %d at hbuffer %.1f, jump count: %d, viable routes: %d", add_jumps, hbuffer_ly, best_jump_count + add_jumps, len(vr))
+        for route in vr:
+          cost = self._calc.trundle_cost(route)
+          if bestcost == None or cost < bestcost:
+            best = route
+            bestcost = cost
+        hbuffer_ly += hbuffer_relax_increment
       add_jumps += 1
+      hbuffer_ly = self._hbuffer_base
 
     if best != None:
       log.debug("Route, length = %d, cost = %.2f: %s", len(best)-1, bestcost, " --> ".join([p.name for p in best]))
