@@ -43,9 +43,10 @@ class Application:
     ap.add_argument("-d", "--min-dist", type=int, required=False, action=ApplicationAction, help="Exclude systems less than this distance from reference")
     ap.add_argument("-m", "--max-dist", type=int, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
-    ap.add_argument("-s", "--stations", default=False, action='store_true', help="Only show systems with stations")
+    ap.add_argument("-s", "--max-sc-distance", type=float, required=False, help="Only show systems with a starport less than this distance from entry point")
     ap.add_argument("-p", "--pad-size", required=False, type=str.upper, choices=['S','M','L'], help="Only show systems with stations matching the specified pad size")
     ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
+    
     ap.add_argument("system", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
 
     remaining = arg
@@ -82,7 +83,12 @@ class Application:
         # If we have stations, or we don't care...
         if has_stns or not self.args.stations:
           # If we *don't* have stations (because we don't care), or the stations match the requirements...
-          if not has_stns or (s.id in env.data.eddb_stations_by_system and len([st for st in env.data.eddb_stations_by_system[s.id] if (self.allow_outposts or st.max_pad_size == "L")])) > 0:
+          matching_stns = env.data.get_stations(s)
+          if not self.allow_outposts:
+            matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
+          if self.args.max_sc_distance != None:
+            matching_stns = [st for st in matching_stns if (st.distance != None and st.distance < self.args.max_sc_distance)]
+          if not has_stns or len(matching_stns) > 0:
             dist = 0.0 # The total distance from this system to ALL start systems
             is_ok = True
             for d in self.args.system:

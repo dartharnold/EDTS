@@ -72,6 +72,12 @@ class Env(object):
       return Station.none(self.get_system(sysname))
     return None
   
+  def get_stations(self, sysobj):
+    if sysobj.id in self.eddb_stations_by_system:
+      return self.eddb_stations_by_system[sysobj.id]
+    else:
+      return []
+  
   def get_system(self, sysname):
     if sysname.lower() in self.eddb_systems_by_name:
       return self.eddb_systems_by_name[sysname.lower()]
