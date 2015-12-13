@@ -69,7 +69,7 @@ class Application:
       start = env.data.parse_system(self.args.start)
 
       distances = {}
-      d_max_len = 0.0
+      d_max_len = 1.0
       for s in self.args.systems:
         sobj = env.data.parse_system(s)
         distances[s] = sobj.distance_to(start)
