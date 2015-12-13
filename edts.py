@@ -83,7 +83,7 @@ class Application:
     for st in self.args.stations:
       sobj = env.data.parse_station(st)
       if sobj != None:
-        log.debug("Adding system/station: {0} ({1}, {2}Ls)".format(sobj.name, sobj.system_name, sobj.distance if sobj.distance != None else "???"))
+        log.debug("Adding system/station: {0}".format(sobj.to_string()))
 
         if self.args.pad_size == "L" and sobj.max_pad_size != "L":
           log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
