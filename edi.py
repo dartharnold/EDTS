@@ -33,7 +33,7 @@ class EDI(cmd.Cmd):
     self.prompt = "EDI> "
     self.state = {}
 
-  def do_application(self, ns, args):
+  def run_application(self, ns, args):
     try:
       args = shlex.split(args)
       app = ns.Application(args, True, self.state)
@@ -49,7 +49,7 @@ class EDI(cmd.Cmd):
       pass
     return True
 
-  def help_application(self, ns):
+  def run_help(self, ns):
     try:
       ns.Application(['-h'], True, self.state).run()
     except SystemExit:
@@ -61,16 +61,16 @@ class EDI(cmd.Cmd):
   #
 
   def help_edts(self):
-    return self.help_application(edts)
+    return self.run_help(edts)
 
   def do_edts(self, args):
-    return self.do_application(edts, args)
+    return self.run_application(edts, args)
 
   def help_distance(self):
-    return self.help_application(distance)
+    return self.run_help(distance)
 
   def do_distance(self, args):
-    return self.do_application(distance, args)
+    return self.run_application(distance, args)
 
   def help_raikogram(self):
     return self.help_distance()
@@ -79,34 +79,34 @@ class EDI(cmd.Cmd):
     return self.do_distance(args)
 
   def help_close_to(self):
-    return self.help_application(close_to)
+    return self.run_help(close_to)
 
   def do_close_to(self, args):
-    return self.do_application(close_to, args)
+    return self.run_application(close_to, args)
 
   def help_coords(self):
-    return self.help_application(coords)
+    return self.run_help(coords)
 
   def do_coords(self, args):
-    return self.do_application(coords, args)
+    return self.run_application(coords, args)
 
   def help_find(self):
-    return self.help_application(find)
+    return self.run_help(find)
 
   def do_find(self, args):
-    return self.do_application(find, args)
+    return self.run_application(find, args)
 
   def help_galmath(self):
-    return self.help_application(galmath)
+    return self.run_help(galmath)
 
   def do_galmath(self, args):
-    return self.do_application(galmath, args)
+    return self.run_application(galmath, args)
 
   def help_fuel_usage(self):
-    return self.help_application(fuel_usage)
+    return self.run_help(fuel_usage)
 
   def do_fuel_usage(self, args):
-    return self.do_application(fuel_usage, args)
+    return self.run_application(fuel_usage, args)
 
   def help_set_verbosity(self):
     print("usage: set_verbosity N")
@@ -151,9 +151,6 @@ class EDI(cmd.Cmd):
   # End commands
   #
 
-  def help_EOF(self):
-    return self.help_quit()
-
   def do_EOF(self, args):
     print()
     return False
@@ -166,6 +163,12 @@ class EDI(cmd.Cmd):
     if retval == False:
       return True
     log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
+
+  # Prevent EOF showing up in the list of commands
+  def print_topics(self, header, cmds, cmdlen, maxcol):
+    if cmds:
+      cmds = [c for c in cmds if c != "EOF"]
+      cmd.Cmd.print_topics(self, header, cmds, cmdlen, maxcol)
 
 if __name__ == '__main__':
   EDI().cmdloop()
