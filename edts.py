@@ -236,7 +236,7 @@ class Application:
               print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string()))
             # For the last jump...
             hd = od['hop_route'][-1]
-            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2} -- hop of {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist']))
+            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2} -- {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist']))
           else:
             # If we don't have "N - M", just print simple result
             if od['jumpcount_min'] == od['jumpcount_max']:
