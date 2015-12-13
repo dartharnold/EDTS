@@ -38,7 +38,7 @@ class Application:
     log.debug("M = {0:.2f}, N = {1}, D = {2:.2f}".format(low_max_dist, num_jumps, self.args.core_distance))
     
     print("")
-    print("Travelling {0:.1f}Ly with a {1:.2f}Ly jump range, at around {2:.0f}Ly from the core:".format(self.args.distance, self.args.jump_range, self.args.core_distance * 1000.0))
+    print("Travelling {0:.1f}Ly with a {1:.2f}Ly jump range, at around {2:.0f}Ly from the core centre:".format(self.args.distance, self.args.jump_range, self.args.core_distance * 1000.0))
     print("")
     print("  Maximum jump in range: {0:.1f}Ly".format(low_max_dist))
     print("  Plot between {0:.1f}Ly and {1:.1f}Ly".format(ans - inaccuracy, ans + inaccuracy))
