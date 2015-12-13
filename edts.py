@@ -8,7 +8,7 @@ import sys
 import env
 import calc as c
 import ship
-from route import Routing
+import route as rx
 from solver import Solver
 from station import Station
 from system import System
@@ -39,15 +39,13 @@ class Application:
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
-    ap.add_argument("--jump-time", type=float, default=45.0, help="Seconds taken per hyperspace jump")
+    ap.add_argument("--jump-time", type=float, default=c.default_jump_time, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
     ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
     ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
-    ap.add_argument("--rbuffer-base", type=float, default=10.0, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
-    ap.add_argument("--rbuffer-mult", type=float, default=0.15, help="A multiple of hop straight-line distance to add to rbuffer_base")
-    ap.add_argument("--hbuffer-base", type=float, default=5.0, help="A minimum buffer distance, in Ly, used to search for valid next hops. Only used by the 'trundle' strategy.")
-    ap.add_argument("--hbuffer-mult", type=float, default=0.3, help="A multiple of jump range to add to hbuffer_base. Only used by the 'trundle' strategy.")
+    ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
+    ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next hops. Not used by the 'astar' strategy.")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
 
@@ -101,7 +99,7 @@ class Application:
       jump_range = self.args.jump_range
 
     calc = c.Calc(ship = self.ship, jump_range = self.args.jump_range, witchspace_time = self.args.witchspace_time, route_strategy = self.args.route_strategy, slf = self.args.slf)
-    r = Routing(calc, env.data.eddb_systems, self.args.rbuffer_base, self.args.rbuffer_mult, self.args.hbuffer_base, self.args.hbuffer_mult, self.args.route_strategy)
+    r = rx.Routing(calc, env.data.eddb_systems, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit, self.args.solve_full)
 
     if self.args.ordered:

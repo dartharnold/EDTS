@@ -6,8 +6,12 @@ from station import Station
 log = logging.getLogger("calc")
 
 default_slf = 0.9
-default_strategy = "astar"
+default_strategy = "trunkle"
+
 default_ws_time = 15
+jump_spool_time = 20
+jump_cooldown_time = 10
+default_jump_time = default_ws_time + jump_spool_time + jump_cooldown_time
 
 class Calc:
   def __init__(self, ship = None, jump_range = None, witchspace_time = default_ws_time, route_strategy = default_strategy, slf = default_slf):
@@ -16,9 +20,7 @@ class Calc:
     self.sc_constant = 65
     self.sc_multiplier = 1.8
     self.sc_power = 0.5
-    self.jump_spool_time = 20
     self.jump_witchspace_time = witchspace_time
-    self.jump_cooldown_time = 10
     self.stop_outpost_time = 75
     self.stop_station_time = 90
     self.slf = slf
@@ -76,7 +78,7 @@ class Calc:
     return cost
 
   def route_cost(self, route):
-    if self.route_strategy == "trundle":
+    if self.route_strategy in ["trundle", "trunkle"]:
       return self.trundle_cost(route)
     elif self.route_strategy == "astar":
       return self.astar_cost(route[0], route[-1], route)
@@ -152,7 +154,7 @@ class Calc:
       return 0.0
 
   def time_for_jumps(self, jump_count):
-    return max(0.0, ((self.jump_spool_time + self.jump_witchspace_time) * jump_count) + (self.jump_cooldown_time * (jump_count - 1)))
+    return max(0.0, ((jump_spool_time + self.jump_witchspace_time) * jump_count) + (jump_cooldown_time * (jump_count - 1)))
 
   def route_time(self, route, jump_count):
     hs_t = self.time_for_jumps(jump_count)

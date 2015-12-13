@@ -6,15 +6,16 @@ from vector3 import Vector3
 
 log = logging.getLogger("route")
 
+default_rbuffer_ly = 40.0
+default_hbuffer_ly = 25.0
+
 class Routing:
 
-  def __init__(self, calc, eddb_systems, rbuf_base, rbuf_mult, hbuf_base, hbuf_mult, route_strategy):
+  def __init__(self, calc, eddb_systems, rbuf_base, hbuf_base, route_strategy):
     self._calc = calc
     self._systems = eddb_systems
     self._rbuffer_base = rbuf_base
-    self._rbuffer_mult = rbuf_mult
     self._hbuffer_base = hbuf_base
-    self._hbuffer_mult = hbuf_mult
     self._route_strategy = route_strategy
     self._trundle_max_addjumps = 4
     self._trunkle_max_addjumps = 6.1
@@ -80,7 +81,7 @@ class Routing:
       return None
 
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
-    rbuffer_ly = self._rbuffer_base + (sys_from.distance_to(sys_to) * self._rbuffer_mult)
+    rbuffer_ly = self._rbuffer_base
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
@@ -134,8 +135,7 @@ class Routing:
     return list(reversed(total_path))
 
   def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
-    rbuffer_ly = self._rbuffer_base + (sys_from.distance_to(sys_to) * self._rbuffer_mult)
-    hbuffer_ly = self._hbuffer_base + (jump_range * self._hbuffer_mult)
+    rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
 
@@ -146,9 +146,13 @@ class Routing:
     optimistic_count = best_jump_count - self._ocount_initial_boost
     # How many jumps to perform in each leg
     trunc_jcount = self._trunkle_hop_size
+    search_radius = self._trunkle_search_radius
 
     sys_cur = sys_from
-    next_star = None
+    next_centre_star = None
+    next_stars = []
+    failed_attempts = []
+    force_intermediate = False
 
     log.debug("Attempting to plot from {0} --> {1}".format(sys_from.to_string(), sys_to.to_string()))
 
@@ -156,38 +160,52 @@ class Routing:
     # While we haven't hit our limit to bomb out...
     while optimistic_count - best_jump_count <= self._trunkle_max_addjumps:
       # If this isn't our final leg...
-      if self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
-        factor = sldistance * (trunc_jcount / optimistic_count)
-        # Work out the next position to get a circle of stars from
-        next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
-        log.debug("factor = {0}, optimistic_count = {1}, next_pos = {2}".format(factor, optimistic_count, next_pos))
-        # Get a circle of stars around the estimate
-        next_stars = self.circle(stars, next_pos, self._trunkle_search_radius)
-        # Limit them to only ones where it's possible we'll get a valid route
-        next_stars = [s for s in next_stars if self.best_jump_count(sys_cur, s, jump_range) <= trunc_jcount]
-        # Now find the star closest to the centre line (TODO: improve this somehow, check multiple stars)
-        c_next_star = min(next_stars, key=lambda s: (s.position - next_pos).length) if len(next_stars) > 0 else None
-        # Check we got a valid star that isn't the one we've already been checking against
-        # If not, bump the count up a bit and start the loop again
-        if c_next_star == None or c_next_star == next_star:
-          optimistic_count += self._ocount_relax_inc
-          continue
-        next_star = c_next_star
-      else:
-        next_star = sys_to
+      if next_stars == None or len(next_stars) == 0:
+        if force_intermediate or self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
+          factor = sldistance * (trunc_jcount / optimistic_count)
+          # Work out the next position to get a circle of stars from
+          next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
+          # Get a circle of stars around the estimate
+          c_next_stars = self.circle(stars, next_pos, self._trunkle_search_radius)
+          # Limit them to only ones where it's possible we'll get a valid route
+          c_next_stars = [s for s in c_next_stars if self.best_jump_count(sys_cur, s, jump_range) <= trunc_jcount and s not in failed_attempts]
+          # Check we got valid stars
+          # If not, bump the count up a bit and start the loop again
+          if len(c_next_stars) == 0:
+            optimistic_count += self._ocount_relax_inc
+            log.debug("No new stars found, bumping oc to {0}".format(optimistic_count))
+            continue
+          next_stars = c_next_stars
+        else:
+          next_stars = [sys_to]
+
+      next_star = next_stars[0]
 
       best_jcount = self.best_jump_count(sys_cur, next_star, jump_range)
+      # Only limit to N jumps if we're not on the last leg
+      # This prevents getting stuck if we think we can get to sys_to in N, but actually need N+1
+      jlimit = max(0, trunc_jcount - best_jcount) if next_star != sys_to else None
       # Use trundle to try and calculate a route
-      next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, max(0, trunc_jcount-best_jcount))
-      # If our route was invalid or too long, increment the ocount and start the loop again
+      next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, jlimit)
+      # If our route was invalid or too long, check the next star
       if next_route == None or (next_star != sys_to and len(next_route)-1 > trunc_jcount):
-        optimistic_count += self._ocount_relax_inc
-        log.debug("Attempt failed, bumping oc to {0}".format(optimistic_count))
+        next_stars = next_stars[1:]
+        failed_attempts.append(next_star)
+        # If we're out of stars to try from this set, increment the ocount and try again
+        if len(next_stars) == 1:
+          optimistic_count += self._ocount_relax_inc
+          log.debug("Attempt failed, bumping oc to {0}".format(optimistic_count))
+        if next_star == sys_to:
+          log.debug("Forcing intermediate")
+          force_intermediate = True
         continue
 
       # We have a valid route of the correct length, add it to the main route
       route += next_route[1:]
       sys_cur = next_star
+      force_intermediate = False
+      next_stars = []
+      failed_attempts = []
       # If we're setting the ocount all the way back to its initial value, do that; otherwise just drop it a bit
       # This ensures that we don't miss any good legs just because the previous leg was a dud
       if self._ocount_reset_full == True:
@@ -201,11 +219,12 @@ class Routing:
 
       log.debug("Plotted {0} jumps to {1}, continuing".format(len(next_route)-1, next_star.to_string()))
 
-    log.debug("No route found")
+    log.debug("No full-route found")
     return None
 
   def plot_trundle(self, sys_from, sys_to, jump_range, full_range, addj_limit = None):
-    rbuffer_ly = self._rbuffer_base + (sys_from.distance_to(sys_to) * self._rbuffer_mult)
+    rbuffer_ly = self._rbuffer_base
+    hbuffer_ly = self._hbuffer_base
     stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
 
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
@@ -215,10 +234,11 @@ class Routing:
 
     best = None
     bestcost = None
+
     while best == None and add_jumps <= self._trundle_max_addjumps and (addj_limit is None or add_jumps <= addj_limit):
-      log.debug("Attempt %d, jump count: %d, calculating...", add_jumps, best_jump_count + add_jumps)
-      vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps)
-      log.debug("Attempt %d, jump count: %d, viable routes: %d", add_jumps, best_jump_count + add_jumps, len(vr))
+      log.debug("Attempt %d at hbuffer %.1f, jump count: %d, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
+      vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly)
+      log.debug("Attempt %d at hbuffer %.1f, jump count: %d, viable routes: %d", add_jumps, hbuffer_ly, best_jump_count + add_jumps, len(vr))
       for route in vr:
         cost = self._calc.trundle_cost(route)
         if bestcost == None or cost < bestcost:
@@ -235,12 +255,11 @@ class Routing:
   def best_jump_count(self, sys_from, sys_to, jump_range):
     return int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
 
-  def trundle_get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps):
+  def trundle_get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps, hbuffer_ly):
     best_jcount = int(math.ceil(route[0].distance_to(sys_to) / jump_range)) + add_jumps
-    vec_mult = 1.0 - max(1.0 / best_jcount, 0.1)
-    hbuf_ly = self._hbuffer_base + (jump_range * self._hbuffer_mult)
+    vec_mult = 0.5
 
-    return self._trundle_gvr_internal(route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuf_ly)
+    return self._trundle_gvr_internal(route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly)
 
   def _trundle_gvr_internal(self, route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
     cur_dist = route[-1].distance_to(sys_to)
@@ -261,6 +280,7 @@ class Routing:
         if next_dist < jump_range:
           dist_jumpN = s.distance_to(sys_to)
           # Is it possible for us to still hit the current total jump count with this jump?
+          # jcount = len(route)-1 + the candidate jump = len(route)
           maxd = (best_jcount - len(route)) * jump_range
           if dist_jumpN < maxd:
             vsnext.append(s)
