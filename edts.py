@@ -9,6 +9,7 @@ import env
 import calc as c
 import ship
 import route as rx
+import util
 from solver import Solver
 from station import Station
 from system import System
@@ -46,6 +47,7 @@ class Application:
     ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next hops. Not used by the 'astar' strategy.")
+    ap.add_argument("--allow-clustering", type=util.string_bool, default=True, choices=[True,False], help="Whether to allow clustering (used for solving routes with large numbers of stops)")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
 
@@ -106,7 +108,7 @@ class Application:
       route = [start] + stations + [end]
     else:
       # Add 2 to the jump count for start + end
-      route = s.solve(stations, start, end, self.args.num_jumps + 2)
+      route = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.allow_clustering)
 
     if self.args.reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]

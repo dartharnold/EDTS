@@ -236,9 +236,8 @@ class Vector3(object):
         lhs -- Left hand side vector or sequence
         
         """
-        
         x, y, z = self._v
-        ox, oy, oz = lhs        
+        ox, oy, oz = lhs
         return self.from_floats(x+ox, y+oy, z+oz)
     
     
@@ -618,26 +617,21 @@ class Vector3(object):
     
 
 def distance3d_squared(p1, p2):
-    
     x, y, z = p1
     xx, yy, zz = p2
     dx = x - xx
     dy = y - yy
     dz = z - zz
-    
     return dx*dx + dy*dy +dz*dz
 
 
 def distance3d(p1, p2):
-    
     x, y, z = p1
     xx, yy, zz = p2
     dx = x - xx
     dy = y - yy
     dz = z - zz
-    
     return sqrt(dx*dx + dy*dy +dz*dz)
 
-def centre_point3d(points):
-    
-    return sum( Vector3(p) for p in points ) / len(points)
+def mean(points):
+    return sum(points, Vector3(0,0,0)) / len(points)

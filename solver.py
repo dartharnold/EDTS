@@ -1,7 +1,14 @@
 import logging
 import math
+import random
+import vector3
 
 log = logging.getLogger("solver")
+
+max_single_solve_size = 20
+cluster_size_max = 12
+cluster_size_min = 5
+cluster_divisor = 10
 
 class Solver:
   def __init__(self, calc, route, jump_range, diff_limit, solve_full):
@@ -11,7 +18,14 @@ class Solver:
     self._jump_range = jump_range
     self._solve_full = solve_full
 
-  def solve(self, stations, start, end, maxstops):
+  def solve(self, stations, start, end, maxstops, allow_clustering = True):
+    if allow_clustering and len(stations) > max_single_solve_size:
+      return self.solve_clustered(stations, start, end, maxstops)
+    else:
+      return self.solve_basic(stations, start, end, maxstops)
+    
+  def solve_basic(self, stations, start, end, maxstops):
+    log.debug("Calculating viable routes...")
     vr = self.get_viable_routes([start], stations, end, maxstops)
     log.debug("Viable routes: {0}".format(len(vr)))
 
@@ -63,6 +77,42 @@ class Solver:
       return minroute
 
 
+  def solve_clustered(self, stations, start, end, maxstops):
+    cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
+    log.debug("Splitting problem into {0} clusters...".format(cluster_count))
+    iterations = 0
+    while iterations < 100:
+      iterations += 1
+      means, clusters = find_centers(stations, cluster_count)
+      lengths = [len(clusters[i]) for i in clusters]
+      if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max:
+        break
+    log.debug("Using clusters of sizes {0} after {1} iterations".format(", ".join([str(len(clusters[i])) for i in clusters]), iterations))
+
+    indices,_ = self.get_best_cluster_route(means, start, end)
+
+    route = [start]
+    r_maxstops = maxstops - 2
+
+    # Get the closest points in the first/last clusters to the start/end
+    _, from_start = self.get_closest_points([start], clusters[indices[0]])
+    to_end, _ = self.get_closest_points(clusters[indices[-1]], [end])
+    # For each cluster...
+    for i in range(1, len(indices)):
+      from_cluster = clusters[indices[i-1]]
+      to_cluster = clusters[indices[i]]
+      # Get the closest points
+      from_end, to_start = self.get_closest_points(from_cluster, to_cluster)
+      # Work out how many of the stops we should be doing in this cluster
+      cur_maxstops = min(len(from_cluster), int(round(float(maxstops) * len(from_cluster) / len(stations))))
+      r_maxstops -= cur_maxstops
+      # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
+      route += self.solve_basic(from_cluster, from_start, from_end, cur_maxstops)[:-1]
+      from_start = to_start
+    route += self.solve_basic(clusters[indices[-1]], from_start, to_end, r_maxstops)[:-1]
+    route += [end]
+    return route
+
   def get_route_hops(self, stations):
     hops = {}
 
@@ -112,6 +162,69 @@ class Solver:
     else:
       route.append(end)
       return [route]
-    
 
 
+  def get_best_cluster_route(self, means, start, end, route = []):
+    best = None
+    bestcost = 0.0
+    if len(route) < len(means):
+      for i,m in enumerate(means):
+        if i in route:
+          continue
+        c_route, c_cost = self.get_best_cluster_route(means, start, end, route + [i])
+        if best == None or c_cost < bestcost:
+          best = c_route
+          bestcost = c_cost
+      return best, bestcost
+    else:
+      cur_cost = (start.position - means[route[0]]).length
+      for i in range(1, len(route)):
+        cur_cost += (means[route[i-1]] - means[route[i]]).length
+      cur_cost += (means[route[-1]] - end.position).length
+      return route, cur_cost
+
+  def get_closest_points(self, cluster1, cluster2):
+    best = None
+    bestcost = None
+    for n1 in cluster1:
+      for n2 in cluster2:
+        cost = self._calc.solve_cost(n1, n2, [])
+        if best == None or cost < bestcost:
+          best = (n1, n2)
+          bestcost = cost
+    return best
+
+#
+# K-means clustering
+#
+def _cluster_points(X, mu):
+  clusters = {}
+  for x in X:
+    bestmukey = min([(i[0], (x.position - mu[i[0]]).length) for i in enumerate(mu)], key=lambda t:t[1])[0]
+    if bestmukey not in clusters:
+      clusters[bestmukey] = []
+    clusters[bestmukey].append(x)
+  return clusters
+
+def _reevaluate_centers(mu, clusters):
+  newmu = []
+  keys = sorted(clusters.keys())
+  for k in keys:
+    newmu.append(vector3.mean([x.position for x in clusters[k]]))
+  return newmu
+
+def _has_converged(mu, oldmu):
+  return (set(mu) == set(oldmu))
+
+def find_centers(X, K):
+  # Initialize to K random centers
+  oldmu = random.sample([x.position for x in X], K)
+  mu = random.sample([x.position for x in X], K)
+  clusters = None
+  while not _has_converged(mu, oldmu):
+    oldmu = mu
+    # Assign all points in X to clusters
+    clusters = _cluster_points(X, mu)
+    # Reevaluate centers
+    mu = _reevaluate_centers(oldmu, clusters)
+  return(mu, clusters)
