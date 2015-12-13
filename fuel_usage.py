@@ -25,7 +25,7 @@ class Application:
     ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
     ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
-    
+
     self.args = ap.parse_args(arg)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
