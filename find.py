@@ -20,6 +20,7 @@ class Application:
     ap.add_argument("-a", "--anagram", default=False, action='store_true', help="Find names matching an anagram of the provided string")
     ap.add_argument("-s", "--systems", default=False, action='store_true', help="Limit the search to system names")
     ap.add_argument("-t", "--stations", default=False, action='store_true', help="Limit the search to station names")
+    ap.add_argument("-i", "--show-ids", default=False, action='store_true', help="Show system and station IDs in output")
     ap.add_argument("system", metavar="system", type=str, nargs=1, help="The system or station to find")
     self.args = ap.parse_args(arg)
 
@@ -47,8 +48,8 @@ class Application:
       print("Matching systems:")
       print("")
       for sys in sys_matches:
-        stn = env.data.get_station(sys)
-        print("  " + stn.to_string())
+        sysobj = env.data.get_system(sys)
+        print("  {0}{1}".format(sysobj.to_string(), " ({0})".format(sysobj.id) if self.args.show_ids else ""))
       print("")
 
     if (self.args.stations or not self.args.systems) and len(stn_matches) > 0:
@@ -57,8 +58,8 @@ class Application:
       print("")
       for stn_name in stn_matches:
         stns = env.data.eddb_stations_by_name[stn_name]
-        for stn_obj in stns:
-          print("  " + stn_obj.to_string())
+        for stnobj in stns:
+          print("  {0}{1}".format(stnobj.to_string(), " ({0})".format(stnobj.id) if self.args.show_ids else ""))
       print("")
 
     if len(sys_matches) == 0 and len(stn_matches) == 0:

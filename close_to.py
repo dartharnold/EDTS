@@ -81,7 +81,7 @@ class Application:
       if s.name.lower() not in start_names and (self.args.allegiance == None or s.allegiance == self.args.allegiance):
         has_stns = (s.allegiance != None)
         # If we have stations, or we don't care...
-        if has_stns or not self.args.stations:
+        if has_stns or self.args.pad_size == None:
           # If we *don't* have stations (because we don't care), or the stations match the requirements...
           matching_stns = env.data.get_stations(s)
           if not self.allow_outposts:
