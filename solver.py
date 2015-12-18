@@ -63,9 +63,13 @@ class Solver:
           rcost = 0.0
           for i in range(0, len(route)-1):
             hop = hops[route[i]][route[i+1]]
-            rcost += self._calc.route_cost(hop)
+            if hop != None:
+              rcost += self._calc.route_cost(hop)
+            else:
+              rcost = None
+              break
 
-          if minrcost == None or rcost < minrcost:
+          if minrcost == None or (rcost != None and rcost < minrcost):
             minrcost = rcost
             minrroute = route
 

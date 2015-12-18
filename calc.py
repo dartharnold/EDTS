@@ -6,7 +6,7 @@ from station import Station
 log = logging.getLogger("calc")
 
 default_slf = 0.9
-default_strategy = "trunkle"
+default_strategy = "astar"
 
 default_ws_time = 15
 jump_spool_time = 20
