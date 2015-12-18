@@ -614,6 +614,21 @@ class Vector3(object):
         return ( y*bz - by*z,
                  z*bx - bz*x,
                  x*by - bx*y )
+
+
+    def angle_to(self, other):
+
+        """Returns the angle, in radians, between this vector and another.
+        
+        other -- A vector
+        
+        """
+
+        dot_p = self.normalise().dot(other.normalise())
+        if abs(dot_p - 1.0) < 0.000001:
+          return 0.0
+        else:
+          return acos(dot_p)
     
 
 def distance3d_squared(p1, p2):
