@@ -21,6 +21,7 @@ class Application:
     ap.add_argument("-s", "--systems", default=False, action='store_true', help="Limit the search to system names")
     ap.add_argument("-t", "--stations", default=False, action='store_true', help="Limit the search to station names")
     ap.add_argument("-i", "--show-ids", default=False, action='store_true', help="Show system and station IDs in output")
+    ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
     ap.add_argument("system", metavar="system", type=str, nargs=1, help="The system or station to find")
     self.args = ap.parse_args(arg)
 
@@ -50,6 +51,11 @@ class Application:
       for sys in sys_matches:
         sysobj = env.data.get_system(sys)
         print("  {0}{1}".format(sysobj.to_string(), " ({0})".format(sysobj.id) if self.args.show_ids else ""))
+        if self.args.list_stations:
+          stlist = env.data.get_stations(sysobj)
+          stlist.sort(key=lambda t: t.distance)
+          for stn in stlist:
+            print("        {0}".format(stn.to_string(False)))
       print("")
 
     if (self.args.stations or not self.args.systems) and len(stn_matches) > 0:
@@ -72,15 +78,17 @@ class Application:
 
   def anagram_find_matches(self, keys, query):
     results = []
-    for line in keys:
-      for key in line.split(' '):
+    for sys_name in keys:
+      cur_query = query
+      for key in sys_name.split(' '):
         passed = True
-        for ch in query:
-          if ch >= 'a' and ch <= 'z' and not ch in key:
+        for ch in key:
+          if ch >= 'a' and ch <= 'z' and not ch in cur_query:
             passed = False
             break
-        if passed == True:
-          results.append(line)
+          cur_query = cur_query.replace(str(ch), '', 1)
+        if passed == True and len(cur_query) == 0:
+          results.append(sys_name)
     return results
 
 

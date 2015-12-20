@@ -141,8 +141,8 @@ class Application:
           print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
         else:
           print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format(asys[i].distance_to(self.args.system[0]['sysobj']))))
-        if self.args.list_stations and asys[i].id in env.data.eddb_stations_by_system:
-          stlist = env.data.eddb_stations_by_system[asys[i].id]
+        if self.args.list_stations:
+          stlist = env.data.get_stations(asys[i])
           stlist.sort(key=lambda t: t.distance)
           for stn in stlist:
             print("        {0}".format(stn.to_string(False)))
