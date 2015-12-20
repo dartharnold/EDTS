@@ -43,7 +43,7 @@ class EDI(cmd.Cmd):
       pass
     except SystemExit:
       pass
-    except Exception, e:
+    except Exception as e:
       log.error("Error in application: {}".format(e))
       log.debug(traceback.format_exc())
       pass

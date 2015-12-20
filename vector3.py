@@ -365,7 +365,12 @@ class Vector3(object):
             return self.from_floats(x/ox, y/oy, z/oz)
         else:
             return self.from_floats(x/rhs, y/rhs, z/rhs)
+    
+    def __floordiv__(self, rhs):
+        return self.__div__(rhs)
         
+    def __truediv__(self, rhs):
+        return self.__div__(rhs)
             
     def __idiv__(self, rhs):
         """Divide this vector by another vector, or a scalar (single number)."""
