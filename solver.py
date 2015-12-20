@@ -105,15 +105,15 @@ class Solver:
     for i in range(1, len(indices)):
       from_cluster = clusters[indices[i-1]]
       to_cluster = clusters[indices[i]]
-      # Get the closest points
-      from_end, to_start = self.get_closest_points(from_cluster, to_cluster)
+      # Get the closest points, disallowing using from_start or to_end
+      from_end, to_start = self.get_closest_points(from_cluster, to_cluster, [from_start, to_end])
       # Work out how many of the stops we should be doing in this cluster
       cur_maxstops = min(len(from_cluster), int(round(float(maxstops) * len(from_cluster) / len(stations))))
       r_maxstops -= cur_maxstops
       # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
-      route += self.solve_basic(from_cluster, from_start, from_end, cur_maxstops)[:-1]
+      route += self.solve_basic(from_cluster, from_start, from_end, cur_maxstops)
       from_start = to_start
-    route += self.solve_basic(clusters[indices[-1]], from_start, to_end, r_maxstops)[:-1]
+    route += self.solve_basic(clusters[indices[-1]], from_start, to_end, r_maxstops)
     route += [end]
     return route
 
@@ -187,11 +187,15 @@ class Solver:
       cur_cost += (means[route[-1]] - end.position).length
       return route, cur_cost
 
-  def get_closest_points(self, cluster1, cluster2):
+  def get_closest_points(self, cluster1, cluster2, disallowed = []):
     best = None
     bestcost = None
     for n1 in cluster1:
+      if n1 in disallowed:
+        continue
       for n2 in cluster2:
+        if n2 in disallowed:
+          continue
         cost = self._calc.solve_cost(n1, n2, [])
         if best == None or cost < bestcost:
           best = (n1, n2)
