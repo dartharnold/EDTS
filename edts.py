@@ -136,7 +136,7 @@ class Application:
 
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
         if self.args.route:
-          log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system.name, route[i].system.name))
+          log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
           hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
           if hop_route != None:
             route_jcount = len(hop_route)-1
@@ -167,11 +167,11 @@ class Application:
               hdist = hop_route[j-1].distance_to(hop_route[j])
               cur_data['hopdist'] += hdist
               is_long = (hdist > full_max_jump)
-              cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': hop_route[j-1], 'dst': hop_route[j]})
+              cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j])})
           else:
             cur_data['hopdist'] = cur_data['hopsldist']
             hdist = hop_route[0].distance_to(hop_route[1])
-            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': hop_route[0], 'dst': hop_route[1]})
+            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': Station.none(hop_route[0]), 'dst': Station.none(hop_route[1])})
 
         if route[i].name is not None:
           cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance != None and route[i].distance != 0) else "???"
@@ -263,15 +263,17 @@ class Application:
         print("")
 
       elif self.args.format == 'csv':
-        print("{0},{1},{2},{3}".format(route[0].system.name, route[0].name if route[0].name is not None else '', 0.0, 0))
+        print("{0},{1},{2},{3}".format(route[0].system_name, route[0].name if route[0].name is not None else '', 0.0, route[0].distance if route[0].uses_sc and route[0].distance is not None else 0))
         for i in range(1, len(route)):
           od = output_data[i]
           if 'hop_route' in od:
-            for j in range(0, len(od['hop_route'])):
+            for j in range(0, len(od['hop_route'])-1):
               hd = od['hop_route'][j]
-              print("{0},{1},{2},{3}".format(hd['dst'].system.name, hd['dst'].name if hd['dst'].name is not None else '', hd['hdist'], hd['dst'].distance if hd['dst'].distance is not None else 0))
+              print("{0},{1},{2},{3}".format(hd['dst'].system_name, hd['dst'].name if hd['dst'].name is not None else '', hd['hdist'], hd['dst'].distance if hd['dst'].uses_sc and hd['dst'].distance is not None else 0))
+            hd = od['hop_route'][-1]
+            print("{0},{1},{2},{3}".format(od['dst'].system_name, od['dst'].name if od['dst'].name is not None else '', hd['hdist'], od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
           else:
-            print("{0},{1},{2},{3}".format(od['dst'].system.name, od['dst'].name if od['dst'].name is not None else '', od['hopsldist'], od['dst'].distance if od['dst'].distance is not None else 0))
+            print("{0},{1},{2},{3}".format(od['dst'].system_name, od['dst'].name if od['dst'].name is not None else '', od['hopsldist'], od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
         print_summary = False
 
       if print_summary:
