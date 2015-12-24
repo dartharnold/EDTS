@@ -9,6 +9,10 @@ class System:
     self.allegiance = obj['allegiance'] if 'allegiance' in obj else False
     self.uses_sc = False
 
+  @property
+  def system_name(self):
+    return self.name
+
   def to_string(self, use_long = False):
     if use_long:
       return u"%s (%.2f, %.2f, %.2f)" % (self.name, self.position.x, self.position.y, self.position.z)
