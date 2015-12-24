@@ -15,6 +15,12 @@ class System:
     else:
       return u"%s" % self.name
 
+  def __str__(self):
+    return self.to_string()
+
+  def __repr__(self):
+    return u"System({0})".format(self.name)
+
   def distance_to(self, other):
     return (self.position - other.position).length
 

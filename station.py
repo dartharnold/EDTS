@@ -12,10 +12,13 @@ class Station:
 
   def __str__(self):
     if self.name is not None:
-      return "{0}/{1}".format(self.system_name, self.name)
+      return u"{0}/{1}".format(self.system_name, self.name)
     else:
       return self.system_name
-  
+
+  def __repr__(self):
+    return u"Station({0})".format(self.__str__())
+
   def distance_to(self, other):
     return (self.position - other.position).length
 
