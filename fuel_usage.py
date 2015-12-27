@@ -76,7 +76,7 @@ class Application:
     d_max_len = str(int(floor(log10(fabs(d_max_len)))) + 4)
     c_max_len = str(int(floor(log10(fabs(c_max_len)))) + 4)
     f_max_len = int(floor(log10(fabs(f_max_len)))) + 4
-    f_min_len = int(floor(abs(log10(fabs(f_min_len))))) + 5
+    f_min_len = int(floor(abs(log10(fabs(f_min_len))))) + (5 if f_min_len < 0.0 else 4)
     f_len = str(max(f_max_len, f_min_len))
 
     print(output_data[0]['src'].to_string())
