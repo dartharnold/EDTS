@@ -31,13 +31,13 @@ class Calc:
     return maxjumps
 
   def jump_count_range(self, a, b, route, allow_long = False, cargo = 0, jump_decay = 0.0):
-    if self.ship is not None:
+    if self.jump_range is not None:
+      jumpdist = self.jump_range - (jump_decay * (len(route)-1))
+    elif self.ship is not None:
       if allow_long:
         jumpdist = self.ship.max_range(cargo = cargo * (len(route)-1))
       else:
         jumpdist = self.ship.range(cargo = cargo * (len(route)-1))
-    elif self.jump_range is not None:
-      jumpdist = self.jump_range - (jump_decay * (len(route)-1))
     else:
       raise Exception("Tried to calculate jump counts without either valid ship or jump range")
 
