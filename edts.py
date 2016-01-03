@@ -165,7 +165,7 @@ class Application:
           # Only say the SC time is inaccurate if it's actually a *station* we don't have the distance for
           totalsc_accurate = False
 
-        cur_fuel = self.args.tank
+        cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
         if self.args.route and hop_route != None:
           cur_data['hop_route'] = []
           cur_data['hopdist'] = 0.0
@@ -180,7 +180,7 @@ class Application:
               cur_fuel -= fuel_cost
               # TODO: Something less arbitrary than this?
               if cur_fuel < 0:
-                cur_fuel = self.args.tank
+                cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
             cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j]), 'fuel_cost': fuel_cost})
           totaldist += cur_data['hopdist']
 
@@ -244,14 +244,14 @@ class Application:
             # For every jump except the last...
             for j in range(0, len(od['hop_route'])-1):
               hd = od['hop_route'][j]
-              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string(), " [{0:.2f}T]".format(hd['fuel_cost']) if self.args.tank is not None else ''))
+              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string(), " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else ''))
             # For the last jump...
             hd = od['hop_route'][-1]
-            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5} -- {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist'], " [{0:.2f}T]".format(hd['fuel_cost']) if self.args.tank is not None else ''))
+            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5} -- {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist'], " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else ''))
           else:
             fuel_fewest = None
             fuel_most = None
-            if self.args.tank is not None:
+            if self.ship is not None:
               # Estimate fuel cost assuming average jump size and full tank.
               fuel_fewest = self.ship.cost(od['hopsldist'] / float(od['jumpcount_min'])) * int(od['jumpcount_min'])
               fuel_most = self.ship.cost(od['hopsldist'] / float(od['jumpcount_max'])) * int(od['jumpcount_max'])
@@ -266,7 +266,7 @@ class Application:
             if 'sc_time' in od:
               route_str += ", SC: ~{0}s".format(od['sc_time'])
             fuel_str = ""
-            if self.args.tank is not None:
+            if self.ship is not None:
               if od['jumpcount_min'] == od['jumpcount_max']:
                 fuel_str = " [{0:.2f}T+]".format(fuel_fewest)
               else:
