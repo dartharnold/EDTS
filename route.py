@@ -20,13 +20,14 @@ class Routing:
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
     self._trundle_max_addjumps = 4
-    self._trunkle_max_addjumps_mul = 0.25
+    self._trunkle_max_addjumps_mul = 0.5
     self._ocount_initial_boost = 1.0
-    self._ocount_relax_inc = 0.2
+    self._ocount_relax_inc_mul = 0.01
     self._ocount_reset_dec = 2.0
     self._ocount_reset_full = True
     self._trunkle_hop_size = 5.0
     self._trunkle_search_radius = 10.0
+    self._trunkle_search_radius_relax_mul = 0.01
 
   def lerp(self, in_min, in_max, out_min, out_max, value):
     if in_max == in_min:
@@ -175,13 +176,16 @@ class Routing:
           next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
           # Get a circle of stars around the estimate
           c_next_stars = self.circle(stars, next_pos, search_radius)
+          log.debug("[oc = {1:.3f}] Found {0} candidate new stars around {2}".format(len(c_next_stars), optimistic_count, next_pos))
           # Limit them to only ones where it's possible we'll get a valid route
           c_next_stars = [s for s in c_next_stars if self.best_jump_count(sys_cur, s, jump_range) <= trunc_jcount and s not in failed_attempts]
           c_next_stars.sort(key=lambda t: t.distance_to(sys_to))
+          log.debug("[oc = {1:.3f}] Cut down to {0} candidates after jump count check".format(len(c_next_stars), optimistic_count))
           # Check we got valid stars
           # If not, bump the count up a bit and start the loop again
           if len(c_next_stars) == 0:
-            optimistic_count += self._ocount_relax_inc
+            optimistic_count += self._ocount_relax_inc_mul * best_jump_count
+            search_radius += self._trunkle_search_radius_relax_mul * best_jump_count
             continue
           log.debug("Found {0} new stars to check".format(len(c_next_stars)))
           next_stars = c_next_stars
@@ -201,9 +205,10 @@ class Routing:
         next_stars = next_stars[1:]
         failed_attempts.append(next_star)
         # If we're out of stars to try from this set, increment the ocount and try again
-        if len(next_stars) == 1:
-          optimistic_count += self._ocount_relax_inc
-          log.debug("Attempt failed, bumping oc to {0}".format(optimistic_count))
+        if len(next_stars) == 0:
+          optimistic_count += self._ocount_relax_inc_mul * best_jump_count
+          search_radius += self._trunkle_search_radius_relax_mul * best_jump_count
+          log.debug("Attempt failed, bumping oc to {0:.3f}".format(optimistic_count))
         if next_star == sys_to:
           log.debug("Forcing intermediate")
           force_intermediate = True
@@ -213,6 +218,7 @@ class Routing:
       route += next_route[1:]
       sys_cur = next_star
       force_intermediate = False
+      search_radius = self._trunkle_search_radius
       next_stars = []
       failed_attempts = [sys_cur] # This ensures we never test our current location as a potential next_star
       # If we're setting the ocount all the way back to its initial value, do that; otherwise just drop it a bit
