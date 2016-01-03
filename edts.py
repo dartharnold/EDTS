@@ -44,7 +44,6 @@ class Application:
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
     ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
-    ap.add_argument("--solve-full", default=False, action='store_true', help="Uses full route plotting to find an optimal route solution (slow)")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next hops. Not used by the 'astar' strategy.")
     ap.add_argument("--allow-clustering", type=util.string_bool, default=True, choices=[True,False], help="Whether to allow clustering (used for solving routes with large numbers of stops)")
@@ -103,7 +102,7 @@ class Application:
 
     calc = c.Calc(ship = self.ship, jump_range = self.args.jump_range, witchspace_time = self.args.witchspace_time, route_strategy = self.args.route_strategy, slf = self.args.slf)
     r = rx.Routing(calc, env.data.eddb_systems, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
-    s = Solver(calc, r, jump_range, self.args.diff_limit, self.args.solve_full)
+    s = Solver(calc, r, jump_range, self.args.diff_limit)
 
     if self.args.ordered:
       route = [start] + stations + [end]

@@ -11,12 +11,11 @@ cluster_size_min = 5
 cluster_divisor = 10
 
 class Solver:
-  def __init__(self, calc, route, jump_range, diff_limit, solve_full):
+  def __init__(self, calc, route, jump_range, diff_limit):
     self._calc = calc
     self._route = route
     self._diff_limit = diff_limit
     self._jump_range = jump_range
-    self._solve_full = solve_full
 
   def solve(self, stations, start, end, maxstops, allow_clustering = True):
     if allow_clustering and len(stations) > max_single_solve_size:
@@ -48,10 +47,6 @@ class Solver:
         log.debug("New minimum cost: {0} on route {1}".format(cost, count))
         mincost = cost
         minroute = route
-
-    if self._solve_full:
-      minrcost = None
-      minrroute = None
 
       # Get accurate stats for each hop
       hops = self.get_route_hops(stations + [start, end])
