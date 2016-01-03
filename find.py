@@ -48,7 +48,7 @@ class Application:
       print("")
       print("Matching systems:")
       print("")
-      for sys in sys_matches:
+      for sys in sorted(sys_matches):
         sysobj = env.data.get_system(sys)
         print("  {0}{1}".format(sysobj.to_string(), " ({0})".format(sysobj.id) if self.args.show_ids else ""))
         if self.args.list_stations:
@@ -62,7 +62,7 @@ class Application:
       print("")
       print("Matching stations:")
       print("")
-      for stn_name in stn_matches:
+      for stn_name in sorted(stn_matches):
         stns = env.data.eddb_stations_by_name[stn_name]
         for stnobj in stns:
           print("  {0}{1}".format(stnobj.to_string(), " ({0})".format(stnobj.id) if self.args.show_ids else ""))
