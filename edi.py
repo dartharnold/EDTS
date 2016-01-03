@@ -131,7 +131,13 @@ class EDI(cmd.Cmd):
     ap.add_argument("-t", "--tank", type=float, required=True, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="The ship's cargo capacity")
     argobj = ap.parse_args(shlex.split(args))
-    self.state['ship'] = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, argobj.cargo)
+    s = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, argobj.cargo)
+    self.state['ship'] = s
+
+    print("")
+    print("Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}Ly ({4:.2f}Ly)".format(s.fsd.drive, s.mass, s.tank_size, s.range(), s.max_range()))
+    print("")
+
     return True
 
   def help_quit(self):
