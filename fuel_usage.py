@@ -24,6 +24,7 @@ class Application:
     ap.add_argument("-t", "--tank", type=float, required=('ship' not in state), help="The ship's fuel tank size")
     ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
+    ap.add_argument("-r", "--refuel", action='store_true', default=False, help="Assume that the ship can be refueled as needed, e.g. by fuel scooping")
     ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
 
     self.args = ap.parse_args(arg)
@@ -49,18 +50,24 @@ class Application:
         return
       systems.append(s)
 
-    print('')
-
     cur_fuel = self.args.starting_fuel
-
     output_data = [{'src': systems[0]}]
 
     for i in range(1, len(systems)):
       distance = systems[i-1].distance_to(systems[i])
+      is_long = False
+      is_ok = True
+      if self.args.refuel:
+        fmin, fmax = self.ship.fuel_weight_range(distance)
+        # Fudge factor to prevent cost coming out at exactly maxfuel (stupid floating point!)
+        cur_fuel = min(fmax - 0.000001, self.ship.tank_size)
+        is_long = (fmax >= 0.0 and fmax < self.ship.tank_size)
+        is_ok = (is_ok and fmax >= 0.0)
+
       fuel_cost = self.ship.cost(distance, cur_fuel, self.args.cargo)
       cur_fuel -= fuel_cost
-      is_ok = (fuel_cost < self.ship.fsd.maxfuel and cur_fuel >= 0.0)
-      output_data.append({'src': systems[i-1], 'dst': systems[i], 'distance': distance, 'cost': fuel_cost, 'remaining': cur_fuel, 'ok': is_ok})
+      is_ok = (is_ok and fuel_cost <= self.ship.fsd.maxfuel and cur_fuel >= 0.0)
+      output_data.append({'src': systems[i-1], 'dst': systems[i], 'distance': distance, 'cost': fuel_cost, 'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
 
     d_max_len = 1.0
     c_max_len = 1.0
@@ -79,13 +86,22 @@ class Application:
     f_min_len = int(floor(abs(log10(fabs(f_min_len))))) + (5 if f_min_len < 0.0 else 4)
     f_len = str(max(f_max_len, f_min_len))
 
+    print('')
     print(output_data[0]['src'].to_string())
     for i in range(1, len(output_data)):
       hop = output_data[i]
       dist = hop['src'].distance_to(hop['dst'])
-      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(dist, hop['cost'], hop['remaining'], hop['dst'].to_string(), '=' if hop['ok'] else '!'))
-
+      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(dist, hop['cost'], hop['remaining'], hop['dst'].to_string(), _get_hop_char(hop)))
     print('')
+
+def _get_hop_char(hop):
+  if hop['ok'] == True:
+    if hop['long'] == True:
+      return '~'
+    else:
+      return '='
+  else:
+    return '!'
 
 if __name__ == '__main__':
   a = Application(env.local_args, False)
