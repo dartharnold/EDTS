@@ -61,7 +61,6 @@ class FSD:
     for i in range(0, 15):
       c = self.cost(dist, mass, clast, cargo)
       clast = c + (clast - c) / 4.0
-      log.debug("c = {0:.6f}, clast = {1:.6f}".format(c, clast))
     wmin = c
 
     return wmin, wmax
