@@ -20,7 +20,7 @@ class Routing:
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
     self._trundle_max_addjumps = 4
-    self._trunkle_max_addjumps_mul = 0.5
+    self._trunkle_max_addjumps_mul = 1.0
     self._ocount_initial_boost = 1.0
     self._ocount_relax_inc_mul = 0.01
     self._ocount_reset_dec = 2.0
@@ -176,11 +176,9 @@ class Routing:
           next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
           # Get a circle of stars around the estimate
           c_next_stars = self.circle(stars, next_pos, search_radius)
-          log.debug("[oc = {1:.3f}] Found {0} candidate new stars around {2}".format(len(c_next_stars), optimistic_count, next_pos))
           # Limit them to only ones where it's possible we'll get a valid route
           c_next_stars = [s for s in c_next_stars if self.best_jump_count(sys_cur, s, jump_range) <= trunc_jcount and s not in failed_attempts]
           c_next_stars.sort(key=lambda t: t.distance_to(sys_to))
-          log.debug("[oc = {1:.3f}] Cut down to {0} candidates after jump count check".format(len(c_next_stars), optimistic_count))
           # Check we got valid stars
           # If not, bump the count up a bit and start the loop again
           if len(c_next_stars) == 0:
