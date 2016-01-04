@@ -268,7 +268,7 @@ class Routing:
       hbuffer_ly = self._hbuffer_base
 
     if best != None:
-      log.debug("Route, length = %d, cost = %.2f: %s", len(best)-1, bestcost, " --> ".join([p.name for p in best]))
+      log.debug("Route, length = {0}, cost = {1:.2f}: {2}".format(len(best)-1, bestcost, " --> ".join([str(p) for p in best])))
     else:
       log.debug("No route found")
     return best

@@ -48,32 +48,7 @@ class Solver:
         mincost = cost
         minroute = route
 
-      # Get accurate stats for each hop
-      hops = self.get_route_hops(stations + [start, end])
-      idx = 0
-      for route in vr:
-        # If the route is viable...
-        if costs[idx] < (mincost * self._diff_limit):
-          # For each hop...
-          rcost = 0.0
-          for i in range(0, len(route)-1):
-            hop = hops[route[i]][route[i+1]]
-            if hop != None:
-              rcost += self._calc.route_cost(hop)
-            else:
-              rcost = None
-              break
-
-          if minrcost == None or (rcost != None and rcost < minrcost):
-            minrcost = rcost
-            minrroute = route
-
-        idx += 1
-
-      return minrroute
-
-    else:
-      return minroute
+    return minroute
 
 
   def solve_clustered(self, stations, start, end, maxstops):
