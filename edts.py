@@ -140,7 +140,11 @@ class Application:
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
-          hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
+          if route[i-1].system != route[i].system:
+            hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
+          else:
+            hop_route = [route[i].system, route[i].system]
+
           if hop_route != None:
             route_jcount = len(hop_route)-1
             # For hoppy routes, always use stats for the jumps reported (less confusing)
