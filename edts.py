@@ -252,8 +252,8 @@ class Application:
             fuel_most = None
             if self.ship is not None:
               # Estimate fuel cost assuming average jump size and full tank.
-              fuel_fewest = self.ship.cost(od['hopsldist'] / float(od['jumpcount_min'])) * int(od['jumpcount_min'])
-              fuel_most = self.ship.cost(od['hopsldist'] / float(od['jumpcount_max'])) * int(od['jumpcount_max'])
+              fuel_fewest = self.ship.cost(od['hopsldist'] / max(0.001, float(od['jumpcount_min']))) * int(od['jumpcount_min'])
+              fuel_most = self.ship.cost(od['hopsldist'] / max(0.001, float(od['jumpcount_max']))) * int(od['jumpcount_max'])
               total_fuel_cost += max(fuel_fewest, fuel_most)
             # If we don't have "N - M", just print simple result
             if od['jumpcount_min'] == od['jumpcount_max']:
