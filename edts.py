@@ -38,7 +38,7 @@ class Application:
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
-    ap.add_argument("--format", default='long', type=str.lower, choices=['long','short','csv'], help="The format to display the output in")
+    ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=c.default_jump_time, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
@@ -209,11 +209,11 @@ class Application:
       for i in range(1, len(output_data)):
         od = output_data[i]
         # If we have a hoppy route, we'll only be printing single-jump ranges. If not, we'll be using full leg distances.
-        if 'hop_route' in od:
+        if self.args.format == 'long' and 'hop_route' in od:
           if len(od['hop_route']) > 0:
             d_max_len = max(d_max_len, max([h['hdist'] for h in od['hop_route']]))
         else:
-          d_max_len = max(d_max_len, max(1, od['hopsldist']))
+          d_max_len = max(d_max_len, od['hopsldist'])
         # If we have estimated jump counts, work out how long the strings will be
         if 'jumpcount_min' in od:
           jmin_max_len = max(jmin_max_len, od['jumpcount_min'])
@@ -232,14 +232,14 @@ class Application:
 
       print_summary = True
 
-      if self.args.format == 'long':
+      if self.args.format in ['long','summary']:
         print("")
         print(route[0].to_string())
 
         # For each hop (not including start point)
         for i in range(1, len(route)):
           od = output_data[i]
-          if 'hop_route' in od:
+          if self.args.format == 'long' and 'hop_route' in od:
             # For every jump except the last...
             for j in range(0, len(od['hop_route'])-1):
               hd = od['hop_route'][j]
