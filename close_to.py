@@ -42,8 +42,8 @@ class Application:
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
-    ap.add_argument("-d", "--min-dist", type=int, required=False, action=ApplicationAction, help="Exclude systems less than this distance from reference")
-    ap.add_argument("-m", "--max-dist", type=int, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
+    ap.add_argument("-d", "--min-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems less than this distance from reference")
+    ap.add_argument("-m", "--max-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
     ap.add_argument("-s", "--max-sc-distance", type=float, required=False, help="Only show systems with a starport less than this distance from entry point")
     ap.add_argument("-p", "--pad-size", required=False, type=str.upper, choices=['S','M','L'], help="Only show systems with stations matching the specified pad size")
