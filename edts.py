@@ -177,14 +177,18 @@ class Application(object):
             cur_data['hopdist'] += hdist
             is_long = (hdist > full_max_jump)
             fuel_cost = None
+            max_tank = None
             if cur_fuel is not None:
               fuel_cost = self.ship.cost(hdist, cur_fuel)
+              max_tank = int(math.floor(100*(self.ship.max_fuel_weight(hdist, self.args.cargo * (i-1))/self.ship.tank_size)))
+              if max_tank >= 100:
+                max_tank = None
               total_fuel_cost += fuel_cost
               cur_fuel -= fuel_cost
               # TODO: Something less arbitrary than this?
               if cur_fuel < 0:
                 cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
-            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j]), 'fuel_cost': fuel_cost})
+            cur_data['hop_route'].append({'is_long': is_long, 'hdist': hdist, 'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j]), 'fuel_cost': fuel_cost, 'max_tank': max_tank})
           totaldist += cur_data['hopdist']
 
         if route[i].name is not None:
@@ -247,10 +251,10 @@ class Application(object):
             # For every jump except the last...
             for j in range(0, len(od['hop_route'])-1):
               hd = od['hop_route'][j]
-              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string(), " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else ''))
+              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}{4}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string(), " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '', " <= {0:d}%".format(hd['max_tank']) if hd['max_tank'] is not None else ''))
             # For the last jump...
             hd = od['hop_route'][-1]
-            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5} -- {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist'], " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else ''))
+            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5}{6} -- {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist'], " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '', " <= {0:d}%".format(hd['max_tank']) if hd['max_tank'] is not None else ''))
           else:
             fuel_fewest = None
             fuel_most = None
