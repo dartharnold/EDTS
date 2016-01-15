@@ -81,7 +81,7 @@ class Application:
     stations = []
     for st in self.args.stations:
       sobj = env.data.parse_station(st)
-      if sobj != None:
+      if sobj != None and sobj.system != None:
         log.debug("Adding system/station: {0}".format(sobj.to_string()))
 
         if self.args.pad_size == "L" and sobj.max_pad_size != "L":
