@@ -108,7 +108,7 @@ class Application:
       route = [start] + stations + [end]
     else:
       # Add 2 to the jump count for start + end
-      route = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.allow_clustering)
+      route, is_definitive = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.allow_clustering)
 
     if self.args.reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]

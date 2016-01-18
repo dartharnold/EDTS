@@ -19,13 +19,13 @@ class Solver:
 
   def solve(self, stations, start, end, maxstops, allow_clustering = True):
     if allow_clustering and len(stations) > max_single_solve_size:
-      return self.solve_clustered(stations, start, end, maxstops)
+      return self.solve_clustered(stations, start, end, maxstops), False
     else:
-      return self.solve_basic(stations, start, end, maxstops)
+      return self.solve_basic(stations, start, end, maxstops), True
     
   def solve_basic(self, stations, start, end, maxstops):
     log.debug("Calculating viable routes...")
-    vr = self.get_viable_routes([start], stations, end, maxstops)
+    vr = self.get_viable_routes([start], set(stations), end, maxstops)
     log.debug("Viable routes: {0}".format(len(vr)))
 
     count = 0
