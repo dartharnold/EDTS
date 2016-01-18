@@ -11,7 +11,7 @@ default_hbuffer_ly = 10.0
 hbuffer_relax_increment = 5.0
 hbuffer_relax_max = 31.0
 
-class Routing:
+class Routing(object):
 
   def __init__(self, calc, eddb_systems, rbuf_base, hbuf_base, route_strategy):
     self._calc = calc

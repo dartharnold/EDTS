@@ -1,6 +1,6 @@
 from vector3 import Vector3
 
-class System:
+class System(object):
   def __init__(self, obj):
     self.id = obj['id']
     self.position = Vector3(float(obj['x']), float(obj['y']), float(obj['z']))

@@ -3,7 +3,7 @@ from fsd import FSD
 
 log = logging.getLogger("ship")
 
-class Ship:
+class Ship(object):
   def __init__(self, fsd_info, mass, tank, cargo = 0):
     # If we already have an FSD object, just use it as-is; otherwise assume a string and create a FSD object
     self.fsd = fsd_info if isinstance(fsd_info, FSD) else FSD(fsd_info)

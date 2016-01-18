@@ -10,7 +10,7 @@ cluster_size_max = 12
 cluster_size_min = 5
 cluster_divisor = 10
 
-class Solver:
+class Solver(object):
   def __init__(self, calc, route, jump_range, diff_limit):
     self._calc = calc
     self._route = route

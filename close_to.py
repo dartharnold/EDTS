@@ -36,7 +36,7 @@ class ApplicationAction(argparse.Action):
     setattr(namespace, 'system', system_list)
 
 
-class Application:
+class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []

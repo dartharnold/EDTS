@@ -14,7 +14,7 @@ app_name = "fuel_usage"
 
 log = logging.getLogger(app_name)
 
-class Application:
+class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
