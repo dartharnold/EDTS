@@ -140,10 +140,10 @@ class Application:
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
-          if route[i-1].system != route[i].system:
+          if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
             hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
           else:
-            hop_route = [route[i].system, route[i].system]
+            hop_route = [route[i-1].system, route[i].system]
 
           if hop_route != None:
             route_jcount = len(hop_route)-1
@@ -178,7 +178,7 @@ class Application:
             is_long = (hdist > full_max_jump)
             fuel_cost = None
             if cur_fuel is not None:
-              fuel_cost = self.ship.cost(hdist, cur_fuel)
+              fuel_cost = self.ship.cost(hdist, cur_fuel) if not is_long else self.ship.fsd.maxfuel
               total_fuel_cost += fuel_cost
               cur_fuel -= fuel_cost
               # TODO: Something less arbitrary than this?
