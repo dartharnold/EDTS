@@ -38,7 +38,7 @@ class Application(object):
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
-    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
+    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=c.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=c.default_jump_time, help="Seconds taken per hyperspace jump")
