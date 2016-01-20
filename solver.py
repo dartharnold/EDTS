@@ -25,7 +25,7 @@ class Solver(object):
     
   def solve_basic(self, stations, start, end, maxstops):
     log.debug("Calculating viable routes...")
-    vr = self.get_viable_routes([start], set(stations), end, maxstops)
+    vr = self.get_viable_routes([start], stations, end, maxstops)
     log.debug("Viable routes: {0}".format(len(vr)))
 
     count = 0
@@ -112,9 +112,14 @@ class Solver(object):
       nexts = {}
 
       for stn in stations:
-        # Can't visit the same station twice
+        # If this station already appears in the route, do more checks
         if stn in route or stn == end:
-          continue
+          # If stn is in the route at least the number of times it's in the original list, ignore it
+          # Add 1 to the count if the start station is *also* the same, since this appears in route but not in stations
+          route_matches = len([rs for rs in route if rs == stn])
+          stn_matches = len([rs for rs in stations if rs == stn]) + (1 if stn == route[0] else 0)
+          if route_matches >= stn_matches:
+            continue
 
         dist = self._calc.solve_cost(route[-1], stn, route)
         nexts[stn] = dist
