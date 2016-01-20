@@ -70,8 +70,8 @@ Common optional arguments:
 
 * `-n N`/`--num-jumps=N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-r`/`--route`: causes a full route to be computed (for every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal. May take a long time to complete, and eat CPU time while it does so. To make it faster but potentially slightly less optimal, use lower `rbuffer` and `hbuffer` values (see below).
-* `-a`/`--accurate`: only used with `-r`; makes routing use a different algorithm (`trunkle`) which produces more accurate and efficient routes, but sometimes is slightly slower and may be unable to calculate some routes
+* `-r`/`--route`: causes a full route to be computed (for every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal.
+* `-a`/`--accurate`: only used with `-r`; makes routing use a different algorithm (`trunkle`) which produces more accurate and efficient routes, but sometimes is slightly slower and may be unable to calculate some routes.
 * `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
 * `system[/station] ...` - additional systems/stations to travel via
 
