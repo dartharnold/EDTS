@@ -69,7 +69,9 @@ class Env(object):
         if sysname.lower() == stn.system.name.lower():
           return stn
     else:
-      return Station.none(self.get_system(sysname))
+      sys = self.get_system(sysname)
+      if sys != None:
+        return Station.none(sys)
     return None
   
   def get_stations(self, sysobj):
