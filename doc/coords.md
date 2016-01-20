@@ -2,7 +2,7 @@
 The **coords** tool is a simple script to tell you the coordinates of specified systems.
 
 ## Example ##
-Once the [[First Run Setup]] is done, the script can be used:
+Once the [First Run Setup](firstrun.md) is done, the script can be used:
 
 `python coords.py Sol "Beta-1 Tucanae" Alioth Achenar`
 

@@ -2,7 +2,7 @@
 The **distance** tool is used to determine the distance between two or more systems.
 
 ## Examples ##
-Once the [[First Run Setup]] is done, the script can be used:
+Once the [First Run Setup](firstrun.md) is done, the script can be used:
 
 `python distance.py Sol Alioth`
 

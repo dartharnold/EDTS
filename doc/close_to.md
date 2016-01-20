@@ -2,7 +2,7 @@
 The **close_to** tool allows you to find out which systems and stations are close to one or more specified systems.
 
 ## Examples ##
-After the [[First Run Setup]] is complete, the script can be run:
+After the [First Run Setup](firstrun.md) is complete, the script can be run:
 
 `python close_to.py Sol`
 

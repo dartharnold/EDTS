@@ -2,6 +2,8 @@
 The **fuel_usage** tool allows you to calculate how much fuel jumps between systems will require, and track how much fuel you will have left from a given starting amount.
 
 ## Examples ##
+Once the [First Run Setup](firstrun.md) is done, the script can be used:
+
 `python fuel_usage.py -f 6A -m 521.8 -t 32 Alioth Loucetios Eranin "LP 98-132" Aulin Altair Sol`
 
 ```

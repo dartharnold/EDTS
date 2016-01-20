@@ -2,7 +2,6 @@
 The **galmath** script allows you to find estimates for good jump distances in the galactic core.
 
 ## Examples ##
-
 `python galmath.py -j 40.81 -c 5`
 
 ```

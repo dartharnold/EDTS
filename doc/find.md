@@ -2,6 +2,8 @@
 The **find** tool allows you to find systems and stations using partial matches.
 
 ## Examples ##
+Once the [First Run Setup](firstrun.md) is done, the script can be used:
+
 `python find.py 'Turd*'`
 
 ```

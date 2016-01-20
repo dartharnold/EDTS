@@ -2,7 +2,7 @@
 The **edts** tool is used to calculate the optimal order in which to visit a set of systems/stations. It is also capable of producing full routes between these systems, sometimes more effectively (if more slowly) than the in-game galaxy map.
 
 ## Example ##
-Once the [[First Run Setup]] is done, the script can be used:
+Once the [First Run Setup](firstrun.md) is done, the script can be used:
 
 `python edts.py -j 35.2 --start="Sol/Galileo" --end="Alioth/Golden Gate" "Wolf 359/Powell High" "Agartha/Enoch Port" "Alpha Centauri"`
 
