@@ -13,7 +13,7 @@ jump_spool_time = 20
 jump_cooldown_time = 10
 default_jump_time = default_ws_time + jump_spool_time + jump_cooldown_time
 
-class Calc:
+class Calc(object):
   def __init__(self, ship = None, jump_range = None, witchspace_time = default_ws_time, route_strategy = default_strategy, slf = default_slf):
     self.ship = ship
     self.jump_range = jump_range

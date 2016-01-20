@@ -12,7 +12,7 @@ app_name = "galmath"
 log = logging.getLogger(app_name)
 
 
-class Application:
+class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
     ap = argparse.ArgumentParser(description = "Magic Number plotting for the Galactic Core", fromfile_prefix_chars="@", prog = app_name)

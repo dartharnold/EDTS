@@ -130,7 +130,10 @@ class EDI(cmd.Cmd):
     ap.add_argument("-m", "--mass", type=float, required=True, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=True, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="The ship's cargo capacity")
-    argobj = ap.parse_args(shlex.split(args))
+    try:
+      argobj = ap.parse_args(shlex.split(args))
+    except SystemExit:
+      return True
     s = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, argobj.cargo)
     self.state['ship'] = s
 

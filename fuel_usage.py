@@ -14,7 +14,7 @@ app_name = "fuel_usage"
 
 log = logging.getLogger(app_name)
 
-class Application:
+class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
@@ -32,7 +32,10 @@ class Application:
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
       self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
     elif 'ship' in state:
-      self.ship = state['ship']
+      fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
+      mass = self.args.mass if self.args.mass is not None else state['ship'].mass
+      tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
+      self.ship = ship.Ship(fsd, mass, tank)
     else:
       log.error("Error: You must specify all of --fsd, --mass and --tank, or have previously set these")
       sys.exit(1)

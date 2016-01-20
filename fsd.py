@@ -5,7 +5,7 @@ import env
 
 log = logging.getLogger("fsd")
 
-class FSD:
+class FSD(object):
   def __init__(self, classrating):
     drive_class = None
     drive_rating = None
