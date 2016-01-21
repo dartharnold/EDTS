@@ -15,8 +15,8 @@ import env
 
 log = logging.getLogger("edi")
 
+# Now env is loaded, import the apps
 import ship
-
 import edts
 import close_to
 import coords
@@ -24,6 +24,7 @@ import distance
 import find
 import galmath
 import fuel_usage
+
 
 class EDI(cmd.Cmd):
 
@@ -169,7 +170,7 @@ class EDI(cmd.Cmd):
     return line
 
   def postcmd(self, retval, line):
-    if retval == False:
+    if retval is False:
       return True
     log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
 

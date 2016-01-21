@@ -19,6 +19,7 @@ eddb_stations_file_size_limit = 300 * 1048576
 
 log = logging.getLogger("eddb")
 
+
 def download_eddb_files(sys_file, station_file):
   # If the systems.json's directory doesn't exist, make it
   if not os.path.exists(os.path.dirname(sys_file)):
@@ -48,6 +49,7 @@ def check_systems(filename):
   else:
     return False
 
+
 def check_stations(filename):
   if os.path.isfile(filename):
     try:
@@ -58,11 +60,14 @@ def check_stations(filename):
   else:
     return False
 
+
 def load_systems(filename):
   return load_json(filename, eddb_systems_file_size_limit)
 
+
 def load_stations(filename):
   return load_json(filename, eddb_stations_file_size_limit)
+
 
 def load_json(filename, size_limit):
   f = io.open(filename, "r")
@@ -71,18 +76,17 @@ def load_json(filename, size_limit):
 
 if __name__ == '__main__':
   logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
-  
+
   if len(sys.argv) > 1 and sys.argv[1] == "--download":
     download_eddb_files(default_systems_file, default_stations_file)
-  
+
   syresult = check_systems(default_systems_file)
-  if syresult != False:
+  if syresult:
     log.info("Systems file exists and loads OK ({0} systems)".format(syresult))
   else:
     log.error("!! Systems file does not exist or could not be loaded")
   stresult = check_stations(default_stations_file)
-  if stresult != False:
+  if stresult:
     log.info("Stations file exists and loads OK ({0} stations)".format(stresult))
   else:
     log.error("!! Stations file does not exist or could not be loaded")
-  

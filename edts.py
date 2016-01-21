@@ -19,6 +19,7 @@ app_name = "edts"
 
 log = logging.getLogger(app_name)
 
+
 class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
@@ -51,7 +52,7 @@ class Application(object):
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
 
-    if self.args.num_jumps == None:
+    if self.args.num_jumps is None:
       self.args.num_jumps = len(self.args.stations)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
@@ -69,23 +70,21 @@ class Application(object):
       else:
         self.ship = None
 
-
   def run(self):
-
     start = env.data.parse_station(self.args.start)
     end = env.data.parse_station(self.args.end)
 
-    if start == None:
+    if start is None:
       log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
       return
-    if end == None:
+    if end is None:
       log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
       return
 
     stations = []
     for st in self.args.stations:
       sobj = env.data.parse_station(st)
-      if sobj != None and sobj.system != None:
+      if sobj is not None and sobj.system is not None:
         log.debug("Adding system/station: {0}".format(sobj.to_string()))
 
         if self.args.pad_size == "L" and sobj.max_pad_size != "L":
@@ -95,7 +94,6 @@ class Application(object):
       else:
         log.warning("Error: system/station {0} could not be found.".format(st))
         return
-
 
     if self.args.jump_range is not None:
       full_jump_range = self.args.jump_range
@@ -128,7 +126,7 @@ class Application(object):
     total_fuel_cost = 0.0
     total_fuel_cost_exact = True
 
-    if route != None and len(route) > 0:
+    if route is not None and len(route) > 0:
       output_data.append({'src': route[0].to_string()})
 
       for i in range(1, len(route)):
@@ -149,7 +147,7 @@ class Application(object):
           else:
             hop_route = [route[i].system, route[i].system]
 
-          if hop_route != None:
+          if hop_route is not None:
             route_jcount = len(hop_route)-1
             # For hoppy routes, always use stats for the jumps reported (less confusing)
             cur_data['jumpcount_min'] = route_jcount
@@ -166,14 +164,14 @@ class Application(object):
         totaldist_sl += cur_data['hopsldist']
         totaljumps_min += cur_data['jumpcount_min']
         totaljumps_max += cur_data['jumpcount_max']
-        if route[i].distance != None and route[i].distance != 0:
+        if route[i].distance is not None and route[i].distance != 0:
           totalsc += route[i].distance
-        elif route[i].name != None:
+        elif route[i].name is not None:
           # Only say the SC time is inaccurate if it's actually a *station* we don't have the distance for
           totalsc_accurate = False
 
         cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
-        if self.args.route and hop_route != None:
+        if self.args.route and hop_route is not None:
           cur_data['hop_route'] = []
           cur_data['hopdist'] = 0.0
           for j in range(1, len(hop_route)):
@@ -196,7 +194,7 @@ class Application(object):
           totaldist += cur_data['hopdist']
 
         if route[i].name is not None:
-          cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance != None and route[i].distance != 0) else "???"
+          cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
         # Add current route to list
         output_data.append(cur_data)
 
@@ -255,10 +253,22 @@ class Application(object):
             # For every jump except the last...
             for j in range(0, len(od['hop_route'])-1):
               hd = od['hop_route'][j]
-              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}{4}").format("!" if hd['is_long'] else "-", hd['hdist'], hd['dst'].to_string(), " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '', " <= {0:d}%".format(hd['max_tank']) if hd['max_tank'] is not None else ''))
+              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}{4}").format(
+                    "!" if hd['is_long'] else "-",
+                    hd['hdist'],
+                    hd['dst'].to_string(),
+                    " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
+                    " <= {0:d}%".format(hd['max_tank']) if hd['max_tank'] is not None else ''))
             # For the last jump...
             hd = od['hop_route'][-1]
-            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5}{6} -- {3:.2f}Ly for {4:.2f}Ly").format("!" if hd['is_long'] else "=", hd['hdist'], od['dst'].to_string(), od['hopdist'], od['hopsldist'], " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '', " <= {0:d}%".format(hd['max_tank']) if hd['max_tank'] is not None else ''))
+            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5}{6} -- {3:.2f}Ly for {4:.2f}Ly").format(
+                  "!" if hd['is_long'] else "=",
+                  hd['hdist'],
+                  od['dst'].to_string(),
+                  od['hopdist'],
+                  od['hopsldist'],
+                  " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
+                  " <= {0:d}%".format(hd['max_tank']) if hd['max_tank'] is not None else ''))
           else:
             fuel_fewest = None
             fuel_most = None
@@ -298,17 +308,33 @@ class Application(object):
         print("")
 
       elif self.args.format == 'csv':
-        print("{0},{1},{2},{3}".format(route[0].system_name, route[0].name if route[0].name is not None else '', 0.0, route[0].distance if route[0].uses_sc and route[0].distance is not None else 0))
+        print("{0},{1},{2},{3}".format(
+              route[0].system_name,
+              route[0].name if route[0].name is not None else '',
+              0.0,
+              route[0].distance if route[0].uses_sc and route[0].distance is not None else 0))
         for i in range(1, len(route)):
           od = output_data[i]
           if 'hop_route' in od:
             for j in range(0, len(od['hop_route'])-1):
               hd = od['hop_route'][j]
-              print("{0},{1},{2},{3}".format(hd['dst'].system_name, hd['dst'].name if hd['dst'].name is not None else '', hd['hdist'], hd['dst'].distance if hd['dst'].uses_sc and hd['dst'].distance is not None else 0))
+              print("{0},{1},{2},{3}".format(
+                    hd['dst'].system_name,
+                    hd['dst'].name if hd['dst'].name is not None else '',
+                    hd['hdist'],
+                    hd['dst'].distance if hd['dst'].uses_sc and hd['dst'].distance is not None else 0))
             hd = od['hop_route'][-1]
-            print("{0},{1},{2},{3}".format(od['dst'].system_name, od['dst'].name if od['dst'].name is not None else '', hd['hdist'], od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
+            print("{0},{1},{2},{3}".format(
+                  od['dst'].system_name,
+                  od['dst'].name if od['dst'].name is not None else '',
+                  hd['hdist'],
+                  od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
           else:
-            print("{0},{1},{2},{3}".format(od['dst'].system_name, od['dst'].name if od['dst'].name is not None else '', od['hopsldist'], od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
+            print("{0},{1},{2},{3}".format(
+                  od['dst'].system_name,
+                  od['dst'].name if od['dst'].name is not None else '',
+                  od['hopsldist'],
+                  od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
         print_summary = False
 
       if print_summary:
@@ -319,7 +345,7 @@ class Application(object):
         print("Total SC distance: {0:d}Ls{1}; ETT: {2}{3}".format(totalsc, "+" if not totalsc_accurate else "", est_time_str, fuel_str))
         print("")
 
-      if self.ship != None:
+      if self.ship is not None:
         for i in range(1, len(route)):
           od = output_data[i]
           if 'hop_route' in od:
@@ -337,5 +363,3 @@ class Application(object):
 if __name__ == '__main__':
   a = Application(env.local_args, False)
   a.run()
-
-

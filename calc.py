@@ -2,7 +2,7 @@ import logging
 import math
 import ship
 from station import Station
-  
+
 log = logging.getLogger("calc")
 
 default_slf = 0.9
@@ -12,6 +12,7 @@ default_ws_time = 15
 jump_spool_time = 20
 jump_cooldown_time = 10
 default_jump_time = default_ws_time + jump_spool_time + jump_cooldown_time
+
 
 class Calc(object):
   def __init__(self, ship = None, jump_range = None, witchspace_time = default_ws_time, route_strategy = default_strategy, slf = default_slf):
@@ -56,10 +57,10 @@ class Calc(object):
   def route_fuel_cost(self, route, track_usage, starting_fuel = None):
     if self.ship is not None:
       cost = 0.0
-      cur_fuel = starting_fuel if starting_fuel != None else self.ship.tank_size
+      cur_fuel = starting_fuel if starting_fuel is not None else self.ship.tank_size
       for i in range(1, len(route)):
         cost += self.ship.cost(route[i-1].distance_to(route[i]), cur_fuel)
-        if track_usage == True:
+        if track_usage:
           cur_fuel -= cost
       return cost
     else:
@@ -68,7 +69,7 @@ class Calc(object):
   # An approximation of the cost (currently time taken in seconds) of doing an SC journey
   def sc_cost(self, distance):
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
-	
+
   # The cost to go from a to b, as used in simple (non-routed) solving
   def solve_cost(self, a, b, route):
     hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
@@ -119,14 +120,14 @@ class Calc(object):
 
   def route_stdev(self, route, dist):
     return self._route_sd_or_var(route, dist, 1)
-  
+
   def _route_sd_or_var(self, route, dist, power):
     if len(route) <= 1:
       return 0.0
 
-    meanjump = dist / (len(route)-1)
+    meanjump = dist / (len(route) - 1)
     cvar = 0.0
-    for i in range(0, len(route)-1):
+    for i in range(0, len(route) - 1):
       jdist = route[i+1].distance_to(route[i])
       cvar += math.pow((jdist - meanjump), power)
     return cvar
@@ -154,14 +155,14 @@ class Calc(object):
 
   # Gets the time taken to do an SC journey (defaulting to 0.0 for non-stations)
   def sc_time(self, stn):
-    if isinstance(stn, Station) and stn.name != None:
-      return self.sc_cost(stn.distance if stn.distance != None else 0.0)
+    if isinstance(stn, Station) and stn.name is not None:
+      return self.sc_cost(stn.distance if stn.distance is not None else 0.0)
     else:
       return 0.0
 
   # Gets a very rough approximation of the time taken to stop at a starport/outpost
   def station_time(self, stn):
-    if isinstance(stn, Station) and stn.name != None:
+    if isinstance(stn, Station) and stn.name is not None:
       if stn.max_pad_size == 'L':
         return self.stop_station_time
       else:

@@ -14,6 +14,7 @@ app_name = "fuel_usage"
 
 log = logging.getLogger(app_name)
 
+
 class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
@@ -40,15 +41,14 @@ class Application(object):
       log.error("Error: You must specify all of --fsd, --mass and --tank, or have previously set these")
       sys.exit(1)
 
-    if self.args.starting_fuel == None:
+    if self.args.starting_fuel is None:
       self.args.starting_fuel = self.ship.tank_size
-
 
   def run(self):
     systems = []
     for y in self.args.systems:
       s = env.data.parse_system(y)
-      if s == None:
+      if s is None:
         log.error("Could not find system \"{0}\"!".format(y))
         return
       systems.append(s)
@@ -94,12 +94,18 @@ class Application(object):
     for i in range(1, len(output_data)):
       hop = output_data[i]
       dist = hop['src'].distance_to(hop['dst'])
-      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(dist, hop['cost'], hop['remaining'], hop['dst'].to_string(), _get_hop_char(hop)))
+      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
+            dist,
+            hop['cost'],
+            hop['remaining'],
+            hop['dst'].to_string(),
+            _get_hop_char(hop)))
     print('')
 
+
 def _get_hop_char(hop):
-  if hop['ok'] == True:
-    if hop['long'] == True:
+  if hop['ok']:
+    if hop['long']:
       return '~'
     else:
       return '='
@@ -109,4 +115,3 @@ def _get_hop_char(hop):
 if __name__ == '__main__':
   a = Application(env.local_args, False)
   a.run()
-

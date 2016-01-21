@@ -1,5 +1,6 @@
 from vector3 import Vector3
 
+
 class System(object):
   def __init__(self, obj):
     self.id = obj['id']
@@ -15,9 +16,9 @@ class System(object):
 
   def to_string(self, use_long = False):
     if use_long:
-      return u"%s (%.2f, %.2f, %.2f)" % (self.name, self.position.x, self.position.y, self.position.z)
+      return u"{0} ({1:.2f}, {2:.2f}, {3:.2f})".format(self.name, self.position.x, self.position.y, self.position.z)
     else:
-      return u"%s" % self.name
+      return u"{0}".format(self.name)
 
   def __str__(self):
     return self.to_string()
@@ -35,5 +36,4 @@ class System(object):
       return NotImplemented
 
   def __hash__(self):
-    return u"{0}/{1},{2},{3}".format(self.name,self.position.x,self.position.y,self.position.z).__hash__()
-
+    return u"{0}/{1},{2},{3}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()

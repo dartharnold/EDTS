@@ -3,6 +3,7 @@ from fsd import FSD
 
 log = logging.getLogger("ship")
 
+
 class Ship(object):
   def __init__(self, fsd_info, mass, tank, cargo = 0):
     # If we already have an FSD object, just use it as-is; otherwise assume a string and create a FSD object
@@ -25,4 +26,3 @@ class Ship(object):
 
   def fuel_weight_range(self, dist, cargo = 0):
     return self.fsd.fuel_weight_range(dist, self.mass, cargo)
-

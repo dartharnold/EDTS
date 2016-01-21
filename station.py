@@ -1,8 +1,9 @@
 from vector3 import Vector3
 
+
 class Station(object):
   def __init__(self, obj, sysobj):
-    self.distance = int(obj['distance_to_star']) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] != None) else None
+    self.distance = int(obj['distance_to_star']) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] is not None) else None
     self.uses_sc = (self.distance is not None)
     self.system = sysobj
     self.name = obj['name'] if obj is not None else None
@@ -33,7 +34,7 @@ class Station(object):
   @property
   def needs_permit(self):
     return self.system.needs_permit
-    
+
   @property
   def system_name(self):
     return self.system.name
@@ -41,7 +42,11 @@ class Station(object):
   def to_string(self, inc_sys = True):
     if self.name is None:
       return self.system_name
-    return u"{0}{1} ({2}Ls, {3})".format((self.system_name + ", ") if inc_sys else "", self.name, self.distance if self.distance != None else "???", self.station_type if self.station_type != None else "???")
+
+    return u"{0}{1} ({2}Ls, {3})".format(
+        (self.system_name + ", ") if inc_sys else "",
+        self.name, self.distance if self.distance is not None else "???",
+        self.station_type if self.station_type is not None else "???")
 
   def __eq__(self, other):
     if isinstance(other, Station):
@@ -51,4 +56,3 @@ class Station(object):
 
   def __hash__(self):
     return u"{0}/{1}".format(self.system_name, self.name).__hash__()
-

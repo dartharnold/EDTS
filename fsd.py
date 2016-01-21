@@ -5,6 +5,7 @@ import env
 
 log = logging.getLogger("fsd")
 
+
 class FSD(object):
   def __init__(self, classrating):
     drive_class = None
@@ -23,7 +24,7 @@ class FSD(object):
       return None
 
     classrating = "{0}{1}".format(drive_class, drive_rating)
-    if not classrating in env.data.coriolis_fsd_list:
+    if classrating not in env.data.coriolis_fsd_list:
       log.error("Error: No definition available for '{0}' drive.".format(classrating))
       return None
 
@@ -40,7 +41,7 @@ class FSD(object):
 
   def cost(self, dist, mass, fuel, cargo = 0):
     return self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
-  
+
   def max_range(self, mass, cargo = 0):
     return self.range(mass, self.maxfuel, cargo)
 

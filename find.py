@@ -26,7 +26,6 @@ class Application(object):
     self.args = ap.parse_args(arg)
 
   def run(self):
-
     searchname = self.args.system[0].lower()
 
     sys_matches = []
@@ -75,7 +74,6 @@ class Application(object):
 
     return True
 
-
   def anagram_find_matches(self, keys, query):
     results = []
     for sys_name in keys:
@@ -83,11 +81,11 @@ class Application(object):
       for key in sys_name.split(' '):
         passed = True
         for ch in key:
-          if ch >= 'a' and ch <= 'z' and not ch in cur_query:
+          if ch >= 'a' and ch <= 'z' and ch not in cur_query:
             passed = False
             break
           cur_query = cur_query.replace(str(ch), '', 1)
-        if passed == True and len(cur_query) == 0:
+        if passed and len(cur_query) == 0:
           results.append(sys_name)
     return results
 
@@ -95,4 +93,3 @@ class Application(object):
 if __name__ == '__main__':
   a = Application(env.local_args, False)
   a.run()
-

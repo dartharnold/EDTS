@@ -23,7 +23,7 @@ class Application(object):
     maxlen = 0
     for name in self.args.system:
       maxlen = max(maxlen, len(name))
-      if env.data.parse_system(name) == None:
+      if env.data.parse_system(name) is None:
         log.error("Could not find system \"{0}\"!".format(self.args.system))
         return
 
@@ -40,4 +40,3 @@ class Application(object):
 if __name__ == '__main__':
   a = Application(env.local_args, False)
   a.run()
-

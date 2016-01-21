@@ -11,6 +11,7 @@ default_hbuffer_ly = 10.0
 hbuffer_relax_increment = 5.0
 hbuffer_relax_max = 31.0
 
+
 class Routing(object):
 
   def __init__(self, calc, eddb_systems, rbuf_base, hbuf_base, route_strategy):
@@ -95,17 +96,17 @@ class Routing(object):
     if sys_to not in stars:
       stars.append(sys_to)
 
-    closedset = set()         # The set of nodes already evaluated.
-    openset = set([sys_from]) # The set of tentative nodes to be evaluated, initially containing the start node
+    closedset = set()          # The set of nodes already evaluated.
+    openset = set([sys_from])  # The set of tentative nodes to be evaluated, initially containing the start node
     came_from = dict()
 
     g_score = dict()
-    g_score[sys_from] = 0    # Cost from sys_from along best known path.
+    g_score[sys_from] = 0      # Cost from sys_from along best known path.
     f_score = dict()
     f_score[sys_from] = self._calc.astar_cost(sys_from, sys_to, [sys_from])
 
     while len(openset) > 0:
-      current = min(openset, key=f_score.get) # the node in openset having the lowest f_score[] value
+      current = min(openset, key=f_score.get)  # the node in openset having the lowest f_score[] value
       if current == sys_to:
         return self.astar_reconstruct_path(came_from, sys_to)
 
@@ -120,7 +121,7 @@ class Routing(object):
         if neighbor in closedset:
           continue
 
-        # tentative_g_score = g_score[current] + (current.position - neighbor.position).length     
+        # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
         tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, path, full_range)
 
         if neighbor not in g_score:
@@ -169,7 +170,7 @@ class Routing(object):
     # While we haven't hit our limit to bomb out...
     while optimistic_count - best_jump_count <= (self._trunkle_max_addjumps_mul * best_jump_count):
       # If this isn't our final leg...
-      if next_stars == None or len(next_stars) == 0:
+      if next_stars is None or len(next_stars) == 0:
         if force_intermediate or self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
           factor = sldistance * (trunc_jcount / optimistic_count)
           # Work out the next position to get a circle of stars from
@@ -199,7 +200,7 @@ class Routing(object):
       # Use trundle to try and calculate a route
       next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, jlimit)
       # If our route was invalid or too long, check the next star
-      if next_route == None or (next_star != sys_to and len(next_route)-1 > trunc_jcount):
+      if next_route is None or (next_star != sys_to and len(next_route)-1 > trunc_jcount):
         next_stars = next_stars[1:]
         failed_attempts.append(next_star)
         # If we're out of stars to try from this set, increment the ocount and try again
@@ -218,10 +219,10 @@ class Routing(object):
       force_intermediate = False
       search_radius = self._trunkle_search_radius
       next_stars = []
-      failed_attempts = [sys_cur] # This ensures we never test our current location as a potential next_star
+      failed_attempts = [sys_cur]  # This ensures we never test our current location as a potential next_star
       # If we're setting the ocount all the way back to its initial value, do that; otherwise just drop it a bit
       # This ensures that we don't miss any good legs just because the previous leg was a dud
-      if self._ocount_reset_full == True:
+      if self._ocount_reset_full:
         optimistic_count = best_jump_count - self._ocount_initial_boost
       else:
         optimistic_count = math.max(1.0, self._ocount_reset_dec)
@@ -251,21 +252,21 @@ class Routing(object):
     best = None
     bestcost = None
 
-    while best == None and add_jumps <= self._trundle_max_addjumps and (addj_limit is None or add_jumps <= addj_limit):
-      while best == None and (hbuffer_ly < hbuffer_relax_max or hbuffer_ly == self._hbuffer_base):
+    while best is None and add_jumps <= self._trundle_max_addjumps and (addj_limit is None or add_jumps <= addj_limit):
+      while best is None and (hbuffer_ly < hbuffer_relax_max or hbuffer_ly == self._hbuffer_base):
         log.debug("Attempt %d at hbuffer %.1f, jump count: %d, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
         vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly)
         log.debug("Attempt %d at hbuffer %.1f, jump count: %d, viable routes: %d", add_jumps, hbuffer_ly, best_jump_count + add_jumps, len(vr))
         for route in vr:
           cost = self._calc.trundle_cost(route)
-          if bestcost == None or cost < bestcost:
+          if bestcost is None or cost < bestcost:
             best = route
             bestcost = cost
         hbuffer_ly += hbuffer_relax_increment
       add_jumps += 1
       hbuffer_ly = self._hbuffer_base
 
-    if best != None:
+    if best is not None:
       log.debug("Route, length = {0}, cost = {1:.2f}: {2}".format(len(best)-1, bestcost, " --> ".join([str(p) for p in best])))
     else:
       log.debug("No route found")

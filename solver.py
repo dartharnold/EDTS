@@ -10,6 +10,7 @@ cluster_size_max = 12
 cluster_size_min = 5
 cluster_divisor = 10
 
+
 class Solver(object):
   def __init__(self, calc, route, jump_range, diff_limit):
     self._calc = calc
@@ -22,7 +23,7 @@ class Solver(object):
       return self.solve_clustered(stations, start, end, maxstops), False
     else:
       return self.solve_basic(stations, start, end, maxstops), True
-    
+
   def solve_basic(self, stations, start, end, maxstops):
     log.debug("Calculating viable routes...")
     vr = self.get_viable_routes([start], stations, end, maxstops)
@@ -43,13 +44,12 @@ class Solver(object):
       route = route if (cost_normal <= cost_reversed) else route_reversed
 
       costs.append(cost)
-      if mincost == None or cost < mincost:
+      if mincost is None or cost < mincost:
         log.debug("New minimum cost: {0} on route {1}".format(cost, count))
         mincost = cost
         minroute = route
 
     return minroute
-
 
   def solve_clustered(self, stations, start, end, maxstops):
     cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
@@ -63,7 +63,7 @@ class Solver(object):
         break
     log.debug("Using clusters of sizes {0} after {1} iterations".format(", ".join([str(len(clusters[i])) for i in clusters]), iterations))
 
-    indices,_ = self.get_best_cluster_route(means, start, end)
+    indices, _ = self.get_best_cluster_route(means, start, end)
 
     route = [start]
     r_maxstops = maxstops - 2
@@ -98,13 +98,12 @@ class Solver(object):
         if s.to_string() != t.to_string() and t not in hops[s]:
           log.debug("Calculating hop: {0} -> {1}".format(s.name, t.name))
           hop = self._route.plot(s, t, self._jump_range)
-          if hop == None:
+          if hop is None:
             log.warning("Hop route could not be calculated: {0} -> {1}".format(s.name, t.name))
           hops[s][t] = hop
           hops[t][s] = hop
 
     return hops
-
 
   def get_viable_routes(self, route, stations, end, maxstops):
     # If we have more non-end stops to go...
@@ -134,7 +133,7 @@ class Solver(object):
       vrnext = []
       for stn in vsnext:
         vrnext = vrnext + self.get_viable_routes(route + [stn], stations, end, maxstops)
-      
+
       return vrnext
 
     # We're at the end
@@ -142,16 +141,15 @@ class Solver(object):
       route.append(end)
       return [route]
 
-
   def get_best_cluster_route(self, means, start, end, route = []):
     best = None
     bestcost = 0.0
     if len(route) < len(means):
-      for i,m in enumerate(means):
+      for i, m in enumerate(means):
         if i in route:
           continue
         c_route, c_cost = self.get_best_cluster_route(means, start, end, route + [i])
-        if best == None or c_cost < bestcost:
+        if best is None or c_cost < bestcost:
           best = c_route
           bestcost = c_cost
       return best, bestcost
@@ -172,10 +170,11 @@ class Solver(object):
         if n2 in disallowed:
           continue
         cost = self._calc.solve_cost(n1, n2, [])
-        if best == None or cost < bestcost:
+        if best is None or cost < bestcost:
           best = (n1, n2)
           bestcost = cost
     return best
+
 
 #
 # K-means clustering
@@ -183,11 +182,12 @@ class Solver(object):
 def _cluster_points(X, mu):
   clusters = {}
   for x in X:
-    bestmukey = min([(i[0], (x.position - mu[i[0]]).length) for i in enumerate(mu)], key=lambda t:t[1])[0]
+    bestmukey = min([(i[0], (x.position - mu[i[0]]).length) for i in enumerate(mu)], key=lambda t: t[1])[0]
     if bestmukey not in clusters:
       clusters[bestmukey] = []
     clusters[bestmukey].append(x)
   return clusters
+
 
 def _reevaluate_centers(mu, clusters):
   newmu = []
@@ -196,8 +196,10 @@ def _reevaluate_centers(mu, clusters):
     newmu.append(vector3.mean([x.position for x in clusters[k]]))
   return newmu
 
+
 def _has_converged(mu, oldmu):
   return (set(mu) == set(oldmu))
+
 
 def find_centers(X, K):
   # Initialize to K random centers

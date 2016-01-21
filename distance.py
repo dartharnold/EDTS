@@ -13,6 +13,7 @@ app_name = "distance"
 
 log = logging.getLogger(app_name)
 
+
 class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
@@ -30,7 +31,6 @@ class Application(object):
     self._padding_width = 2
 
     self._calc = calc.Calc()
-
 
   def print_system(self, name, is_line_start, max_len = None):
     if self.args.csv:
@@ -55,17 +55,17 @@ class Application(object):
     if not self.args.csv:
       self.longest = max([len(s) for s in self.args.systems])
 
-    if self.args.start != None and env.data.parse_system(self.args.start) == None:
+    if self.args.start is not None and env.data.parse_system(self.args.start) is None:
       log.error("Could not find start system \"{0}\"!".format(self.args.start))
       return
     for y in self.args.systems:
-      if env.data.parse_system(y) == None:
+      if env.data.parse_system(y) is None:
         log.error("Could not find system \"{0}\"!".format(y))
         return
 
     print('')
 
-    if self.args.start != None:
+    if self.args.start is not None:
       start = env.data.parse_system(self.args.start)
 
       distances = {}
@@ -118,7 +118,6 @@ class Application(object):
 
       # Otherwise, just return the simple output
       else:
-        
         start = env.data.parse_system(self.args.systems[0])
         end = env.data.parse_system(self.args.systems[1])
 
@@ -130,4 +129,3 @@ class Application(object):
 if __name__ == '__main__':
   a = Application(env.local_args, False)
   a.run()
-

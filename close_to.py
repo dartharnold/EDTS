@@ -14,6 +14,7 @@ log = logging.getLogger(app_name)
 
 default_max_angle = 15.0
 
+
 class ApplicationAction(argparse.Action):
   def __call__(self, parser, namespace, value, option_strings=None):
     n = vars(namespace)
@@ -50,7 +51,7 @@ class Application(object):
     ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
     ap.add_argument("--direction", type=str, required=False, help="A system or set of coordinates that returned systems must be in the same direction as")
     ap.add_argument("--direction-angle", type=float, required=False, default=default_max_angle, help="The maximum angle, in degrees, allowed for the direction check")
-    
+
     ap.add_argument("system", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
 
     remaining = arg
@@ -70,39 +71,39 @@ class Application(object):
     # Add the system object to each system arg
     for d in self.args.system:
       d['sysobj'] = env.data.parse_system(d['system'])
-      if d['sysobj'] == None:
+      if d['sysobj'] is None:
         log.error("Could not find start system \"{0}\"!".format(d['system']))
         return
     # Create a list of names for quick checking in the main loop
     start_names = [d['system'].lower() for d in self.args.system]
 
-    if self.args.direction != None:
+    if self.args.direction is not None:
       direction_obj = env.data.parse_system(self.args.direction)
       max_angle = self.args.direction_angle * math.pi / 180.0
-      if direction_obj == None:
+      if direction_obj is None:
         log.error("Could not find direction system \"{0}\"!".format(self.args.direction))
         return
 
     asys = []
-    
+
     maxdist = 0.0
 
     for s in env.data.eddb_systems:
       # If we don't care about allegiance, or we do and it matches...
-      if s.name.lower() not in start_names and (self.args.allegiance == None or s.allegiance == self.args.allegiance):
-        has_stns = (s.allegiance != None)
+      if s.name.lower() not in start_names and (self.args.allegiance is None or s.allegiance == self.args.allegiance):
+        has_stns = (s.allegiance is not None)
         # If we have stations, or we don't care...
-        if has_stns or self.args.pad_size == None:
+        if has_stns or self.args.pad_size is None:
           # Check if the direction matches, if we care
-          if self.args.direction == None or self.all_angles_within(self.args.system, s, direction_obj, max_angle):
+          if self.args.direction is None or self.all_angles_within(self.args.system, s, direction_obj, max_angle):
             # If we *don't* have stations (because we don't care), or the stations match the requirements...
             matching_stns = env.data.get_stations(s)
             if not self.allow_outposts:
               matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
-            if self.args.max_sc_distance != None:
-              matching_stns = [st for st in matching_stns if (st.distance != None and st.distance < self.args.max_sc_distance)]
+            if self.args.max_sc_distance is not None:
+              matching_stns = [st for st in matching_stns if (st.distance is not None and st.distance < self.args.max_sc_distance)]
             if not has_stns or len(matching_stns) > 0:
-              dist = 0.0 # The total distance from this system to ALL start systems
+              dist = 0.0  # The total distance from this system to ALL start systems
               is_ok = True
               for d in self.args.system:
                 start = d['sysobj']
@@ -117,7 +118,7 @@ class Application(object):
 
               if not is_ok:
                 continue
-                
+
               if len(asys) < self.args.num or dist < maxdist:
                 # We have a new contender; add it, sort by distance, chop to length and set the new max distance
                 asys.append(s)
@@ -126,7 +127,6 @@ class Application(object):
 
                 asys = asys[0:self.args.num]
                 maxdist = max(dist, maxdist)
-
 
     if not len(asys):
       print("")
@@ -157,7 +157,6 @@ class Application(object):
             print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
           print("")
 
-
   def all_angles_within(self, starts, dest1, dest2, max_angle):
     for d in starts:
       cur_dir = (dest1.position - d['sysobj'].position)
@@ -170,4 +169,3 @@ class Application(object):
 if __name__ == '__main__':
   a = Application(env.local_args, False)
   a.run()
-
