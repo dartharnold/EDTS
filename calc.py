@@ -125,9 +125,9 @@ class Calc(object):
     if len(route) <= 1:
       return 0.0
 
-    meanjump = dist / (len(route) - 1)
+    meanjump = dist / (len(route)-1)
     cvar = 0.0
-    for i in range(0, len(route) - 1):
+    for i in range(0, len(route)-1):
       jdist = route[i+1].distance_to(route[i])
       cvar += math.pow((jdist - meanjump), power)
     return cvar
