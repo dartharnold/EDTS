@@ -146,10 +146,10 @@ class Application(object):
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
-          if route[i-1].system != route[i].system:
+          if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
             hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
           else:
-            hop_route = [route[i].system, route[i].system]
+            hop_route = [route[i-1].system, route[i].system]
 
           if hop_route is not None:
             route_jcount = len(hop_route)-1
