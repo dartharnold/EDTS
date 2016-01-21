@@ -83,13 +83,13 @@ class Vector3(object):
 
     def _get_length(self):
         x, y, z = self._v
-        return sqrt(x*x + y*y +z*z)
+        return sqrt(x*x + y*y + z*z)
 
     def _set_length(self, length):
         v = self._v
         try:
             x, y, z = v
-            l = length / sqrt(x*x + y*y +z*z)
+            l = length / sqrt(x*x + y*y + z*z)
         except ZeroDivisionError:
             v[0] = 0.
             v[1] = 0.
@@ -168,7 +168,7 @@ class Vector3(object):
         """
         x, y, z = self._v
         xx, yy, zz = rhs
-        return x==xx and y==yy and z==zz
+        return (x == xx and y == yy and z == zz)
 
     def __ne__(self, rhs):
         """Test of inequality
@@ -177,7 +177,7 @@ class Vector3(object):
         """
         x, y, z = self._v
         xx, yy, zz = rhs
-        return x!=xx or y!=yy or z!=zz
+        return (x != xx or y != yy or z != zz)
 
     def __hash__(self):
         return hash(tuple(self._v))
@@ -258,7 +258,7 @@ class Vector3(object):
 
     def vector_mul(self, vector):
         x, y, z = vector
-        v= self._v
+        v = self._v
         v[0] *= x
         v[1] *= y
         v[2] *= z
@@ -364,7 +364,7 @@ class Vector3(object):
 
     def vector_div(self, vector):
         x, y, z = vector
-        v= self._v
+        v = self._v
         v[0] /= x
         v[1] /= y
         v[2] /= z
@@ -437,7 +437,7 @@ class Vector3(object):
         """Calculates the length of the vector."""
 
         x, y, z = self._v
-        return sqrt(x*x + y*y +z*z)
+        return sqrt(x*x + y*y + z*z)
     get_magnitude = get_length
 
     def set_length(self, new_length):
@@ -565,7 +565,7 @@ def distance3d_squared(p1, p2):
     dx = x - xx
     dy = y - yy
     dz = z - zz
-    return dx*dx + dy*dy +dz*dz
+    return (dx*dx + dy*dy + dz*dz)
 
 
 def distance3d(p1, p2):
@@ -574,8 +574,8 @@ def distance3d(p1, p2):
     dx = x - xx
     dy = y - yy
     dz = z - zz
-    return sqrt(dx*dx + dy*dy +dz*dz)
+    return sqrt(dx*dx + dy*dy + dz*dz)
 
 
 def mean(points):
-    return sum(points, Vector3(0,0,0)) / len(points)
+    return sum(points, Vector3(0, 0, 0)) / len(points)
