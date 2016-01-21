@@ -195,10 +195,10 @@ class Application(object):
                 cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
             # Write all data about this jump to the current hop info
             cur_data['hop_route'].append({
-              'is_long': is_long, 'hdist': hdist,
-              'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j]),
-              'fuel_cost': fuel_cost, 'min_tank': min_tank, 'max_tank': max_tank
-              })
+                'is_long': is_long, 'hdist': hdist,
+                'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j]),
+                'fuel_cost': fuel_cost, 'min_tank': min_tank, 'max_tank': max_tank
+            })
           totaldist += cur_data['hopdist']
 
         if route[i].name is not None:
@@ -264,34 +264,34 @@ class Application(object):
               hd_fuelstr = ''
               if hd['max_tank'] is not None:
                 hd_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
-                  hd['min_tank'],
-                  hd['max_tank'],
-                  int(100.0*hd['min_tank']/self.ship.tank_size),
-                  int(100.0*hd['max_tank']/self.ship.tank_size))
+                    hd['min_tank'],
+                    hd['max_tank'],
+                    int(100.0*hd['min_tank']/self.ship.tank_size),
+                    int(100.0*hd['max_tank']/self.ship.tank_size))
               print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}{4}").format(
-                    "!" if hd['is_long'] else "-",
-                    hd['hdist'],
-                    hd['dst'].to_string(),
-                    " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
-                    hd_fuelstr))
+                  "!" if hd['is_long'] else "-",
+                  hd['hdist'],
+                  hd['dst'].to_string(),
+                  " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
+                  hd_fuelstr))
             # For the last jump...
             hd = od['hop_route'][-1]
             hd_fuelstr = ''
             if hd['max_tank'] is not None:
               hd_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
-                hd['min_tank'],
-                hd['max_tank'],
-                int(100.0*hd['min_tank']/self.ship.tank_size),
-                int(100.0*hd['max_tank']/self.ship.tank_size))
+                  hd['min_tank'],
+                  hd['max_tank'],
+                  int(100.0*hd['min_tank']/self.ship.tank_size),
+                  int(100.0*hd['max_tank']/self.ship.tank_size))
 
             print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5}{6} -- {3:.2f}Ly for {4:.2f}Ly").format(
-                  "!" if hd['is_long'] else "=",
-                  hd['hdist'],
-                  od['dst'].to_string(),
-                  od['hopdist'],
-                  od['hopsldist'],
-                  " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
-                  hd_fuelstr))
+                "!" if hd['is_long'] else "=",
+                hd['hdist'],
+                od['dst'].to_string(),
+                od['hopdist'],
+                od['hopsldist'],
+                " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
+                hd_fuelstr))
           else:
             fuel_fewest = None
             fuel_most = None

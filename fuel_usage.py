@@ -70,7 +70,10 @@ class Application(object):
       fuel_cost = self.ship.cost(distance, cur_fuel, self.args.cargo)
       cur_fuel -= fuel_cost
       is_ok = (is_ok and fuel_cost <= self.ship.fsd.maxfuel and cur_fuel >= 0.0)
-      output_data.append({'src': systems[i-1], 'dst': systems[i], 'distance': distance, 'cost': fuel_cost, 'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
+      output_data.append({
+          'src': systems[i-1], 'dst': systems[i],
+          'distance': distance, 'cost': fuel_cost,
+          'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
 
     d_max_len = 1.0
     c_max_len = 1.0
