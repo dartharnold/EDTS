@@ -106,7 +106,7 @@ class Application(object):
       full_jump_range = self.ship.range()
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
-    calc = c.Calc(ship = self.ship, jump_range = self.args.jump_range, witchspace_time = self.args.witchspace_time, route_strategy = self.args.route_strategy, slf = self.args.slf)
+    calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, route_strategy=self.args.route_strategy, slf=self.args.slf)
     r = rx.Routing(calc, env.data.eddb_systems, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit)
 
