@@ -23,6 +23,13 @@ class Station(object):
   def distance_to(self, other):
     return (self.position - other.position).length
 
+  def has_pad(self, pad_size):
+    if self.name is None:
+      return False
+    if pad_size.upper() == 'L' and self.max_pad_size != 'L':
+      return False
+    return True
+
   @classmethod
   def none(self, sysobj):
     return self(None, sysobj)
