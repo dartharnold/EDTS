@@ -52,18 +52,22 @@ class Application(object):
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
 
+    # If the user hasn't provided a number of stops to use, assume we're stopping at all provided
     if self.args.num_jumps is None:
       self.args.num_jumps = len(self.args.stations)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
+      # If user has provided full ship data in this invocation, use it
       # TODO: support cargo capacity?
       self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
     elif 'ship' in state:
+      # If we have a cached ship, use that (with any overrides provided as part of this invocation)
       fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
       mass = self.args.mass if self.args.mass is not None else state['ship'].mass
       tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
       self.ship = ship.Ship(fsd, mass, tank)
     else:
+      # No ship is fine as long as we have a static jump range set
       if self.args.jump_range is None:
         log.error("Error: You must specify all of --fsd, --mass and --tank and/or --jump-range.")
         sys.exit(1)
@@ -82,19 +86,19 @@ class Application(object):
       return
 
     stations = []
+    # Locate all the systems/stations provided and ensure they're valid for our ship
     for st in self.args.stations:
       sobj = env.data.parse_station(st)
       if sobj is not None and sobj.system is not None:
         log.debug("Adding system/station: {0}".format(sobj.to_string()))
-
         if self.args.pad_size == "L" and sobj.max_pad_size != "L":
           log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
         stations.append(sobj)
-
       else:
         log.warning("Error: system/station {0} could not be found.".format(st))
         return
 
+    # Prefer a static jump range if provided, to allow user to override ship's range
     if self.args.jump_range is not None:
       full_jump_range = self.args.jump_range
       jump_range = self.args.jump_range
@@ -152,8 +156,6 @@ class Application(object):
             # For hoppy routes, always use stats for the jumps reported (less confusing)
             cur_data['jumpcount_min'] = route_jcount
             cur_data['jumpcount_max'] = route_jcount
-            # cur_data['jumpcount_min'] = min(cur_data['jumpcount_min'], route_jcount)
-            # cur_data['jumpcount_max'] = min(cur_data['jumpcount_max'], route_jcount)
           else:
             log.warning("No valid route found for hop: {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
             total_fuel_cost_exact = False
