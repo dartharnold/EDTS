@@ -36,7 +36,7 @@ class Application(object):
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
     ap.add_argument("-p", "--pad-size", default="M", type=str.upper, choices=['S','M','L'], help="The landing pad size of the ship (S/M/L)")
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
-    ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just hops")
+    ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
     ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=c.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
@@ -44,10 +44,10 @@ class Application(object):
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=c.default_jump_time, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
-    ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump hops to account for imperfect system positions")
+    ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
     ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
-    ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next hops. Not used by the 'astar' strategy.")
+    ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next legs. Not used by the 'astar' strategy.")
     ap.add_argument("--allow-clustering", type=util.string_bool, default=True, choices=[True,False], help="Whether to allow clustering (used for solving routes with large numbers of stops)")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
@@ -147,23 +147,23 @@ class Application(object):
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
-            hop_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
+            leg_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
           else:
-            hop_route = [route[i-1].system, route[i].system]
+            leg_route = [route[i-1].system, route[i].system]
 
-          if hop_route is not None:
-            route_jcount = len(hop_route)-1
+          if leg_route is not None:
+            route_jcount = len(leg_route)-1
             # For hoppy routes, always use stats for the jumps reported (less confusing)
             cur_data['jumpcount_min'] = route_jcount
             cur_data['jumpcount_max'] = route_jcount
           else:
-            log.warning("No valid route found for hop: {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
+            log.warning("No valid route found for leg: {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
             total_fuel_cost_exact = False
         else:
           total_fuel_cost_exact = False
 
-        cur_data['hopsldist'] = route[i-1].distance_to(route[i])
-        totaldist_sl += cur_data['hopsldist']
+        cur_data['legsldist'] = route[i-1].distance_to(route[i])
+        totaldist_sl += cur_data['legsldist']
         totaljumps_min += cur_data['jumpcount_min']
         totaljumps_max += cur_data['jumpcount_max']
         if route[i].distance is not None and route[i].distance != 0:
@@ -173,18 +173,18 @@ class Application(object):
           totalsc_accurate = False
 
         cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
-        if self.args.route and hop_route is not None:
-          cur_data['hop_route'] = []
-          cur_data['hopdist'] = 0.0
-          for j in range(1, len(hop_route)):
-            hdist = hop_route[j-1].distance_to(hop_route[j])
-            cur_data['hopdist'] += hdist
-            is_long = (hdist > full_max_jump)
+        if self.args.route and leg_route is not None:
+          cur_data['leg_route'] = []
+          cur_data['legdist'] = 0.0
+          for j in range(1, len(leg_route)):
+            ldist = leg_route[j-1].distance_to(leg_route[j])
+            cur_data['legdist'] += ldist
+            is_long = (ldist > full_max_jump)
             fuel_cost = None
             min_tank = None
             max_tank = None
             if cur_fuel is not None:
-              fuel_cost = min(self.ship.cost(hdist, cur_fuel), self.ship.fsd.maxfuel)
+              fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
               min_tank, max_tank = self.ship.fuel_weight_range(hdist, self.args.cargo * (i-1))
               if max_tank >= self.ship.tank_size:
                 max_tank = None
@@ -193,13 +193,13 @@ class Application(object):
               # TODO: Something less arbitrary than this?
               if cur_fuel < 0:
                 cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
-            # Write all data about this jump to the current hop info
-            cur_data['hop_route'].append({
-                'is_long': is_long, 'hdist': hdist,
-                'src': Station.none(hop_route[j-1]), 'dst': Station.none(hop_route[j]),
+            # Write all data about this jump to the current leg info
+            cur_data['leg_route'].append({
+                'is_long': is_long, 'ldist': ldist,
+                'src': Station.none(leg_route[j-1]), 'dst': Station.none(leg_route[j]),
                 'fuel_cost': fuel_cost, 'min_tank': min_tank, 'max_tank': max_tank
             })
-          totaldist += cur_data['hopdist']
+          totaldist += cur_data['legdist']
 
         if route[i].name is not None:
           cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
@@ -227,11 +227,11 @@ class Application(object):
       for i in range(1, len(output_data)):
         od = output_data[i]
         # If we have a hoppy route, we'll only be printing single-jump ranges. If not, we'll be using full leg distances.
-        if self.args.format == 'long' and 'hop_route' in od:
-          if len(od['hop_route']) > 0:
-            d_max_len = max(d_max_len, max([h['hdist'] for h in od['hop_route']]))
+        if self.args.format == 'long' and 'leg_route' in od:
+          if len(od['leg_route']) > 0:
+            d_max_len = max(d_max_len, max([l['ldist'] for l in od['leg_route']]))
         else:
-          d_max_len = max(d_max_len, od['hopsldist'])
+          d_max_len = max(d_max_len, od['legsldist'])
         # If we have estimated jump counts, work out how long the strings will be
         if 'jumpcount_min' in od:
           jmin_max_len = max(jmin_max_len, od['jumpcount_min'])
@@ -254,51 +254,51 @@ class Application(object):
         print("")
         print(route[0].to_string())
 
-        # For each hop (not including start point)
+        # For each leg (not including start point)
         for i in range(1, len(route)):
           od = output_data[i]
-          if self.args.format == 'long' and 'hop_route' in od:
+          if self.args.format == 'long' and 'leg_route' in od:
             # For every jump except the last...
-            for j in range(0, len(od['hop_route'])-1):
-              hd = od['hop_route'][j]
-              hd_fuelstr = ''
-              if hd['max_tank'] is not None:
-                hd_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
-                    hd['min_tank'],
-                    hd['max_tank'],
-                    int(100.0*hd['min_tank']/self.ship.tank_size),
-                    int(100.0*hd['max_tank']/self.ship.tank_size))
+            for j in range(0, len(od['leg_route'])-1):
+              ld = od['leg_route'][j]
+              ld_fuelstr = ''
+              if ld['max_tank'] is not None:
+                ld_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
+                    ld['min_tank'],
+                    ld['max_tank'],
+                    int(100.0*ld['min_tank']/self.ship.tank_size),
+                    int(100.0*ld['max_tank']/self.ship.tank_size))
               print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}{4}").format(
-                  "!" if hd['is_long'] else "-",
-                  hd['hdist'],
-                  hd['dst'].to_string(),
-                  " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
-                  hd_fuelstr))
+                  "!" if ld['is_long'] else "-",
+                  ld['ldist'],
+                  ld['dst'].to_string(),
+                  " [{0:.2f}T]".format(ld['fuel_cost']) if self.ship is not None else '',
+                  ld_fuelstr))
             # For the last jump...
-            hd = od['hop_route'][-1]
-            hd_fuelstr = ''
-            if hd['max_tank'] is not None:
-              hd_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
-                  hd['min_tank'],
-                  hd['max_tank'],
-                  int(100.0*hd['min_tank']/self.ship.tank_size),
-                  int(100.0*hd['max_tank']/self.ship.tank_size))
+            ld = od['leg_route'][-1]
+            ld_fuelstr = ''
+            if ld['max_tank'] is not None:
+              ld_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
+                  ld['min_tank'],
+                  ld['max_tank'],
+                  int(100.0*ld['min_tank']/self.ship.tank_size),
+                  int(100.0*ld['max_tank']/self.ship.tank_size))
 
             print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5}{6} -- {3:.2f}Ly for {4:.2f}Ly").format(
-                "!" if hd['is_long'] else "=",
-                hd['hdist'],
+                "!" if ld['is_long'] else "=",
+                ld['ldist'],
                 od['dst'].to_string(),
-                od['hopdist'],
-                od['hopsldist'],
-                " [{0:.2f}T]".format(hd['fuel_cost']) if self.ship is not None else '',
-                hd_fuelstr))
+                od['legdist'],
+                od['legsldist'],
+                " [{0:.2f}T]".format(ld['fuel_cost']) if self.ship is not None else '',
+                ld_fuelstr))
           else:
             fuel_fewest = None
             fuel_most = None
             if self.ship is not None:
               # Estimate fuel cost assuming average jump size and full tank.
-              fuel_fewest = self.ship.cost(od['hopsldist'] / max(0.001, float(od['jumpcount_min']))) * int(od['jumpcount_min'])
-              fuel_most = self.ship.cost(od['hopsldist'] / max(0.001, float(od['jumpcount_max']))) * int(od['jumpcount_max'])
+              fuel_fewest = self.ship.cost(od['legsldist'] / max(0.001, float(od['jumpcount_min']))) * int(od['jumpcount_min'])
+              fuel_most = self.ship.cost(od['legsldist'] / max(0.001, float(od['jumpcount_max']))) * int(od['jumpcount_max'])
               total_fuel_cost += max(fuel_fewest, fuel_most)
             # If we don't have "N - M", just print simple result
             if od['jumpcount_min'] == od['jumpcount_max']:
@@ -315,17 +315,17 @@ class Application(object):
                 fuel_str = " [{0:.2f}T+]".format(fuel_fewest)
               else:
                 fuel_str = " [{0:.2f}T+ - {1:.2f}T+]".format(min(fuel_fewest, fuel_most), max(fuel_fewest, fuel_most))
-            print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}{3}").format(od['hopsldist'], jumps_str, route_str, fuel_str))
+            print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}{3}").format(od['legsldist'], jumps_str, route_str, fuel_str))
 
       elif self.args.format == 'short':
         print("")
         sys.stdout.write(str(route[0]))
         for i in range(1, len(route)):
           od = output_data[i]
-          if 'hop_route' in od:
-            for j in range(0, len(od['hop_route'])):
-              hd = od['hop_route'][j]
-              sys.stdout.write(", {0}".format(str(hd['dst'])))
+          if 'leg_route' in od:
+            for j in range(0, len(od['leg_route'])):
+              ld = od['leg_route'][j]
+              sys.stdout.write(", {0}".format(str(ld['dst'])))
           else:
             sys.stdout.write(", {0}".format(str(od['dst'])))
         print("")
@@ -338,25 +338,25 @@ class Application(object):
               route[0].distance if route[0].uses_sc and route[0].distance is not None else 0))
         for i in range(1, len(route)):
           od = output_data[i]
-          if 'hop_route' in od:
-            for j in range(0, len(od['hop_route'])-1):
-              hd = od['hop_route'][j]
+          if 'leg_route' in od:
+            for j in range(0, len(od['leg_route'])-1):
+              ld = od['leg_route'][j]
               print("{0},{1},{2},{3}".format(
-                    hd['dst'].system_name,
-                    hd['dst'].name if hd['dst'].name is not None else '',
-                    hd['hdist'],
-                    hd['dst'].distance if hd['dst'].uses_sc and hd['dst'].distance is not None else 0))
-            hd = od['hop_route'][-1]
+                    ld['dst'].system_name,
+                    ld['dst'].name if ld['dst'].name is not None else '',
+                    ld['ldist'],
+                    ld['dst'].distance if ld['dst'].uses_sc and ld['dst'].distance is not None else 0))
+            ld = od['leg_route'][-1]
             print("{0},{1},{2},{3}".format(
                   od['dst'].system_name,
                   od['dst'].name if od['dst'].name is not None else '',
-                  hd['hdist'],
+                  ld['ldist'],
                   od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
           else:
             print("{0},{1},{2},{3}".format(
                   od['dst'].system_name,
                   od['dst'].name if od['dst'].name is not None else '',
-                  od['hopsldist'],
+                  od['legsldist'],
                   od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
         print_summary = False
 
@@ -371,10 +371,10 @@ class Application(object):
       if self.ship is not None:
         for i in range(1, len(route)):
           od = output_data[i]
-          if 'hop_route' in od:
+          if 'leg_route' in od:
             fcost = 0.0
-            for j in range(0, len(od['hop_route'])):
-              fcost += self.ship.cost(od['hop_route'][j]['src'].distance_to(od['hop_route'][j]['dst']))
+            for j in range(0, len(od['leg_route'])):
+              fcost += self.ship.cost(od['leg_route'][j]['src'].distance_to(od['leg_route'][j]['dst']))
             log.debug("Hop {0} -> {1}, highball fuel cost: {2:.2f}T".format(od['src'].system_name, od['dst'].system_name, fcost))
 
     else:

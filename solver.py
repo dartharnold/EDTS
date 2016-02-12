@@ -87,23 +87,23 @@ class Solver(object):
     route += [end]
     return route
 
-  def get_route_hops(self, stations):
-    hops = {}
+  def get_route_legs(self, stations):
+    legs = {}
 
     for h in stations:
-      hops[h] = {}
+      legs[h] = {}
 
     for s in stations:
       for t in stations:
-        if s.to_string() != t.to_string() and t not in hops[s]:
-          log.debug("Calculating hop: {0} -> {1}".format(s.name, t.name))
-          hop = self._route.plot(s, t, self._jump_range)
-          if hop is None:
+        if s.to_string() != t.to_string() and t not in legs[s]:
+          log.debug("Calculating leg: {0} -> {1}".format(s.name, t.name))
+          leg = self._route.plot(s, t, self._jump_range)
+          if leg is None:
             log.warning("Hop route could not be calculated: {0} -> {1}".format(s.name, t.name))
-          hops[s][t] = hop
-          hops[t][s] = hop
+          legs[s][t] = leg
+          legs[t][s] = leg
 
-    return hops
+    return legs
 
   def get_viable_routes(self, route, stations, end, maxstops):
     # If we have more non-end stops to go...

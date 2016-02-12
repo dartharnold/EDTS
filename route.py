@@ -26,7 +26,7 @@ class Routing(object):
     self._ocount_relax_inc_mul = 0.01
     self._ocount_reset_dec = 2.0
     self._ocount_reset_full = True
-    self._trunkle_hop_size = 5.0
+    self._trunkle_leg_size = 5.0
     self._trunkle_search_radius = 10.0
     self._trunkle_search_radius_relax_mul = 0.01
 
@@ -151,10 +151,10 @@ class Routing(object):
     best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
 
     sldistance = sys_from.distance_to(sys_to)
-    # Current estimate of furthest ahead to look, as the estimated total number of jumps in this hop
+    # Current estimate of furthest ahead to look, as the estimated total number of jumps in this leg
     optimistic_count = best_jump_count - self._ocount_initial_boost
     # How many jumps to perform in each leg
-    trunc_jcount = self._trunkle_hop_size
+    trunc_jcount = self._trunkle_leg_size
     search_radius = self._trunkle_search_radius
     # search_radius = self.lerp(100.0, 200.0, self._trunkle_search_radius_min, self._trunkle_search_radius_max, sys_from.distance_to(sys_to))
 
@@ -292,10 +292,10 @@ class Routing(object):
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
       mystars = self.cylinder(stars, start_vec, end_vec, hbuffer_ly)
 
-      # Get valid next hops
+      # Get valid next legs
       vsnext = []
       for s in mystars:
-        # distance(last_hop, candidate)
+        # distance(last_leg, candidate)
         next_dist = route[-1].distance_to(s)
         if next_dist < jump_range:
           dist_jumpN = s.distance_to(sys_to)

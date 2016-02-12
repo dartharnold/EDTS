@@ -57,7 +57,7 @@ Required arguments:
 Simple Mode arguments:
 
 * `-j N`/`--jump-range=N` (required): the current jump range of the ship, in Ly.
-* `-d N`/`--jump-decay=N` (optional): the jump range, in Ly, to lower the effective jump range by per hop. This allows modelling of picking up cargo at each hop along the route. Default: `0`
+* `-d N`/`--jump-decay=N` (optional): the jump range, in Ly, to lower the effective jump range by per leg. This allows modelling of picking up cargo at each leg along the route. Default: `0`
 
 Ship Mode arguments:
 
@@ -68,9 +68,9 @@ Ship Mode arguments:
 
 Common optional arguments:
 
-* `-n N`/`--num-jumps=N`: the number of hops, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
+* `-n N`/`--num-jumps=N`: the number of legs, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-r`/`--route`: causes a full route to be computed (for every jump, not just the hops). The route is generated from the available EDDB data, and thus may not be optimal.
+* `-r`/`--route`: causes a full route to be computed (for every jump, not just the legs). The route is generated from the available EDDB data, and thus may not be optimal.
 * `-a`/`--accurate`: only used with `-r`; makes routing use a different algorithm (`trunkle`) which produces more accurate and efficient routes, but sometimes is slightly slower and may be unable to calculate some routes.
 * `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
 * `system[/station] ...` - additional systems/stations to travel via
@@ -79,7 +79,7 @@ Other optional arguments:
 
 * `--jump-time=N`: the time taken to perform a single hyperspace jump (used as part of the route estimation). Default: `45`
 * `--diff-limit=N`: the multiplier of the fastest route beyond which a route is considered "bad" and discounted. Default: `1.5`
-* `--slf=N`: the multiplier to apply to multi-jump hops to account for imperfect system positions. Default: `0.9`
+* `--slf=N`: the multiplier to apply to multi-jump legs to account for imperfect system positions. Default: `0.9`
 * `--rbuffer=N`: The distance away from the optimal straight-line route to build a cache of viable stars from. Default: `40`
 * `--hbuffer=N`: The minimum distance away from the optimal straight-line route to search the cache for viable jumps. Default: `10`
 * `--route-strategy=R`: The method to use when searching for optimal routes. Default: `trunkle`. Valid options:

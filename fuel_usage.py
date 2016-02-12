@@ -95,20 +95,20 @@ class Application(object):
     print('')
     print(output_data[0]['src'].to_string())
     for i in range(1, len(output_data)):
-      hop = output_data[i]
-      dist = hop['src'].distance_to(hop['dst'])
+      leg = output_data[i]
+      dist = leg['src'].distance_to(leg['dst'])
       print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
             dist,
-            hop['cost'],
-            hop['remaining'],
-            hop['dst'].to_string(),
-            _get_hop_char(hop)))
+            leg['cost'],
+            leg['remaining'],
+            leg['dst'].to_string(),
+            _get_leg_char(leg)))
     print('')
 
 
-def _get_hop_char(hop):
-  if hop['ok']:
-    if hop['long']:
+def _get_leg_char(leg):
+  if leg['ok']:
+    if leg['long']:
       return '~'
     else:
       return '='

@@ -43,13 +43,13 @@ class Calc(object):
     else:
       raise Exception("Tried to calculate jump counts without either valid ship or jump range")
 
-    hopdist = a.distance_to(b)
+    legdist = a.distance_to(b)
 
-    minjumps = int(math.ceil(hopdist / jumpdist))
+    minjumps = int(math.ceil(legdist / jumpdist))
     # If we're doing multiple jumps, apply the straight-line factor
-    if hopdist > jumpdist:
+    if legdist > jumpdist:
       jumpdist = jumpdist * self.slf
-    maxjumps = int(math.ceil(hopdist / jumpdist))
+    maxjumps = int(math.ceil(legdist / jumpdist))
     return minjumps, maxjumps
 
   # Calculate the fuel cost for a route, optionally taking lowered fuel usage into account
@@ -77,7 +77,7 @@ class Calc(object):
     sc = self.sc_cost(b.distance if b.uses_sc else 0.0)
     return (hs_jumps + hs_jdist + sc)
 
-  # Gets the cumulative solve cost for a set of hops
+  # Gets the cumulative solve cost for a set of legs
   def solve_route_cost(self, route):
     cost = 0.0
     for i in range(0, len(route)-1):
@@ -104,7 +104,7 @@ class Calc(object):
       # Scale the result by the FSD's maxfuel to try and keep the magnitude consistent
       var = self.ship.range() * (self.route_fuel_cost(route, False) / self.ship.fsd.maxfuel)
     else:
-      # Without ship info, use the hops' standard deviation to try and generate a balanced route
+      # Without ship info, use the legs' standard deviation to try and generate a balanced route
       var = self.route_stdev(route, dist)
     return (jump_count + dist + var)
 
