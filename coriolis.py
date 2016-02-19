@@ -10,7 +10,7 @@ import util
 
 default_frame_shift_drive_file = "coriolis/frame_shift_drive.json"
 
-coriolis_frame_shift_drive_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/components/standard/frame_shift_drive.json"
+coriolis_frame_shift_drive_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
 coriolis_frame_shift_drive_file_size_limit = 1 * 1048576
 
@@ -41,7 +41,16 @@ def check_frame_shift_drives(filename):
 
 
 def load_frame_shift_drives(filename):
-  return load_json(filename, coriolis_frame_shift_drive_file_size_limit)
+  data = load_json(filename, coriolis_frame_shift_drive_file_size_limit)
+  if 'fsd' in data:
+    # New schema (after 2016-02-18)
+    output = {}
+    for entry in data['fsd']:
+      output['{0}{1}'.format(entry['class'], entry['rating'])] = entry
+    return output
+  else:
+    # Old schema
+    return data
 
 
 def load_json(filename, size_limit):
