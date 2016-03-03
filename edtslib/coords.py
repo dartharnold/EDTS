@@ -17,6 +17,7 @@ class Application(object):
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Display System Coordinates", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
+    ap.add_argument("-f", "--full-width", default=False, action='store_true', help="Do not restrict number of significant figures")
     ap.add_argument("system", metavar="system", type=str, nargs="*", help="The system to print the coordinates for")
     self.args = ap.parse_args(arg)
 
@@ -34,10 +35,12 @@ class Application(object):
             log.error("Could not find system \"{0}\"!", name)
             return
 
+    fmt = '8g' if self.args.full_width else '8.2f'
+
     print("")
     for name in self.args.system:
       s = systems[name]
-      fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>8.2f}, {2:>8.2f}, {3:>8.2f}]"
+      fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>" + fmt + "}, {2:>" + fmt + "}, {3:>" + fmt + "}]"
       extrastr = " +/- {0:.0f}LY in each axis".format(s.uncertainty) if s.uncertainty != 0.0 else ""
       print(fmtstr.format(name, s.position.x, s.position.y, s.position.z) + extrastr)
     print("")
