@@ -3,11 +3,18 @@
 from __future__ import print_function
 import argparse
 import logging
+import re
 from vector3 import Vector3
 
 app_name = "pgnames"
 
 log = logging.getLogger(app_name)
+
+# This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
+pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\\w)-(?P<suffix>\\w) (?P<lcode>\\w)(?P<number1>\\d+)(?:-(?P<number2>\\d+))?$')
+# m = pg_system_regex.match('Eodgols ZP-R b13-45')
+# m.group('sector', 'number1', 'number2')
+
 
 # Dummy example data, is not correct
 
