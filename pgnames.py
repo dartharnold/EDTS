@@ -26,34 +26,6 @@ pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\
 # m.group('sector', 'number1', 'number2')
 
 
-# Dummy example data, is not correct
-
-c12_prefixes = ["Eo", "Stu", "Myr", "Oo", "Sy"]
-c3_prefixes = ["Eo", "Dry", "Bl", "Ph", "Pl", "Pr"]
-
-c1_suffixes = ["oe", "ua", "ai"]
-c2_suffixes = ["phs", "rps", "wns"]
-c3_w1_suffixes = {
-  "Ae": ["sms", "dst", "rb"], 
-  "Au": ["sms", "dst", "rb"],
-  "Eo": ["rd", "rld", "lls"],
-  "Oo": ["b", "scs", "wsy", "vsky"]
-}
-
-c3_w2_suffixes = {
-  "Ae": ["wsy"],
-  "Ai": ["rgh", "rg", "hm"],
-  "Ao": ["wsy"],
-  "Au": ["wsy"],
-  "Eae": ["wsy"],
-  "Eo": ["hn", "rk", "rl", "rm"],
-  
-  "Eu": ["rk", "q", "rl", "r", ],
-  "Au": ["b", "c", "d"],
-  "Ao": [None, "b", "scs", "wsy", "c", "d", "scs", "wsy", "c", "d"]
-  # "scs", "wsy",
-}
-
 # Actual data, should be accurate
 
 # Not sure if order here is relevant
@@ -82,28 +54,28 @@ cx_suffixes_p2 = [
   "rsts", "gs", "ls", "vvy", "ly", "rks", "qs", "rps",
   "gy", "wns", "lz", "nth", "phs" ]
 
-# Will probably need to throw this away
-# It's all in the middle (0,0) when the runs start at the very bottom-left
-c3_positions_y0z_z0_index = 3
-c3_positions_y0z_z0_subindex = 4
-c3_positions_y0z = [
-  (("Hyp", "Ph"), ("Th", "Eu")),
-  (("Eo", "Dry"), ("Ae", "Ai")),
-  (("Hyp", "Ph"), ("Ae", "Ai")),
-  (("Pl", "Pr" ), ("Th", "Eu")),
-  (("Bl", "By" ), ("Th", "Eu")),
-  (("Pl", "Pr" ), ("Ae", "Ai")),
-  (("Bl", "By" ), ("Ae", "Ai")),
-  (("Eo", "Dry"), ("Ao", "Au")),
-  (("Hyp", "Ph"), ("Ao", "Au")),
-  (("Eo", "Dry"), ("Ch", "Br")),
-  (("Hyp", "Ph"), ("Ch", "Br")),
-  (("Pl", "Pr" ), ("Ao", "Au")),
-  (("Bl", "By" ), ("Ao", "Au")),
-  (("Pl", "Pr" ), ("Ch", "Br")),
-  (("Bl", "By" ), ("Ch", "Br")),
-  (("Ch", "Py" ), ("Th", "Eu")),
-  (("Sy", "My" ), ("Th", "Eu"))
+# Phoneme 1, from the "near" side of the galaxy to the far side
+# Commented values are the Phoneme 3 values at Y=0
+c2_positions_z_z0_index = 3
+c2_positions_z_z0_subindex = 4
+c2_positions_z = [
+  ("Hyp", "Ph"), #("Th", "Eu")),
+  ("Eo", "Dry"), #("Ae", "Ai")),
+  ("Hyp", "Ph"), #("Ae", "Ai")),
+  ("Pl", "Pr" ), #("Th", "Eu")),
+  ("Bl", "By" ), #("Th", "Eu")),
+  ("Pl", "Pr" ), #("Ae", "Ai")),
+  ("Bl", "By" ), #("Ae", "Ai")),
+  ("Eo", "Dry"), #("Ao", "Au")),
+  ("Hyp", "Ph"), #("Ao", "Au")),
+  ("Eo", "Dry"), #("Ch", "Br")),
+  ("Hyp", "Ph"), #("Ch", "Br")),
+  ("Pl", "Pr" ), #("Ao", "Au")),
+  ("Bl", "By" ), #("Ao", "Au")),
+  ("Pl", "Pr" ), #("Ch", "Br")),
+  ("Bl", "By" ), #("Ch", "Br")),
+  ("Ch", "Py" ), #("Th", "Eu")),
+  ("Sy", "My" )  #("Th", "Eu"))
 ]
 
 # Index modifiers for all states
