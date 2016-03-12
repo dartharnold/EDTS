@@ -83,16 +83,7 @@ def get_fragments(sector_name):
 
 
 # Not sure if order here is relevant
-cx_prefixes = [
-  "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl", "Ae", "Sch",
-  "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph", "Fl", "Ao", "Scr", "Shr", "Fly",
-  "Pl", "Fr", "Au", "Pry", "Pr", "Hyph", "Py", "Chr", "Phyl", "Bl", "Cry",
-  "Gl", "Br", "Gr", "By", "Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn",
-  "Ch", "Myr", "Cl", "Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy",
-  "Wr", "Hy", "My", "Sty", "Sc", "Sph", "Spl", "A", "Sh", "B", "C", "D",
-  "Sk", "Io", "Dr", "E", "Sl", "F", "Sm", "G", "H", "I", "Sp", "J", "Sq",
-  "K", "L", "Pyth", "M", "St", "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys",
-  "Q", "R", "S", "T", "Ea", "U", "V", "W", "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe" ]
+cx_prefixes = cx_raw_fragments[0:110]
 
 # Complete
 cx_suffixes_p1 = [
