@@ -59,7 +59,7 @@ c3_w2_suffixes = {
 # Not sure if order here is relevant
 cx_prefixes = [
   "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl", "Ae", "Sch",
-  "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph", "Fl", "Scr", "Shr", "Fly",
+  "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph", "Fl", "Ao", "Scr", "Shr", "Fly",
   "Pl", "Fr", "Au", "Pry", "Pr", "Hyph", "Py", "Chr", "Phyl", "Bl", "Cry",
   "Gl", "Br", "Gr", "By", "Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn",
   "Ch", "Myr", "Cl", "Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy",
