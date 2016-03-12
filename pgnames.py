@@ -28,6 +28,7 @@ pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\
 
 # Actual data, should be accurate
 
+# Complete list of valid name fragments / phonemes
 cx_raw_fragments = [
 "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
 "Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
@@ -81,23 +82,32 @@ def get_fragments(sector_name):
   else:
     return None
 
-
 # Not sure if order here is relevant
 cx_prefixes = cx_raw_fragments[0:110]
 
-# Complete
-cx_suffixes_p1 = [
+
+#
+# Sequences used in runs
+#
+
+# S1: Complete sequence
+cx_suffixes_s1 = [
   "oe",
   "io",  "oea", "oi",  "aa",  "ua", "eia", "ae",  "ooe",
   "oo",  "a",   "ue",  "ai",  "e",  "iae", "oae", "ou",
   "uae", "i",   "ao",  "au",  "o",  "eae", "u",   "aea", 
   "ia",  "ie",  "eou", "aei", "ea", "uia", "oa",  "aae", "eau", "ee" ]
 
-# End is complete, could be missing some at the start
-cx_suffixes_p2 = [
+# S2: End is complete, could be missing some at the start
+cx_suffixes_s2 = [
   "gh", "lks", "sly", "lk", "ll", "rph", "ln", "bs",
   "rsts", "gs", "ls", "vvy", "ly", "rks", "qs", "rps",
   "gy", "wns", "lz", "nth", "phs" ]
+
+
+#
+# Other data
+#
 
 # Phoneme 1, from the "near" side of the galaxy to the far side
 # Commented values are the Phoneme 3 values at Y=0
@@ -161,8 +171,8 @@ if __name__ == '__main__':
   base_slot_0 = 0
   base_slot_1 = 0
   # Calculate the actual starting suffix index
-  start_idx_0 = cx_suffixes_p1.index(frags[1]) - base_idx_0
-  start_idx_1 = cx_suffixes_p1.index(frags[3]) - base_idx_1
+  start_idx_0 = cx_suffixes_s1.index(frags[1]) - base_idx_0
+  start_idx_1 = cx_suffixes_s1.index(frags[3]) - base_idx_1
 
   for i in range(0, int(sys.argv[2])):
     # Calculate the run state indexes for phonemes 1 and 3
@@ -174,7 +184,7 @@ if __name__ == '__main__':
     cur_base_1 = start_idx_1 + int((i + base_slot_1) / len(c2_run_states)) * 8
     # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
     # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
-    frags[1] = cx_suffixes_p1[(cur_base_0 + c2_run_states[idx0][0]) % len(cx_suffixes_p1)]
-    frags[3] = cx_suffixes_p1[(cur_base_1 + c2_run_states[idx1][1]) % len(cx_suffixes_p1)]
+    frags[1] = cx_suffixes_s1[(cur_base_0 + c2_run_states[idx0][0]) % len(cx_suffixes_s1)]
+    frags[3] = cx_suffixes_s1[(cur_base_1 + c2_run_states[idx1][1]) % len(cx_suffixes_s1)]
     print ("[{4}/{5},{6}/{7},{8}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], start_x + (i * 1280), idx0, idx1, cur_base_0, cur_base_1))
     
