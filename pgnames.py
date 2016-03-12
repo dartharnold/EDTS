@@ -28,6 +28,60 @@ pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\
 
 # Actual data, should be accurate
 
+cx_raw_fragments = [
+"Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
+"Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
+"Fl", "Ao", "Scr", "Shr", "Fly", "Pl", "Fr", "Au", "Pry", "Pr",
+"Hyph", "Py", "Chr", "Phyl", "Bl", "Cry", "Gl", "Br", "Gr", "By",
+"Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn", "Ch", "Myr", "Cl",
+"Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy", "Wr", "Hy", "My",
+"Sty", "Sc", "Sph", "Spl", "A", "Sh", "B", "C", "D", "Sk", "Io", "Dr",
+"E", "Sl", "F", "Sm", "G", "H", "I", "Sp", "J", "Sq", "K", "L", "Pyth",
+"M", "St", "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys", "Q", "R", "S",
+"T", "Ea", "U", "V", "W", "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe",
+
+"ll", "ss", "b", "c", "d", "f", "dg", "g", "ng", "j", "k", "l", "m", "n",
+"mb", "p", "q", "gn", "th", "r", "s", "t", "ch", "tch", "v", "w", "wh",
+"ck", "x", "y", "z", "ph", "sh", "ct", "wr", "o", "ai", "a", "oi", "ea",
+"ie", "u", "e", "ee", "oo", "ue", "i", "oa", "au", "ae", "oe", "scs",
+"wsy", "vsky", "sms", "dst", "rb", "nts", "rd", "rld", "lls", "rgh",
+"rg", "hm", "hn", "rk", "rl", "rm", "cs", "wyg", "rn", "hs", "rbs", "rp",
+"tts", "wn", "ms", "rr", "mt", "rs", "cy", "rt", "ws", "lch", "my", "ry",
+"nks", "nd", "sc", "nk", "sk", "nn", "ds", "sm", "sp", "ns", "nt", "dy",
+"st", "rrs", "xt", "nz", "sy", "xy", "rsch", "rphs", "sts", "sys", "sty",
+"tl", "tls", "rds", "nch", "rns", "ts", "wls", "rnt", "tt", "rdy", "rst",
+"pps", "tz", "sks", "ppy", "ff", "sps", "kh", "sky", "lts", "wnst", "rth",
+"ths", "fs", "pp", "ft", "ks", "pr", "ps", "pt", "fy", "rts", "ky",
+"rshch", "mly", "py", "bb", "nds", "wry", "zz", "nns", "ld", "lf",
+"gh", "lks", "sly", "lk", "rph", "ln", "bs", "rsts", "gs", "ls", "vvy",
+"lt", "rks", "qs", "rps", "gy", "wns", "lz", "nth", "phs", "io", "oea",
+"aa", "ua", "eia", "ooe", "iae", "oae", "ou", "uae", "ao", "eae", "aea",
+"ia", "eou", "aei", "uia", "aae", "eau" ]
+
+# Sort fragments by length to ensure we check the longest ones first
+cx_fragments = sorted(cx_raw_fragments, key=len, reverse=True)
+
+
+def get_fragments(sector_name):
+  input = sector_name.replace(' ', '')
+  segments = []
+  current_str = input
+  while len(current_str) > 0:
+    found = False
+    for frag in cx_fragments:
+      if current_str[0:len(frag)] == frag:
+        segments.append(frag)
+        current_str = current_str[len(frag):]
+        found = True
+        break
+    if not found:
+      break
+  if len(current_str) == 0:
+    return segments
+  else:
+    return None
+
+
 # Not sure if order here is relevant
 cx_prefixes = [
   "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl", "Ae", "Sch",
@@ -99,30 +153,6 @@ c2_run_states = [
   (6, 6), (7, 6), (6, 7), (7, 7)
 ]
 
-with open("PGFragments.txt") as f:
-  fragments = f.readlines()
-orig_fragments = [f.strip() for f in fragments]
-# Sort fragments by length to ensure we check the longest ones first
-fragments = sorted(orig_fragments, key=len, reverse=True)
-
-def get_fragments(sector_name):
-  input = sector_name.replace(' ', '')
-  segments = []
-  current_str = input
-  while len(current_str) > 0:
-    found = False
-    for frag in fragments:
-      if current_str[0:len(frag)] == frag:
-        segments.append(frag)
-        current_str = current_str[len(frag):]
-        found = True
-        break
-    if not found:
-      break
-  if len(current_str) == 0:
-    return segments
-  else:
-    return None
 
 
 if __name__ == '__main__':
