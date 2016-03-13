@@ -293,106 +293,105 @@ def get_suffix_index(s):
 
 
 if __name__ == '__main__':
-  if len(sys.argv) < 2:
-    return
-  if sys.argv[1] == "debug":
-    with open("edsm_data.txt") as f:
-      names = [n.strip() for n in f.readlines()]
-    
-    print(len(names))
-    
-    prefixes = {}
-    
-    for n in names:
-      frags = get_fragments(n)
-      sc = get_sector_class(n)
-      if sc != "2":
-        if frags[0] not in prefixes:
-          prefixes[frags[0]] = set()
-        if get_suffix_index(frags[-1]) is not None:
-          prefixes[frags[0]].add(frags[-1])
-        else:
-          print("Bad sector: {0}".format(n))
-        
-    print(len(prefixes))
-    for p in prefixes:
-      if len([l for l in prefixes[p] if get_suffix_index(l) != 1]) > 0:
-        print("{0}: {1}".format(p, ", ".join([str(get_suffix_index(x)) for x in prefixes[p] if get_suffix_index(x) != 1])))
-  elif sys.argv[1] == "baseline":
-    baselines = {
-      "Vegnao": Vector3(4300, 1000, 36650),
-      "Vegnau": Vector3(5200, 1000, 36650),
-      "Weqo": Vector3(6500, 1000, 36650),
-      "Veqo": Vector3(-38450, 1000, 36650),
-      "Vequia": Vector3(-26560, 1000, 36650),
-      "Veqeau": Vector3(-22750, 1000, 36650),
-      "Veqee": Vector3(-21700, 1000, 36650)
-    }
-    
-    start = "Veqo"
-    start_coords = baselines[start]
-    # print("start: {0}, cube: {1} @ {2}".format(start_coords, get_sector_coords(start_coords), get_sector_origin(start_coords)))
-    
-    current = start
-    current_coords = start_coords
-    for i in range(0, int(sys.argv[1])):
-      extra = ""
-      if current in baselines:
-        if get_sector_coords(current_coords) == get_sector_coords(baselines[current]):
-          extra = " CORRECT"
-        else:
-          extra = " INCORRECT"
-          
-      print("{0} @ {1} / {2}{3}".format(current, get_sector_origin(current_coords), get_sector_coords(current_coords), extra))
-      frags = get_fragments(current)
+  if len(sys.argv) >= 2:
+    if sys.argv[1] == "debug":
+      with open("edsm_data.txt") as f:
+        names = [n.strip() for n in f.readlines()]
       
-      suffix_idx = cx_suffixes[1].index(frags[-1])
-      if suffix_idx + 1 >= len(cx_suffixes[1]):
-        frags[-1] = cx_suffixes[1][0]
-        done = False
-        cur_frag = len(frags) - 2
-        while not done:
-          cur_idx = cx_infix.index(frags[cur_frag])
-          if cur_idx + 1 >= len(cx_infix):
-            frags[cur_frag] = cx_infix[0]
+      print(len(names))
+      
+      prefixes = {}
+      
+      for n in names:
+        frags = get_fragments(n)
+        sc = get_sector_class(n)
+        if sc != "2":
+          if frags[0] not in prefixes:
+            prefixes[frags[0]] = set()
+          if get_suffix_index(frags[-1]) is not None:
+            prefixes[frags[0]].add(frags[-1])
           else:
-            frags[cur_frag] = cx_infix[cur_idx+1]
-            done = True
-      else:
-        frags[-1] = cx_suffixes[1][suffix_idx+1]
-      current = "".join(frags)
-      current_coords.x += cube_size
-
-  elif sys.argv[1] == "run":
-    input = sys.argv[2] # "Schuae Flye"
-
-    frags = get_fragments(input)
-
-    # This should put us at -49985
-    start_x = base_coords.x - (39 * 1280)
-    end_x = base_coords.x + (39 * 1280)
-
-    # The index in the valid set of suffixes we believe we're at
-    base_idx_0 = 0
-    base_idx_1 = 0
-    # The state that we think this system is at in the run
-    base_slot_0 = 0
-    base_slot_1 = 0
-    # Calculate the actual starting suffix index
-    start_idx_0 = cx_suffixes_s1.index(frags[1]) - base_idx_0
-    start_idx_1 = cx_suffixes_s1.index(frags[3]) - base_idx_1
-
-    for i in range(0, int(sys.argv[3])):
-      # Calculate the run state indexes for phonemes 1 and 3
-      idx0 = (i+base_slot_0) % len(c2_run_states)
-      idx1 = (i+base_slot_1) % len(c2_run_states)
-      # Calculate the current base index
-      # (in case we've done a full run and are onto the next set of phoneme 3s)
-      cur_base_0 = start_idx_0
-      cur_base_1 = start_idx_1 + int((i + base_slot_1) / len(c2_run_states)) * 8
-      # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
-      # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
-      frags[1] = cx_suffixes_s1[(cur_base_0 + c2_run_states[idx0][0]) % len(cx_suffixes_s1)]
-      frags[3] = cx_suffixes_s1[(cur_base_1 + c2_run_states[idx1][1]) % len(cx_suffixes_s1)]
-      print ("[{4}/{5},{6}/{7},{8}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], start_x + (i * 1280), idx0, idx1, cur_base_0, cur_base_1))
+            print("Bad sector: {0}".format(n))
+          
+      print(len(prefixes))
+      for p in prefixes:
+        if len([l for l in prefixes[p] if get_suffix_index(l) != 1]) > 0:
+          print("{0}: {1}".format(p, ", ".join([str(get_suffix_index(x)) for x in prefixes[p] if get_suffix_index(x) != 1])))
+    elif sys.argv[1] == "baseline":
+      baselines = {
+        "Vegnao": Vector3(4300, 1000, 36650),
+        "Vegnau": Vector3(5200, 1000, 36650),
+        "Weqo": Vector3(6500, 1000, 36650),
+        "Veqo": Vector3(-38450, 1000, 36650),
+        "Vequia": Vector3(-26560, 1000, 36650),
+        "Veqeau": Vector3(-22750, 1000, 36650),
+        "Veqee": Vector3(-21700, 1000, 36650)
+      }
       
+      start = "Veqo"
+      start_coords = baselines[start]
+      # print("start: {0}, cube: {1} @ {2}".format(start_coords, get_sector_coords(start_coords), get_sector_origin(start_coords)))
+      
+      current = start
+      current_coords = start_coords
+      for i in range(0, int(sys.argv[1])):
+        extra = ""
+        if current in baselines:
+          if get_sector_coords(current_coords) == get_sector_coords(baselines[current]):
+            extra = " CORRECT"
+          else:
+            extra = " INCORRECT"
+            
+        print("{0} @ {1} / {2}{3}".format(current, get_sector_origin(current_coords), get_sector_coords(current_coords), extra))
+        frags = get_fragments(current)
+        
+        suffix_idx = cx_suffixes[1].index(frags[-1])
+        if suffix_idx + 1 >= len(cx_suffixes[1]):
+          frags[-1] = cx_suffixes[1][0]
+          done = False
+          cur_frag = len(frags) - 2
+          while not done:
+            cur_idx = cx_infix.index(frags[cur_frag])
+            if cur_idx + 1 >= len(cx_infix):
+              frags[cur_frag] = cx_infix[0]
+            else:
+              frags[cur_frag] = cx_infix[cur_idx+1]
+              done = True
+        else:
+          frags[-1] = cx_suffixes[1][suffix_idx+1]
+        current = "".join(frags)
+        current_coords.x += cube_size
+
+    elif sys.argv[1] == "run":
+      input = sys.argv[2] # "Schuae Flye"
+
+      frags = get_fragments(input)
+
+      # This should put us at -49985
+      start_x = base_coords.x - (39 * 1280)
+      end_x = base_coords.x + (39 * 1280)
+
+      # The index in the valid set of suffixes we believe we're at
+      base_idx_0 = 0
+      base_idx_1 = 0
+      # The state that we think this system is at in the run
+      base_slot_0 = 0
+      base_slot_1 = 0
+      # Calculate the actual starting suffix index
+      start_idx_0 = cx_suffixes_s1.index(frags[1]) - base_idx_0
+      start_idx_1 = cx_suffixes_s1.index(frags[3]) - base_idx_1
+
+      for i in range(0, int(sys.argv[3])):
+        # Calculate the run state indexes for phonemes 1 and 3
+        idx0 = (i+base_slot_0) % len(c2_run_states)
+        idx1 = (i+base_slot_1) % len(c2_run_states)
+        # Calculate the current base index
+        # (in case we've done a full run and are onto the next set of phoneme 3s)
+        cur_base_0 = start_idx_0
+        cur_base_1 = start_idx_1 + int((i + base_slot_1) / len(c2_run_states)) * 8
+        # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
+        # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
+        frags[1] = cx_suffixes_s1[(cur_base_0 + c2_run_states[idx0][0]) % len(cx_suffixes_s1)]
+        frags[3] = cx_suffixes_s1[(cur_base_1 + c2_run_states[idx1][1]) % len(cx_suffixes_s1)]
+        print ("[{4}/{5},{6}/{7},{8}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], start_x + (i * 1280), idx0, idx1, cur_base_0, cur_base_1))
+        
