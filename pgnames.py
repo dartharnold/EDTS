@@ -13,12 +13,21 @@ app_name = "pgnames"
 log = logging.getLogger(app_name)
 
 base_coords = Vector3(-65, -25, 215)
+cube_size = 1280.0
 
 def get_sector_coords(pos):
-  x = math.floor((pos.x - base_coords.x) / 1280.0)
-  y = math.floor((pos.y - base_coords.y) / 1280.0)
-  z = math.floor((pos.z - base_coords.z) / 1280.0)
-  return (int(x), int(y), int(z))
+  x = math.floor((pos.x - base_coords.x) / cube_size)
+  y = math.floor((pos.y - base_coords.y) / cube_size)
+  z = math.floor((pos.z - base_coords.z) / cube_size)
+  return [int(x), int(y), int(z)]
+
+def get_sector_origin(sc):
+  if isinstance(sc, Vector3):
+    return get_sector_origin(get_sector_coords(sc))
+  x = base_coords.x + (cube_size * sc[0])
+  y = base_coords.y + (cube_size * sc[1])
+  z = base_coords.z + (cube_size * sc[2])
+  return Vector3(x, y, z)
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
 pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\\w)-(?P<suffix>\\w) (?P<lcode>\\w)(?P<number1>\\d+)(?:-(?P<number2>\\d+))?$')
@@ -33,7 +42,7 @@ cx_raw_fragments = [
 "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
 "Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
 "Fl", "Ao", "Scr", "Shr", "Fly", "Pl", "Fr", "Au", "Pry", "Pr",
-"Hyph", "Py", "Chr", "Phyl", "Bl", "Cry", "Gl", "Br", "Gr", "By",
+"Hyph", "Py", "Chr", "Phyl", "Tyr", "Bl", "Cry", "Gl", "Br", "Gr", "By",
 "Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn", "Ch", "Myr", "Cl",
 "Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy", "Wr", "Hy", "My",
 "Sty", "Sc", "Sph", "Spl", "A", "Sh", "B", "C", "D", "Sk", "Io", "Dr",
@@ -41,7 +50,7 @@ cx_raw_fragments = [
 "M", "St", "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys", "Q", "R", "S",
 "T", "Ea", "U", "V", "W", "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe",
 
-"ll", "ss", "b", "c", "d", "f", "dg", "g", "ng", "j", "k", "l", "m", "n",
+"ll", "ss", "b", "c", "d", "f", "dg", "g", "ng", "h", "j", "k", "l", "m", "n",
 "mb", "p", "q", "gn", "th", "r", "s", "t", "ch", "tch", "v", "w", "wh",
 "ck", "x", "y", "z", "ph", "sh", "ct", "wr", "o", "ai", "a", "oi", "ea",
 "ie", "u", "e", "ee", "oo", "ue", "i", "oa", "au", "ae", "oe", "scs",
@@ -62,33 +71,34 @@ cx_raw_fragments = [
 # Sort fragments by length to ensure we check the longest ones first
 cx_fragments = sorted(cx_raw_fragments, key=len, reverse=True)
 
-
-def get_fragments(sector_name):
-  input = sector_name.replace(' ', '')
-  segments = []
-  current_str = input
-  while len(current_str) > 0:
-    found = False
-    for frag in cx_fragments:
-      if current_str[0:len(frag)] == frag:
-        segments.append(frag)
-        current_str = current_str[len(frag):]
-        found = True
-        break
-    if not found:
-      break
-  if len(current_str) == 0:
-    return segments
-  else:
-    return None
-
 # Not sure if order here is relevant
 cx_prefixes = cx_raw_fragments[0:110]
-
 
 #
 # Sequences used in runs
 #
+
+# Vowel-ish infixes (SPECULATIVE)
+c1_infixes_s1 = [
+  "o", "ai", "a", "oi", "ea", "ie", "u", "e",
+  "ee", "oo", "ue", "i", "oa", "au", "ae", "oe"
+]
+
+# Consonant-ish infixes (SPECULATIVE)
+c1_infixes_s2 = [
+  "ll", "ss", "b", "c", "d", "f", "dg", "g",
+  "ng", "h", "j", "k", "l", "m", "n", "mb",
+  "p", "q", "gn", "th", "r", "s", "t", "ch",
+  "tch", "v", "w", "wh", "ck", "x", "y", "z",
+  "ph", "sh", "ct", "wr"
+]
+
+c1_infixes = [
+  None,
+  c1_infixes_s1,
+  c1_infixes_s2
+]
+
 
 # Sequence 1
 cx_suffixes_s1 = [
@@ -128,7 +138,7 @@ cx_suffixes_s4 = [
   "sky"
 ]
 
-# Sequence 5
+# Sequence 5, order used by C2, and C1 names starting with a vowel
 cx_suffixes_s5 = [
   "nd", "sc", "ng", "sh", "nk", "sk", "nn", "ds",
   "sm", "sp", "ns", "rn", "ct", "t", "hs", "rbs",
@@ -138,7 +148,18 @@ cx_suffixes_s5 = [
   "rl", "r", "rm", "s", "cs", "wyg"
 ]
 
-cx_suffixes = [
+# Sequence 5, order used by C1 names starting with a consonant
+c1_suffixes_s5c = [
+  "hm", "p", "hn", "rk", "q", "rl", "r", "rm", "s", "cs", "wyg",
+  "rn", "ct", "t", "hs", "rbs",
+  "rp", "tts", "v", "wn", "ms", "w", "rr", "mt",
+  "x", "rs", "cy", "y", "rt", "z", "ws", "lch", # "y" is speculation
+  "my", "ry", "nks", 
+  "nd", "sc", "ng", "sh", "nk", "sk", "nn", "ds",
+  "sm", "sp", "ns", 
+]
+
+c2_suffixes = [
   None,
   cx_suffixes_s1,
   cx_suffixes_s2,
@@ -146,6 +167,74 @@ cx_suffixes = [
   cx_suffixes_s4,
   cx_suffixes_s5
 ]
+
+c2_prefix_suffix_override_map = {
+  "Eo":  5, "Oo": 2, "Eu": 5,
+  "Ou":  2, "Ae": 2, "Ai": 5,
+  "Eae": 2, "Ao": 2, "Au": 2
+}
+
+c1_prefix_infix_override_map = {
+  "Eo": 2, "Oo":  2, "Eu":  2, "Ou": 2,
+  "Ae": 2, "Ai":  2, "Eae": 2, "Ao": 2,
+  "Au": 2, "Aae": 2, "A":   2, "Io": 2,
+  "E":  2, "I":   2, "O":   2, "Ea": 2,
+  "U":  2, "Ee":  2, "Ei":  2, "Oe": 2
+}
+
+# TODO: Work out how C1 suffixes actually work (because it's not this)
+# c1_infix_suffix_s1_override_map = {
+#   "o": 3, "ai": 2, "a": 2, "oi", "ea", "ie", "u", "e",
+#   "ee", "oo", "ue", "i", "oa", "au", "ae", "oe"
+# }
+
+
+def get_fragments(sector_name):
+  input = sector_name.replace(' ', '')
+  segments = []
+  current_str = input
+  while len(current_str) > 0:
+    found = False
+    for frag in cx_fragments:
+      if current_str[0:len(frag)] == frag:
+        segments.append(frag)
+        current_str = current_str[len(frag):]
+        found = True
+        break
+    if not found:
+      break
+  if len(current_str) == 0:
+    return segments
+  else:
+    return None
+
+
+def get_sector_class(sector_name):
+  frags = get_fragments(sector_name)
+  if frags is None:
+    return None
+  if frags[2] in cx_prefixes:
+    return "2"
+  elif len(frags) == 4:
+    return "1a"
+  else:
+    return "1b"
+
+
+def get_suffixes(prefix):
+  frags = get_fragments(prefix)
+  if frags is None:
+    return None
+  if frags[-1] in cx_prefixes:
+    # Append suffix straight onto a prefix (probably C2)
+    suffix_map_idx = 1
+    if frags[-1] in c2_prefix_suffix_override_map:
+      suffix_map_idx = c2_prefix_suffix_override_map[frags[0]]
+    return c2_suffixes[suffix_map_idx]
+  else:
+    # TODO: Oh god C1 suffixes
+    pass
+
 
 #
 # Other data
@@ -175,6 +264,9 @@ c2_positions_z = [
   ("Ch",  "Py" ), #("Th", "Eu")),
   ("Syr", "My" )  #("Th", "Eu"))
 ]
+
+# More checkerboards on long runs?
+# Plaa Aowsy --> Plaa Scrua --> Plua Aowsy
 
 
 # Index modifiers for all states
@@ -206,7 +298,8 @@ if __name__ == '__main__':
   frags = get_fragments(input)
 
   # This should put us at -49985
-  start_x = -65 - (39 * 1280)
+  start_x = base_coords.x - (39 * 1280)
+  end_x = base_coords.x + (39 * 1280)
 
   # The index in the valid set of suffixes we believe we're at
   base_idx_0 = 0
