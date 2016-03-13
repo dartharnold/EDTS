@@ -28,7 +28,7 @@ pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\
 
 # Actual data, should be accurate
 
-# Complete list of valid name fragments / phonemes
+# Hopefully-complete list of valid name fragments / phonemes
 cx_raw_fragments = [
 "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
 "Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
@@ -90,20 +90,62 @@ cx_prefixes = cx_raw_fragments[0:110]
 # Sequences used in runs
 #
 
-# S1: Complete sequence
+# Sequence 1
 cx_suffixes_s1 = [
   "oe",
   "io",  "oea", "oi",  "aa",  "ua", "eia", "ae",  "ooe",
   "oo",  "a",   "ue",  "ai",  "e",  "iae", "oae", "ou",
   "uae", "i",   "ao",  "au",  "o",  "eae", "u",   "aea", 
-  "ia",  "ie",  "eou", "aei", "ea", "uia", "oa",  "aae", "eau", "ee" ]
+  "ia",  "ie",  "eou", "aei", "ea", "uia", "oa",  "aae", "eau", "ee"
+]
 
-# S2: End is complete, could be missing some at the start
+# Sequence 2
 cx_suffixes_s2 = [
-  "gh", "lks", "sly", "lk", "ll", "rph", "ln", "bs",
-  "rsts", "gs", "ls", "vvy", "ly", "rks", "qs", "rps",
-  "gy", "wns", "lz", "nth", "phs" ]
+  "b",
+  "scs", "wsy", "c", "d", "vsky", "f", "sms", "dst",
+  "g", "rb", "h", "nts", "ch", "rd", "rld", "k",
+  "lls", "ck", "rgh", "l", "rg", "m", "n"
+]
 
+# Sequence 3
+cx_suffixes_s3 = [
+  "wnst",
+  "rth", "ths", "fs", "pp", "ft", "ks", "pr", "ps",
+  "pt", "fy", "rts", "ky", "rshch", "mly", "py", "bb",
+  "nds", "wry", "zz", "nns", "ld", "lf", "gh", "lks",
+  "sly", "lk", "ll", "rph", "ln", "bs", "rsts", "gs",
+  "ls", "vvy", "ly", "rks", "qs", "rps", "gy", "wns",
+  "lz", "nth", "phs"
+]
+
+# Sequence 4
+cx_suffixes_s4 = [
+  "nt",
+  "dy", "st", "rrs", "xt", "nz", "sy", "xy", "rsch",
+  "rphs", "sts", "sys", "sty", "th", "tl", "tls", "rds",
+  "nch", "rns", "ts", "wls", "rnt", "tt", "rdy", "rst",
+  "pps", "tz", "tch", "sks", "ppy", "ff", "sps", "kh",
+  "sky"
+]
+
+# Sequence 5
+cx_suffixes_s5 = [
+  "nd", "sc", "ng", "sh", "nk", "sk", "nn", "ds",
+  "sm", "sp", "ns", "rn", "ct", "t", "hs", "rbs",
+  "rp", "tts", "v", "wn", "ms", "w", "rr", "mt",
+  "x", "rs", "cy", "y", "rt", "z", "ws", "lch", # "y" is speculation
+  "my", "ry", "nks", "hm", "p", "hn", "rk", "q",
+  "rl", "r", "rm", "s", "cs", "wyg"
+]
+
+cx_suffixes = [
+  None,
+  cx_suffixes_s1,
+  cx_suffixes_s2,
+  cx_suffixes_s3,
+  cx_suffixes_s4,
+  cx_suffixes_s5
+]
 
 #
 # Other data
@@ -111,27 +153,29 @@ cx_suffixes_s2 = [
 
 # Phoneme 1, from the "near" side of the galaxy to the far side
 # Commented values are the Phoneme 3 values at Y=0
-c2_positions_z_z0_index = 3
+c2_positions_z_z0_index = 4
 c2_positions_z_z0_subindex = 4
 c2_positions_z = [
-  ("Hyp", "Ph"), #("Th", "Eu")),
-  ("Eo", "Dry"), #("Ae", "Ai")),
-  ("Hyp", "Ph"), #("Ae", "Ai")),
-  ("Pl", "Pr" ), #("Th", "Eu")),
-  ("Bl", "By" ), #("Th", "Eu")),
-  ("Pl", "Pr" ), #("Ae", "Ai")),
-  ("Bl", "By" ), #("Ae", "Ai")),
-  ("Eo", "Dry"), #("Ao", "Au")),
-  ("Hyp", "Ph"), #("Ao", "Au")),
-  ("Eo", "Dry"), #("Ch", "Br")),
-  ("Hyp", "Ph"), #("Ch", "Br")),
-  ("Pl", "Pr" ), #("Ao", "Au")),
-  ("Bl", "By" ), #("Ao", "Au")),
-  ("Pl", "Pr" ), #("Ch", "Br")),
-  ("Bl", "By" ), #("Ch", "Br")),
-  ("Ch", "Py" ), #("Th", "Eu")),
-  ("Sy", "My" )  #("Th", "Eu"))
+  ("Eo",  "Dry"), #("Th", "Eu")), # SPECULATION
+  ("Hyp", "Ph" ), #("Th", "Eu")),
+  ("Eo",  "Dry"), #("Ae", "Ai")),
+  ("Hyp", "Ph" ), #("Ae", "Ai")),
+  ("Pl",  "Pr" ), #("Th", "Eu")),
+  ("Bl",  "By" ), #("Th", "Eu")),
+  ("Pl",  "Pr" ), #("Ae", "Ai")),
+  ("Bl",  "By" ), #("Ae", "Ai")),
+  ("Eo",  "Dry"), #("Ao", "Au")),
+  ("Hyp", "Ph" ), #("Ao", "Au")),
+  ("Eo",  "Dry"), #("Ch", "Br")),
+  ("Hyp", "Ph" ), #("Ch", "Br")),
+  ("Pl",  "Pr" ), #("Ao", "Au")),
+  ("Bl",  "By" ), #("Ao", "Au")),
+  ("Pl",  "Pr" ), #("Ch", "Br")),
+  ("Bl",  "By" ), #("Ch", "Br")),
+  ("Ch",  "Py" ), #("Th", "Eu")),
+  ("Syr", "My" )  #("Th", "Eu"))
 ]
+
 
 # Index modifiers for all states
 # In pairs of (phoneme 1, phoneme 3)
