@@ -72,7 +72,7 @@ cx_raw_fragments = [
 cx_fragments = sorted(cx_raw_fragments, key=len, reverse=True)
 
 # Not sure if order here is relevant
-cx_prefixes = cx_raw_fragments[0:110]
+cx_prefixes = cx_raw_fragments[0:111]
 
 #
 # Sequences used in runs
@@ -126,19 +126,15 @@ cx_suffixes_s2 = [
 # Sequence 3
 cx_suffixes_s3 = [
   "nd", "sc", "ng", "sh", "nk",
-  "sk", "nn", "ds", "sm", "sp", "ns"
-]
-
-# Sequence 4
-cx_suffixes_s4 = [
-  # Sequence 4a
+  "sk", "nn", "ds", "sm", "sp", "ns",
+  # Formerly sequence 4a/5
   "nt",
   "dy", "ss", "st", "rrs", "xt", "nz", "sy", "xy",
   "rsch", "rphs", "sts", "sys", "sty", "th", "tl", "tls",
   "rds", "nch", "rns", "ts", "wls", "rnt", "tt", "rdy",
   "rst", "pps", "tz", "tch", "sks", "ppy", "ff", "sps",
   "kh", "sky", "ph", "lts", 
-  # Sequence 4b
+  # Formerly sequence 4b/5
   "wnst",
   "rth", "ths", "fs", "pp", "ft", "ks", "pr", "ps",
   "pt", "fy", "rts", "ky", "rshch", "mly", "py", "bb",
@@ -149,12 +145,11 @@ cx_suffixes_s4 = [
 ]
 
 
-c2_suffixes = [
+cx_suffixes = [
   None,
   cx_suffixes_s1,
   cx_suffixes_s2,
-  cx_suffixes_s3,
-  cx_suffixes_s4
+  cx_suffixes_s3
 ]
 
 c2_prefix_suffix_override_map = {
@@ -218,11 +213,16 @@ def get_suffixes(prefix):
     # Append suffix straight onto a prefix (probably C2)
     suffix_map_idx = 1
     if frags[-1] in c2_prefix_suffix_override_map:
-      suffix_map_idx = c2_prefix_suffix_override_map[frags[0]]
-    return c2_suffixes[suffix_map_idx]
+      suffix_map_idx = c2_prefix_suffix_override_map[frags[-1]]
+    return cx_suffixes[suffix_map_idx]
   else:
-    # TODO: Oh god C1 suffixes
-    pass
+    # Likely C1
+    if frags[-1] in c1_infixes[2]:
+      # Last infix is consonant-ish, return the vowel-ish suffix list
+      return cx_suffixes[1]
+    else:
+      # TODO: Work out how it decides which list to use
+      pass
 
 
 #
@@ -287,8 +287,6 @@ def get_suffix_index(s):
     return 2
   if s in cx_suffixes_s3:
     return 3
-  if s in cx_suffixes_s4:
-    return 4
   return None
 
 
@@ -394,4 +392,3 @@ if __name__ == '__main__':
         frags[1] = cx_suffixes_s1[(cur_base_0 + c2_run_states[idx0][0]) % len(cx_suffixes_s1)]
         frags[3] = cx_suffixes_s1[(cur_base_1 + c2_run_states[idx1][1]) % len(cx_suffixes_s1)]
         print ("[{4}/{5},{6}/{7},{8}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], start_x + (i * 1280), idx0, idx1, cur_base_0, cur_base_1))
-        
