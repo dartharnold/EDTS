@@ -362,7 +362,25 @@ if __name__ == '__main__':
         current = "".join(frags)
         current_coords.x += cube_size
 
-    elif sys.argv[1] == "run":
+    elif sys.argv[1] == "run1":
+      input = sys.argv[2] # "Smooreau"
+      frags = get_fragments(input)
+      
+      start_x = base_coords.x - (int(sys.argv[3]) * 1280)
+      
+      cur_idx = cx_suffixes_s1.index(frags[-1])
+      
+      for i in range(0, int(sys.argv[4])):
+        frags[-1] = cx_suffixes_s1[cur_idx]
+        print ("[{1}] {0}".format("".join(frags), start_x + (i * 1280)))
+        if cur_idx + 1 == len(cx_suffixes_s1):
+          cur_idx = 0
+          frags[0] = cx_prefixes[cx_prefixes.index(frags[0])+1]
+        else:
+          cur_idx += 1
+        
+      
+    elif sys.argv[1] == "run2":
       input = sys.argv[2] # "Schuae Flye"
 
       frags = get_fragments(input)
