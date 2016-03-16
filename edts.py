@@ -12,7 +12,6 @@ import route as rx
 import util
 from solver import Solver
 from station import Station
-from system import System
 from fsd import FSD
 
 app_name = "edts"
