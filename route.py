@@ -1,7 +1,6 @@
 import logging
 import math
 import sys
-from system import System
 from vector3 import Vector3
 
 log = logging.getLogger("route")
