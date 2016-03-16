@@ -231,9 +231,9 @@ def get_suffixes(prefix):
 
 # Phoneme 1, from the "near" side of the galaxy to the far side
 # Commented values are the Phoneme 3 values at Y=0
-c2_positions_z_z0_index = 4
-c2_positions_z_z0_subindex = 4
-c2_positions_z = [
+c2_positions_y0z_z0_index = 4
+c2_positions_y0z_z0_subindex = 4
+c2_positions_y0z = [
   ("Eo",  "Dry"), #("Th", "Eu")), # SPECULATION
   ("Hyp", "Ph" ), #("Th", "Eu")),
   ("Eo",  "Dry"), #("Ae", "Ai")),
@@ -253,6 +253,9 @@ c2_positions_z = [
   ("Ch",  "Py" ), #("Th", "Eu")),
   ("Syr", "My" )  #("Th", "Eu"))
 ]
+
+# C1: four prefixes per stack?
+# C1: how to decide whether to increment phoneme 1 or 3?
 
 # More checkerboards on long runs?
 # Plaa Aowsy --> Plaa Scrua --> Plua Aowsy
@@ -305,16 +308,15 @@ if __name__ == '__main__':
         sc = get_sector_class(n)
         if sc != "2":
           if frags[0] not in prefixes:
-            prefixes[frags[0]] = set()
+            prefixes[frags[0]] = 1
           if get_suffix_index(frags[-1]) is not None:
-            prefixes[frags[0]].add(frags[-1])
+            prefixes[frags[0]] += 1
           else:
             print("Bad sector: {0}".format(n))
           
       print(len(prefixes))
-      for p in prefixes:
-        if len([l for l in prefixes[p] if get_suffix_index(l) != 1]) > 0:
-          print("{0}: {1}".format(p, ", ".join([str(get_suffix_index(x)) for x in prefixes[p] if get_suffix_index(x) != 1])))
+      for p in cx_prefixes:
+        print("{0}: {1}".format(p, prefixes[p] if p in prefixes else 0))
     elif sys.argv[1] == "baseline":
       baselines = {
         "Vegnao": Vector3(4300, 1000, 36650),
