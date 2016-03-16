@@ -111,10 +111,9 @@ cx_suffixes_s1 = [
 
 # Sequence 2
 cx_suffixes_s2 = [
-  "b",
-  "scs", "wsy", "c", "d", "vsky", "f", "sms", "dst",
-  "g", "rb", "h", "nts", "ch", "rd", "rld", "k",
-  "lls", "ck", "rgh", "l", "rg", "m", "n", 
+  "b", "scs", "wsy", "c", "d", "vsky", "f", "sms",
+  "dst", "g", "rb", "h", "nts", "ch", "rd", "rld",
+  "k", "lls", "ck", "rgh", "l", "rg", "m", "n", 
   # Formerly sequence 4/5...
   "hm", "p", "hn", "rk", "q", "rl", "r", "rm",
   "s", "cs", "wyg", "rn", "ct", "t", "hs", "rbs",
