@@ -54,7 +54,7 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
     if isinstance(s, Station):
       st = s
       sy = s.system
-    elif isinstance(s, System):
+    elif isinstance(s, KnownSystem):
       st = Station.none(s)
       sy = s
     else:

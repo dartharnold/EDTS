@@ -6,7 +6,7 @@ import sys
 import threading
 import eddb
 import coriolis
-from system import System
+from system import KnownSystem
 from station import Station
 
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
@@ -93,8 +93,7 @@ class Env(object):
           cx = float(rx_match.group(1))
           cy = float(rx_match.group(2))
           cz = float(rx_match.group(3))
-          sysobj = {'id': -1, 'name': sysname, 'x': cx, 'y': cy, 'z': cz}
-          return System(sysobj)
+          return System(cx, cy, cz, sysname)
         except:
           return None
       else:
@@ -102,7 +101,7 @@ class Env(object):
 
   def _load_eddb_data(self):
     with self._eddb_load_lock:
-      self._eddb_systems = [System(s) for s in eddb.load_systems(global_args.eddb_systems_file)]
+      self._eddb_systems = [KnownSystem(s) for s in eddb.load_systems(global_args.eddb_systems_file)]
       self._eddb_systems_by_id = self._get_systems_by_id(self._eddb_systems)
       self._eddb_systems_by_name = self._get_systems_by_name(self._eddb_systems)
 

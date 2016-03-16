@@ -2,12 +2,9 @@ from vector3 import Vector3
 
 
 class System(object):
-  def __init__(self, obj):
-    self.id = obj['id']
-    self.position = Vector3(float(obj['x']), float(obj['y']), float(obj['z']))
-    self.name = obj['name']
-    self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
-    self.allegiance = obj['allegiance'] if 'allegiance' in obj else False
+  def __init__(self, x, y, z, name = None):
+    self.position = Vector3(float(x), float(y), float(z))
+    self.name = name
     self.uses_sc = False
 
   @property
@@ -31,9 +28,30 @@ class System(object):
 
   def __eq__(self, other):
     if isinstance(other, System):
-      return (self.id == other.id and self.name == other.name and self.position == other.position)
+      return (self.name == other.name and self.position == other.position)
     else:
       return NotImplemented
 
   def __hash__(self):
     return u"{0}/{1},{2},{3}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+
+
+class KnownSystem(System):
+  def __init__(self, obj):
+    super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'])
+    self.id = obj['id']
+    self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
+    self.allegiance = obj['allegiance'] if 'allegiance' in obj else False
+    self.uses_sc = False
+
+  def __repr__(self):
+    return u"KnownSystem({0})".format(self.name)
+
+  def __eq__(self, other):
+    if isinstance(other, KnownSystem):
+      return (self.id == other.id and self.name == other.name and self.position == other.position)
+    elif isinstance(other, System):
+      return super(KnownSystem, self).__eq__(other)
+    else:
+      return NotImplemented
+

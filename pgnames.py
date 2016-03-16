@@ -6,28 +6,23 @@ import logging
 import math
 import re
 import sys
+from sector import Sector, base_coords, cube_size
 from vector3 import Vector3
 
 app_name = "pgnames"
 
 log = logging.getLogger(app_name)
 
-base_coords = Vector3(-65, -25, 215)
-cube_size = 1280.0
 
-def get_sector_coords(pos):
-  x = math.floor((pos.x - base_coords.x) / cube_size)
-  y = math.floor((pos.y - base_coords.y) / cube_size)
-  z = math.floor((pos.z - base_coords.z) / cube_size)
-  return [int(x), int(y), int(z)]
+def get_sector(pos):
+  if isinstance(pos, Vector3):
+    x = math.floor((pos.x - base_coords.x) / cube_size)
+    y = math.floor((pos.y - base_coords.y) / cube_size)
+    z = math.floor((pos.z - base_coords.z) / cube_size)
+    return Sector(int(x), int(y), int(z))
+  else:
+    return get_sector_from_name(pos)
 
-def get_sector_origin(sc):
-  if isinstance(sc, Vector3):
-    return get_sector_origin(get_sector_coords(sc))
-  x = base_coords.x + (cube_size * sc[0])
-  y = base_coords.y + (cube_size * sc[1])
-  z = base_coords.z + (cube_size * sc[2])
-  return Vector3(x, y, z)
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
 pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\\w)-(?P<suffix>\\w) (?P<lcode>\\w)(?P<number1>\\d+)(?:-(?P<number2>\\d+))?$')
@@ -39,34 +34,34 @@ pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\
 
 # Hopefully-complete list of valid name fragments / phonemes
 cx_raw_fragments = [
-"Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
-"Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
-"Fl", "Ao", "Scr", "Shr", "Fly", "Pl", "Fr", "Au", "Pry", "Pr",
-"Hyph", "Py", "Chr", "Phyl", "Tyr", "Bl", "Cry", "Gl", "Br", "Gr", "By",
-"Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn", "Ch", "Myr", "Cl",
-"Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy", "Wr", "Hy", "My",
-"Sty", "Sc", "Sph", "Spl", "A", "Sh", "B", "C", "D", "Sk", "Io", "Dr",
-"E", "Sl", "F", "Sm", "G", "H", "I", "Sp", "J", "Sq", "K", "L", "Pyth",
-"M", "St", "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys", "Q", "R", "S",
-"T", "Ea", "U", "V", "W", "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe",
+  "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
+  "Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
+  "Fl", "Ao", "Scr", "Shr", "Fly", "Pl", "Fr", "Au", "Pry", "Pr",
+  "Hyph", "Py", "Chr", "Phyl", "Tyr", "Bl", "Cry", "Gl", "Br", "Gr", "By",
+  "Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn", "Ch", "Myr", "Cl",
+  "Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy", "Wr", "Hy", "My",
+  "Sty", "Sc", "Sph", "Spl", "A", "Sh", "B", "C", "D", "Sk", "Io", "Dr",
+  "E", "Sl", "F", "Sm", "G", "H", "I", "Sp", "J", "Sq", "K", "L", "Pyth",
+  "M", "St", "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys", "Q", "R", "S",
+  "T", "Ea", "U", "V", "W", "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe",
 
-"ll", "ss", "b", "c", "d", "f", "dg", "g", "ng", "h", "j", "k", "l", "m", "n",
-"mb", "p", "q", "gn", "th", "r", "s", "t", "ch", "tch", "v", "w", "wh",
-"ck", "x", "y", "z", "ph", "sh", "ct", "wr", "o", "ai", "a", "oi", "ea",
-"ie", "u", "e", "ee", "oo", "ue", "i", "oa", "au", "ae", "oe", "scs",
-"wsy", "vsky", "sms", "dst", "rb", "nts", "rd", "rld", "lls", "rgh",
-"rg", "hm", "hn", "rk", "rl", "rm", "cs", "wyg", "rn", "hs", "rbs", "rp",
-"tts", "wn", "ms", "rr", "mt", "rs", "cy", "rt", "ws", "lch", "my", "ry",
-"nks", "nd", "sc", "nk", "sk", "nn", "ds", "sm", "sp", "ns", "nt", "dy",
-"st", "rrs", "xt", "nz", "sy", "xy", "rsch", "rphs", "sts", "sys", "sty",
-"tl", "tls", "rds", "nch", "rns", "ts", "wls", "rnt", "tt", "rdy", "rst",
-"pps", "tz", "sks", "ppy", "ff", "sps", "kh", "sky", "lts", "wnst", "rth",
-"ths", "fs", "pp", "ft", "ks", "pr", "ps", "pt", "fy", "rts", "ky",
-"rshch", "mly", "py", "bb", "nds", "wry", "zz", "nns", "ld", "lf",
-"gh", "lks", "sly", "lk", "rph", "ln", "bs", "rsts", "gs", "ls", "vvy",
-"lt", "rks", "qs", "rps", "gy", "wns", "lz", "nth", "phs", "io", "oea",
-"aa", "ua", "eia", "ooe", "iae", "oae", "ou", "uae", "ao", "eae", "aea",
-"ia", "eou", "aei", "uia", "aae", "eau" ]
+  "ll", "ss", "b", "c", "d", "f", "dg", "g", "ng", "h", "j", "k", "l", "m", "n",
+  "mb", "p", "q", "gn", "th", "r", "s", "t", "ch", "tch", "v", "w", "wh",
+  "ck", "x", "y", "z", "ph", "sh", "ct", "wr", "o", "ai", "a", "oi", "ea",
+  "ie", "u", "e", "ee", "oo", "ue", "i", "oa", "au", "ae", "oe", "scs",
+  "wsy", "vsky", "sms", "dst", "rb", "nts", "rd", "rld", "lls", "rgh",
+  "rg", "hm", "hn", "rk", "rl", "rm", "cs", "wyg", "rn", "hs", "rbs", "rp",
+  "tts", "wn", "ms", "rr", "mt", "rs", "cy", "rt", "ws", "lch", "my", "ry",
+  "nks", "nd", "sc", "nk", "sk", "nn", "ds", "sm", "sp", "ns", "nt", "dy",
+  "st", "rrs", "xt", "nz", "sy", "xy", "rsch", "rphs", "sts", "sys", "sty",
+  "tl", "tls", "rds", "nch", "rns", "ts", "wls", "rnt", "tt", "rdy", "rst",
+  "pps", "tz", "sks", "ppy", "ff", "sps", "kh", "sky", "lts", "wnst", "rth",
+  "ths", "fs", "pp", "ft", "ks", "pr", "ps", "pt", "fy", "rts", "ky",
+  "rshch", "mly", "py", "bb", "nds", "wry", "zz", "nns", "ld", "lf",
+  "gh", "lks", "sly", "lk", "rph", "ln", "bs", "rsts", "gs", "ls", "vvy",
+  "lt", "rks", "qs", "rps", "gy", "wns", "lz", "nth", "phs", "io", "oea",
+  "aa", "ua", "eia", "ooe", "iae", "oae", "ou", "uae", "ao", "eae", "aea",
+  "ia", "eou", "aei", "uia", "aae", "eau" ]
 
 # Sort fragments by length to ensure we check the longest ones first
 cx_fragments = sorted(cx_raw_fragments, key=len, reverse=True)
@@ -165,6 +160,10 @@ c1_prefix_infix_override_map = {
   "U":  2, "Ee":  2, "Ei":  2, "Oe": 2
 }
 
+c1_infix_rollover_overrides = [
+  "q" # q --> gn
+]
+
 # TODO: Work out how C1 suffixes actually work (because it's not this)
 # c1_infix_suffix_s1_override_map = {
 #   "o": 3, "ai": 2, "a": 2, "oi", "ea", "ie", "u", "e",
@@ -192,8 +191,8 @@ def get_fragments(sector_name):
     return None
 
 
-def get_sector_class(sector_name):
-  frags = get_fragments(sector_name)
+def get_sector_class(sector):
+  frags = get_fragments(sector) if isinstance(sector, str) else sector
   if frags is None:
     return None
   if frags[2] in cx_prefixes:
@@ -205,7 +204,7 @@ def get_sector_class(sector_name):
 
 
 def get_suffixes(prefix):
-  frags = get_fragments(prefix)
+  frags = get_fragments(prefix) if isinstance(prefix, str) else prefix
   if frags is None:
     return None
   if frags[-1] in cx_prefixes:
@@ -222,6 +221,73 @@ def get_suffixes(prefix):
     else:
       # TODO: Work out how it decides which list to use
       pass
+
+def c1_get_infixes(prefix):
+  frags = get_fragments(prefix) if isinstance(prefix, str) else prefix
+  if frags is None:
+    return None
+  if frags[-1] in cx_prefixes and frags[-1] in c1_prefix_infix_override_map:
+    return c1_infixes[c1_prefix_infix_override_map[frags[-1]]]
+  elif frags[-1] in c1_infixes[1]:
+    return c1_infixes[2]
+  elif frags[-1] in c1_infixes[2]:
+    return c1_infixes[1]
+  else:
+    return None
+
+# TODO: Fix this, not currently correct
+def c1_get_next_sector(sector):
+  frags = get_fragments(sector) if isinstance(sector, str) else sector
+  if frags is None:
+    return None
+  suffixes = get_suffixes(frags[0:-1])
+  suff_index = suffixes.index(frags[-1])
+  if suff_index + 1 >= len(suffixes):
+    # Last suffix, jump to next prefix unless it's in overrides
+    if frags[-2] in c1_infix_rollover_overrides:
+      infixes = c1_get_infixes(frags[0:-2])
+      inf_index = infixes.index(frags[-2])
+      if inf_index + 1 >= len(infixes):
+        frags[-2] = infixes[0]
+      else:
+        frags[-2] = infixes[inf_index+1]
+    else:
+      pre_index = cx_prefixes.index(frags[0])
+      if pre_index + 1 >= len(cx_prefixes):
+        frags[0] = cx_prefixes[0]
+      else:
+        frags[0] = cx_prefixes[pre_index+1]
+    frags[-1] = suffixes[0]
+  else:
+    frags[-1] = suffixes[suff_index+1]
+  return frags
+
+
+def get_coords_from_name(system_name):
+  m = pg_sytem_regex.match(system_name)
+  if m is None:
+    return None
+  sector_name = m.group("sector")
+
+  sector = get_sector_from_name(sector_name)
+  abs_pos = sector.origin
+
+  # TODO: Get relative position
+  rel_pos = Vector3(0.0, 0.0, 0.0)
+
+  return abs_pos + rel_pos
+
+
+def get_sector_from_name(sector_name):
+  # TODO: This
+  frags = get_fragments(sector_name) if isinstance(sector_name, str) else sector_name
+  sc = get_sector_class(frags)
+  if sc == "2":
+    pass
+  elif sc == "1a":
+    pass
+  else:
+    pass
 
 
 #
@@ -329,19 +395,18 @@ if __name__ == '__main__':
       
       start = "Veqo"
       start_coords = baselines[start]
-      # print("start: {0}, cube: {1} @ {2}".format(start_coords, get_sector_coords(start_coords), get_sector_origin(start_coords)))
       
       current = start
       current_coords = start_coords
       for i in range(0, int(sys.argv[1])):
         extra = ""
         if current in baselines:
-          if get_sector_coords(current_coords) == get_sector_coords(baselines[current]):
+          if get_sector(current_coords) == get_sector(baselines[current]):
             extra = " CORRECT"
           else:
             extra = " INCORRECT"
             
-        print("{0} @ {1} / {2}{3}".format(current, get_sector_origin(current_coords), get_sector_coords(current_coords), extra))
+        print("{0} @ {1} / {2}{3}".format(current, get_sector(current_coords).origin, get_sector(current_coords), extra))
         frags = get_fragments(current)
         
         suffix_idx = cx_suffixes[1].index(frags[-1])
