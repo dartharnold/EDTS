@@ -34,16 +34,20 @@ pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\
 
 # Hopefully-complete list of valid name fragments / phonemes
 cx_raw_fragments = [
-  "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou", "Tz", "Phl",
-  "Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl", "Phr", "Eae", "Ph",
-  "Fl", "Ao", "Scr", "Shr", "Fly", "Pl", "Fr", "Au", "Pry", "Pr",
-  "Hyph", "Py", "Chr", "Phyl", "Tyr", "Bl", "Cry", "Gl", "Br", "Gr", "By",
-  "Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn", "Ch", "Myr", "Cl",
-  "Rh", "Wh", "Pyr", "Cr", "Syn", "Str", "Syr", "Cy", "Wr", "Hy", "My",
-  "Sty", "Sc", "Sph", "Spl", "A", "Sh", "B", "C", "D", "Sk", "Io", "Dr",
-  "E", "Sl", "F", "Sm", "G", "H", "I", "Sp", "J", "Sq", "K", "L", "Pyth",
-  "M", "St", "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys", "Q", "R", "S",
-  "T", "Ea", "U", "V", "W", "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe",
+  "Th", "Eo", "Oo", "Eu", "Tr", "Sly", "Dry", "Ou",
+  "Tz", "Phl", "Ae", "Sch", "Hyp", "Syst", "Ai", "Kyl",
+  "Phr", "Eae", "Ph", "Fl", "Ao", "Scr", "Shr", "Fly",
+  "Pl", "Fr", "Au", "Pry", "Pr", "Hyph", "Py", "Chr",
+  "Phyl", "Tyr", "Bl", "Cry", "Gl", "Br", "Gr", "By",
+  "Aae", "Myc", "Gyr", "Ly", "Myl", "Lych", "Myn", "Ch",
+  "Myr", "Cl", "Rh", "Wh", "Pyr", "Cr", "Syn", "Str",
+  "Syr", "Cy", "Wr", "Hy", "My", "Sty", "Sc", "Sph",
+  "Spl", "A", "Sh", "B", "C", "D", "Sk", "Io",
+  "Dr", "E", "Sl", "F", "Sm", "G", "H", "I",
+  "Sp", "J", "Sq", "K", "L", "Pyth", "M", "St",
+  "N", "O", "Ny", "Lyr", "P", "Sw", "Thr", "Lys",
+  "Q", "R", "S", "T", "Ea", "U", "V", "W",
+  "Schr", "X", "Ee", "Y", "Z", "Ei", "Oe",
 
   "ll", "ss", "b", "c", "d", "f", "dg", "g", "ng", "h", "j", "k", "l", "m", "n",
   "mb", "p", "q", "gn", "th", "r", "s", "t", "ch", "tch", "v", "w", "wh",
@@ -97,11 +101,11 @@ c1_infixes = [
 
 # Sequence 1
 cx_suffixes_s1 = [
-  "oe",
-  "io",  "oea", "oi",  "aa",  "ua", "eia", "ae",  "ooe",
-  "oo",  "a",   "ue",  "ai",  "e",  "iae", "oae", "ou",
-  "uae", "i",   "ao",  "au",  "o",  "eae", "u",   "aea", 
-  "ia",  "ie",  "eou", "aei", "ea", "uia", "oa",  "aae", "eau", "ee"
+  "oe",  "io",  "oea", "oi",  "aa",  "ua", "eia", "ae",
+  "ooe", "oo",  "a",   "ue",  "ai",  "e",  "iae", "oae",
+  "ou",  "uae", "i",   "ao",  "au",  "o",  "eae", "u",
+  "aea", "ia",  "ie",  "eou", "aei", "ea", "uia", "oa",
+  "aae", "eau", "ee"
 ]
 
 # Sequence 2
@@ -163,6 +167,86 @@ c1_prefix_infix_override_map = {
 c1_infix_rollover_overrides = [
   "q" # q --> gn
 ]
+
+
+# Phoneme 1, from the "near" side of the galaxy to the far side
+# Commented values are the Phoneme 3 values at Y=0
+c2_positions_y0z_offset = 20
+c2_positions_y0z = [
+  (("Eo",  "Dry"), ("Th", "Eu")), # SPECULATION
+  (("Hyp", "Ph" ), ("Th", "Eu")),
+  (("Eo",  "Dry"), ("Ae", "Ai")),
+  (("Hyp", "Ph" ), ("Ae", "Ai")),
+  (("Pl",  "Pr" ), ("Th", "Eu")),
+  (("Bl",  "By" ), ("Th", "Eu")),
+  (("Pl",  "Pr" ), ("Ae", "Ai")),
+  (("Bl",  "By" ), ("Ae", "Ai")),
+  (("Eo",  "Dry"), ("Ao", "Au")),
+  (("Hyp", "Ph" ), ("Ao", "Au")),
+  (("Eo",  "Dry"), ("Ch", "Br")),
+  (("Hyp", "Ph" ), ("Ch", "Br")),
+  (("Pl",  "Pr" ), ("Ao", "Au")),
+  (("Bl",  "By" ), ("Ao", "Au")),
+  (("Pl",  "Pr" ), ("Ch", "Br")),
+  (("Bl",  "By" ), ("Ch", "Br")),
+  (("Ch",  "Py" ), ("Th", "Eu")),
+  (("Syr", "My" ), ("Th", "Eu"))
+]
+
+
+c2_y_mapping_offset = 3
+c2_word1_y_mapping = {
+   "Eo": [("Th",1), ("Eo",0), ("Eo",0), ("Eo",1), ("Eo",1), ("Oo",0)],
+  "Dry": [("Tr",1), ("Dry",0), ("Dry",0), ("Dry",1), ("Dry",1), ("Ou",0)],
+  "Hyp": [],
+   "Ph": [],
+   "Pl": [],
+   "Pr": [("Au",1), ("Pr",0), ("Pr",0), ("Pr",1), ("Pr",1), ("Hyph",0)],
+   "Bl": [],
+   "By": [],
+   "Ch": [],
+   "Py": [],
+  "Syr": [],
+   "My": []
+}
+
+c2_word2_y_mapping = {
+  "Th": [],
+  "Eu": [],
+  "Ae": [],
+  "Ai": [("Eae",1), ("Phr",1), ("Eae",1), ("Ai",0), ("Ai",1), ("Ai",0)],
+  "Ao": [("Fly",1), ("Fly",0), ("Fly",1), ("Ao",0), ("Scr",0), ("Ao",0)],
+  "Au": [("Pr",1), ("Pr",0), ("Pr",1), ("Fr",0), ("Au",1), ("Fr",0)],
+  "Ch": [],
+  "Br": []
+}
+
+
+c2_word1_suffix_starts = {
+   "Th": [None, "aae"], "Eo": ["ch", "rl"],  "Oo": ["rb", None],
+   "Tr": [], "Dry": [], "Ou": [],
+  "Hyp": [],
+   "Ph": [],
+   "Pl": [],
+   "Au": [], "Pr": ["ua", "o"],
+  "Tyr": [None,  "e"],    "Bl": ["aa", "au"], "Cry": ["io", None],
+   "Gr": ["eia", "eae"],  "By": ["oi", "ao"],  # None
+   "Ch": [],
+   "Py": [],
+  "Syr": [],
+   "My": []
+}
+
+c2_word2_suffix_starts = {
+   "Th": ["oe", "ooe"], "Eo": [], 
+  "Eae": [None, "nks"], "Phr": [None, "io"],
+  "Fly": ["ua", "e"], "Scr": ["oe", None],
+   
+}
+
+c2_overrides = {
+  "Eo": {"rn": ["Oo", "b"], "ct": ["Oo", "scs"]}
+}
 
 # TODO: Work out how C1 suffixes actually work (because it's not this)
 # c1_infix_suffix_s1_override_map = {
@@ -294,31 +378,6 @@ def get_sector_from_name(sector_name):
 # Other data
 #
 
-# Phoneme 1, from the "near" side of the galaxy to the far side
-# Commented values are the Phoneme 3 values at Y=0
-c2_positions_y0z_z0_index = 4
-c2_positions_y0z_z0_subindex = 4
-c2_positions_y0z = [
-  ("Eo",  "Dry"), #("Th", "Eu")), # SPECULATION
-  ("Hyp", "Ph" ), #("Th", "Eu")),
-  ("Eo",  "Dry"), #("Ae", "Ai")),
-  ("Hyp", "Ph" ), #("Ae", "Ai")),
-  ("Pl",  "Pr" ), #("Th", "Eu")),
-  ("Bl",  "By" ), #("Th", "Eu")),
-  ("Pl",  "Pr" ), #("Ae", "Ai")),
-  ("Bl",  "By" ), #("Ae", "Ai")),
-  ("Eo",  "Dry"), #("Ao", "Au")),
-  ("Hyp", "Ph" ), #("Ao", "Au")),
-  ("Eo",  "Dry"), #("Ch", "Br")),
-  ("Hyp", "Ph" ), #("Ch", "Br")),
-  ("Pl",  "Pr" ), #("Ao", "Au")),
-  ("Bl",  "By" ), #("Ao", "Au")),
-  ("Pl",  "Pr" ), #("Ch", "Br")),
-  ("Bl",  "By" ), #("Ch", "Br")),
-  ("Ch",  "Py" ), #("Th", "Eu")),
-  ("Syr", "My" )  #("Th", "Eu"))
-]
-
 # C1: four prefixes per stack?
 # C1: how to decide whether to increment phoneme 1 or 3?
 
@@ -347,6 +406,29 @@ c2_run_states = [
   (6, 6), (7, 6), (6, 7), (7, 7)
 ]
 
+def c2_get_yz_candidates(frag0, frag2):
+  matches = []
+  # Find Z slice
+  for z in range(0, len(c2_positions_y0z)):
+    pair = c2_positions_y0z[z]
+    for zo1 in range(0, len(pair[0])):
+      pre1 = pair[0][zo1]
+      for i in range(0, len(c2_word1_y_mapping[pre1])):
+        if len(c2_word1_y_mapping[pre1]) > i and c2_word1_y_mapping[pre1][i][0] == frag0:
+          for zo2 in range(0, len(pair[1])):
+            pre2 = pair[1][zo2]
+            if len(c2_word2_y_mapping[pre2]) > i and c2_word2_y_mapping[pre2][i][0] == frag2:
+              matches.append({'coords': (i - c2_y_mapping_offset, z*4 + zo1*2 + zo2 - c2_positions_y0z_offset), 'offsets': (c2_word1_y_mapping[pre1][i][1], c2_word2_y_mapping[pre2][i][1])})
+  return matches
+
+def c2_validate_suffix(frag, base):
+  suffixlist = cx_suffixes[get_suffix_index(base)]
+  base_idx = suffixlist.index(base)
+  if frag in suffixlist[base_idx:base_idx+8]:
+    return True
+  if base_idx + 8 >= len(suffixlist) and frag in suffixlist[0:((base_idx+8) % len(suffixlist))]:
+    return True
+  return False
 
 def get_suffix_index(s):
   if s in cx_suffixes_s1:
@@ -356,6 +438,30 @@ def get_suffix_index(s):
   if s in cx_suffixes_s3:
     return 3
   return None
+
+
+def c2_get_run(input):
+  frags = get_fragments(input) if isinstance(input, str) else input
+
+  # Calculate the actual starting suffix index
+  suffixes_0 = get_suffixes(frags[0:1])
+  suffixes_1 = get_suffixes(frags[0:-1])
+  start_idx_0 = suffixes_0.index(frags[1])
+  start_idx_1 = suffixes_1.index(frags[3])
+
+  for i in range(0, 64):
+    # Calculate the run state indexes for phonemes 1 and 3
+    idx0 = i % len(c2_run_states)
+    idx1 = i % len(c2_run_states)
+    # Calculate the current base index
+    # (in case we've done a full run and are onto the next set of phoneme 3s)
+    cur_base_0 = start_idx_0
+    cur_base_1 = start_idx_1 + int(i / len(c2_run_states)) * 8
+    # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
+    # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
+    frags[1] = suffixes_0[(cur_base_0 + c2_run_states[idx0][0]) % len(suffixes_0)]
+    frags[3] = suffixes_1[(cur_base_1 + c2_run_states[idx1][1]) % len(suffixes_1)]
+    yield ("{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3]), i)
 
 
 if __name__ == '__main__':
@@ -450,8 +556,7 @@ if __name__ == '__main__':
       frags = get_fragments(input)
 
       # This should put us at -49985
-      start_x = base_coords.x - (39 * 1280)
-      end_x = base_coords.x + (39 * 1280)
+      start_x = base_coords.x - (int(sys.argv[3]) * 1280)
 
       # The index in the valid set of suffixes we believe we're at
       base_idx_0 = 0
@@ -460,10 +565,12 @@ if __name__ == '__main__':
       base_slot_0 = 0
       base_slot_1 = 0
       # Calculate the actual starting suffix index
-      start_idx_0 = cx_suffixes_s1.index(frags[1]) - base_idx_0
-      start_idx_1 = cx_suffixes_s1.index(frags[3]) - base_idx_1
+      suffixes_0 = get_suffixes(frags[0:1])
+      suffixes_1 = get_suffixes(frags[0:-1])
+      start_idx_0 = suffixes_0.index(frags[1]) - base_idx_0
+      start_idx_1 = suffixes_1.index(frags[3]) - base_idx_1
 
-      for i in range(0, int(sys.argv[3])):
+      for i in range(0, int(sys.argv[4])):
         # Calculate the run state indexes for phonemes 1 and 3
         idx0 = (i+base_slot_0) % len(c2_run_states)
         idx1 = (i+base_slot_1) % len(c2_run_states)
@@ -473,6 +580,23 @@ if __name__ == '__main__':
         cur_base_1 = start_idx_1 + int((i + base_slot_1) / len(c2_run_states)) * 8
         # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
         # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
-        frags[1] = cx_suffixes_s1[(cur_base_0 + c2_run_states[idx0][0]) % len(cx_suffixes_s1)]
-        frags[3] = cx_suffixes_s1[(cur_base_1 + c2_run_states[idx1][1]) % len(cx_suffixes_s1)]
+        frags[1] = suffixes_0[(cur_base_0 + c2_run_states[idx0][0]) % len(suffixes_0)]
+        frags[3] = suffixes_1[(cur_base_1 + c2_run_states[idx1][1]) % len(suffixes_1)]
         print ("[{4}/{5},{6}/{7},{8}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], start_x + (i * 1280), idx0, idx1, cur_base_0, cur_base_1))
+
+    elif sys.argv[1] == "search2":
+      input = sys.argv[2]
+      frags = get_fragments(input)
+      
+      yz_candidates = c2_get_yz_candidates(frags[0], frags[2])
+      for candidate in yz_candidates:
+        print("{0},{1}".format(candidate['coords'][0],candidate['coords'][1]))
+        start1 = c2_word1_suffix_starts[frags[0]][candidate['offsets'][0]]
+        start2 = c2_word2_suffix_starts[frags[2]][candidate['offsets'][1]]
+        print("start1 = {0}, start2 = {1}".format(start1, start2))
+        if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
+          for sysname, idx in c2_get_run([frags[0],start1,frags[2],start2]):
+            if sysname == input:
+              print("idx = {0}".format(idx))
+              s = Sector(idx-39, candidate['coords'][0], candidate['coords'][1])
+              print("MATCH: {0}, {1}".format(s, s.origin))
