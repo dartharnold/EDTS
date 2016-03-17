@@ -214,7 +214,8 @@ def c2_get_yz_candidates(frag0, frag2):
           for zo2 in range(0, len(pair[1])):
             pre2 = pair[1][zo2]
             if len(pgdata.c2_word2_y_mapping[pre2]) > i and pgdata.c2_word2_y_mapping[pre2][i][0] == frag2:
-              matches.append({'coords': (i - pgdata.c2_y_mapping_offset, z*4 + zo1*2 + zo2 - pgdata.c2_positions_y0z_offset), 'offsets': (pgdata.c2_word1_y_mapping[pre1][i][1], pgdata.c2_word2_y_mapping[pre2][i][1])})
+              # zo2*2 + zo1: Blu Aec, Byeia Aec, Blu Ain, Byeia Ain
+              matches.append({'coords': (i - pgdata.c2_y_mapping_offset, z*4 + zo2*2 + zo1 - pgdata.c2_positions_y0z_offset), 'offsets': (pgdata.c2_word1_y_mapping[pre1][i][1], pgdata.c2_word2_y_mapping[pre2][i][1])})
   return matches
 
 def c2_validate_suffix(frag, base):

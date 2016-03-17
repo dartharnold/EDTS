@@ -145,7 +145,7 @@ c1_infix_rollover_overrides = [
 
 # Phoneme 1, from the "near" side of the galaxy to the far side
 # Commented values are the Phoneme 3 values at Y=0
-c2_positions_y0z_offset = 20
+c2_positions_y0z_offset = 19
 c2_positions_y0z = [
   (("Eo",  "Dry"), ("Th", "Eu")), # SPECULATION
   (("Hyp", "Ph" ), ("Th", "Eu")),
@@ -172,12 +172,12 @@ c2_y_mapping_offset = 3
 c2_word1_y_mapping = {
    "Eo": [("Th",1), ("Eo",0), ("Eo",0), ("Eo",1), ("Eo",1), ("Oo",0)],
   "Dry": [("Tr",1), ("Dry",0), ("Dry",0), ("Dry",1), ("Dry",1), ("Ou",0)],
-  "Hyp": [],
+  "Hyp": [("Sch",0), ("Sch",1), ("Sch", 1), ("Hyp",0), ("Hyp",0), ("Syst",0)], # Sch --> Hyp
    "Ph": [],
-   "Pl": [],
+   "Pl": [(None,1), ("Fly",0), ("Fly",0), ("Pl",0), ("Pl",0), (None,0)],
    "Pr": [("Au",1), ("Pr",0), ("Pr",0), ("Pr",1), ("Pr",1), ("Hyph",0)],
-   "Bl": [],
-   "By": [],
+   "Bl": [("Tyr",1), ("Bl",0), ("Bl",0), ("Bl",1), ("Bl",1), ("Cry",0)],
+   "By": [("Gr",0), ("Gr",1), ("Gr",1), ("By",0), ("By",0), ("By",1)],
    "Ch": [],
    "Py": [],
   "Syr": [],
@@ -188,8 +188,8 @@ c2_word2_y_mapping = {
   "Th": [],
   "Eu": [],
   "Ae": [],
-  "Ai": [("Eae",1), ("Phr",1), ("Eae",1), ("Ai",0), ("Ai",1), ("Ai",0)],
-  "Ao": [("Fly",1), ("Fly",0), ("Fly",1), ("Ao",0), ("Scr",0), ("Ao",0)],
+  "Ai": [("Phr",1), ("Phr",0), ("Phr",1), ("Ai",0), ("Ai",1), ("Ai",0)], # Eae --> Phr
+  "Ao": [("Fly",1), ("Fly",0), ("Fly",1), ("Fl",0), ("Scr",0), ("Fl",0)], # Fl --> Ao
   "Au": [("Pr",1), ("Pr",0), ("Pr",1), ("Fr",0), ("Au",1), ("Fr",0)],
   "Ch": [],
   "Br": []
@@ -199,9 +199,9 @@ c2_word2_y_mapping = {
 c2_word1_suffix_starts = {
    "Th": [None, "aae"], "Eo": ["ch", "rl"],  "Oo": ["rb", None],
    "Tr": [], "Dry": [], "Ou": [],
-  "Hyp": [],
+  "Sch": ["uae", "eau"], "Hyp": ["iae", None], "Syst": ["ua", None],
    "Ph": [],
-   "Pl": [],
+  "Fly": ["ua", None], "Pl": ["io", None],
    "Au": [], "Pr": ["ua", "o"],
   "Tyr": [None,  "e"],    "Bl": ["aa", "au"], "Cry": ["io", None],
    "Gr": ["eia", "eae"],  "By": ["oi", "ao"],  # None
@@ -212,10 +212,12 @@ c2_word1_suffix_starts = {
 }
 
 c2_word2_suffix_starts = {
-   "Th": ["oe", "ooe"], "Eo": [], 
-  "Eae": [None, "nks"], "Phr": [None, "io"],
+   "Th": ["oe", "ooe"], "Eo": ["ch", "rl"], "Oo": ["rb", None],
+   "Ai": ["ck", "hn"], 
+   "Pr": ["ua", "e"], "Au": [],
+   "Phr": ["io", "ee"],
   "Fly": ["ua", "e"], "Scr": ["oe", None],
-   
+  "Fl": ["aae", ]
 }
 
 c2_overrides = {
