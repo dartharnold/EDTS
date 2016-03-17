@@ -1,6 +1,6 @@
-from vector3 import Vector3
+import vector3
 
-base_coords = Vector3(-65, -25, 215)
+base_coords = vector3.Vector3(-65, -25, 215)
 cube_size = 1280.0
 base_sector_coords = [39, 3, 20] # Is Y correct?
 
@@ -57,7 +57,7 @@ class Sector(object):
     ox = base_coords.x + (cube_size * self.x)
     oy = base_coords.y + (cube_size * self.y)
     oz = base_coords.z + (cube_size * self.z)
-    return Vector3(ox, oy, oz)
+    return vector3.Vector3(ox, oy, oz)
 
   def contains(self, pos):
     o = self.origin

@@ -8,7 +8,7 @@ import re
 import sys
 import pgdata
 import sector
-from vector3 import Vector3
+import vector3
 
 app_name = "pgnames"
 
@@ -61,11 +61,11 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
   approx_y = (stack * cubeside) + halfwidth
   approx_z = (row * cubeside) + halfwidth
 
-  return (Vector3(approx_x,approx_y,approx_z), halfwidth)
+  return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
 
 
 def get_sector(pos):
-  if isinstance(pos, Vector3):
+  if isinstance(pos, vector3.Vector3):
     x = math.floor((pos.x - sector.base_coords.x) / sector.cube_size)
     y = math.floor((pos.y - sector.base_coords.y) / sector.cube_size)
     z = math.floor((pos.z - sector.base_coords.z) / sector.cube_size)
@@ -286,13 +286,13 @@ if __name__ == '__main__':
         print("{0}: {1}".format(p, prefixes[p] if p in prefixes else 0))
     elif sys.argv[1] == "baseline":
       baselines = {
-        "Vegnao": Vector3(4300, 1000, 36650),
-        "Vegnau": Vector3(5200, 1000, 36650),
-        "Weqo": Vector3(6500, 1000, 36650),
-        "Veqo": Vector3(-38450, 1000, 36650),
-        "Vequia": Vector3(-26560, 1000, 36650),
-        "Veqeau": Vector3(-22750, 1000, 36650),
-        "Veqee": Vector3(-21700, 1000, 36650)
+        "Vegnao": vector3.Vector3(4300, 1000, 36650),
+        "Vegnau": vector3.Vector3(5200, 1000, 36650),
+        "Weqo": vector3.Vector3(6500, 1000, 36650),
+        "Veqo": vector3.Vector3(-38450, 1000, 36650),
+        "Vequia": vector3.Vector3(-26560, 1000, 36650),
+        "Veqeau": vector3.Vector3(-22750, 1000, 36650),
+        "Veqee": vector3.Vector3(-21700, 1000, 36650)
       }
       
       start = "Veqo"
@@ -400,4 +400,4 @@ if __name__ == '__main__':
               
               relpos, relpos_confidence = get_star_relative_position(sinfo.group("prefix"), sinfo.group("centre"), sinfo.group("suffix"), sinfo.group("lcode"), sinfo.group("number1"), sinfo.group("number2"))
               
-              print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, s.origin + relpos, relpos_confidence))
+              print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, s.origin + relpos, int(relpos_confidence)))
