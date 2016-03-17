@@ -14,6 +14,48 @@ app_name = "pgnames"
 log = logging.getLogger(app_name)
 
 
+srp_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+srp_divisor = len(srp_alphabet)
+srp_middle = srp_divisor**2
+srp_biggest = srp_divisor**3
+srp_rowlength = 128
+srp_sidelength = srp_rowlength**2
+
+def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
+  position = int(number1) * srp_biggest
+  
+  for letter in range(srp_divisor):
+      if srp_alphabet[letter] == suffix:
+          position += letter * srp_middle
+          
+  for letter in range(srp_divisor):
+      if srp_alphabet[letter] == centre:
+          position += letter * srp_divisor
+          
+  for letter in range(srp_divisor):
+      if srp_alphabet[letter] == prefix:
+          position += letter
+          
+  working = position
+
+  row = int(working / srp_sidelength)
+  working = working - (row * srp_sidelength)
+
+  stack = int(working / srp_rowlength)
+  working = working - (stack * srp_rowlength)
+
+  column = working
+  
+  cubeside = cube_size / pow(2, ord('h') - ord(lcode.lower()))
+  halfwidth = cubeside / 2
+
+  approx_x = (column * cubeside) + halfwidth
+  approx_y = (stack * cubeside) + halfwidth
+  approx_z = (row * cubeside) + halfwidth
+
+  return Vector3(approx_x,approx_y,approx_z)
+
+
 def get_sector(pos):
   if isinstance(pos, Vector3):
     x = math.floor((pos.x - base_coords.x) / cube_size)
@@ -586,7 +628,9 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
-      frags = get_fragments(input)
+      sinfo = pg_system_regex.match(input)
+      sname = sinfo.group("sector")
+      frags = get_fragments(sname)
       
       yz_candidates = c2_get_yz_candidates(frags[0], frags[2])
       for candidate in yz_candidates:
@@ -596,7 +640,10 @@ if __name__ == '__main__':
         print("start1 = {0}, start2 = {1}".format(start1, start2))
         if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
           for sysname, idx in c2_get_run([frags[0],start1,frags[2],start2]):
-            if sysname == input:
-              print("idx = {0}".format(idx))
+            if sysname == sname:
               s = Sector(idx-39, candidate['coords'][0], candidate['coords'][1])
-              print("MATCH: {0}, {1}".format(s, s.origin))
+              print("MATCH: {0}, {1}, origin: {2}".format(sname, s, s.origin))
+              
+              relpos = get_star_relative_position(sinfo.group("prefix"), sinfo.group("centre"), sinfo.group("suffix"), sinfo.group("lcode"), sinfo.group("number1"), sinfo.group("number2"))
+              
+              print("Est. position of {0}: {1}".format(input, s.origin + relpos))
