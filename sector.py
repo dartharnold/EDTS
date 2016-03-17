@@ -2,6 +2,7 @@ from vector3 import Vector3
 
 base_coords = Vector3(-65, -25, 215)
 cube_size = 1280.0
+base_sector_coords = [39, 3, 20] # Is Y correct?
 
 class Sector(object):
   __slots__ = ('_v','name')
