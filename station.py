@@ -1,5 +1,3 @@
-from vector3 import Vector3
-
 
 class Station(object):
   def __init__(self, obj, sysobj):

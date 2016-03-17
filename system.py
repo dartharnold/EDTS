@@ -1,9 +1,9 @@
-from vector3 import Vector3
+import vector3
 
 
 class System(object):
   def __init__(self, x, y, z, name = None):
-    self.position = Vector3(float(x), float(y), float(z))
+    self.position = vector3.Vector3(float(x), float(y), float(z))
     self.name = name
     self.uses_sc = False
 

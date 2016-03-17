@@ -5,7 +5,6 @@ import argparse
 import env
 import fnmatch
 import logging
-from vector3 import Vector3
 
 app_name = "find"
 
