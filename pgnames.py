@@ -14,14 +14,6 @@ app_name = "pgnames"
 
 log = logging.getLogger(app_name)
 
-#__all__ = [
-#  "get_relative_star_position",
-#  "get_sector",
-#  "get_fragments",
-#  "get_sector_class",
-#  "get_suffixes",
-#]
-
 _srp_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 _srp_divisor = len(_srp_alphabet)
 _srp_middle = _srp_divisor**2
@@ -182,17 +174,15 @@ def get_coords_from_name(system_name):
 
 def get_sector_from_name(sector_name):
   frags = get_fragments(sector_name) if isinstance(sector_name, str) else sector_name
-  sname = "{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3])
   sc = get_sector_class(frags)
   if sc == "2":
-    yz_candidates = c2_get_yz_candidates(frags[0], frags[2])
-    for candidate in yz_candidates:
-      start1 = pgdata.c2_word1_suffix_starts[frags[0]][candidate['offsets'][0]]
-      start2 = pgdata.c2_word2_suffix_starts[frags[2]][candidate['offsets'][1]]
-      if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
-        for sysname, idx in c2_get_run([frags[0],start1,frags[2],start2]):
-          if sysname == sname:
-            return sector.Sector(idx, candidate['coords'][0], candidate['coords'][1])
+    for candidate in c2_get_yz_candidates(frags[0], frags[2]):
+      start1 = pgdata.c2_word1_suffix_starts[candidate['prefixes'][0]][candidate['offsets'][0]]
+      start2 = pgdata.c2_word2_suffix_starts[candidate['prefixes'][1]][candidate['offsets'][1]]
+      # if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
+      for testfrags, idx in c2_get_run([candidate['prefixes'][0],start1,candidate['prefixes'][1],start2]):
+        if testfrags == frags:
+          return sector.Sector(idx, candidate['y'], candidate['z'], "{0}{1} {2}{3}".format(*frags))
     return None
   elif sc == "1a":
     # TODO
@@ -204,21 +194,8 @@ def get_sector_from_name(sector_name):
 
 def c2_get_yz_candidates(frag0, frag2):
   matches = []
-  # Find Z slice
-  for z in range(0, len(pgdata.c2_positions_y0z)):
-    pair = pgdata.c2_positions_y0z[z]
-    for zo1 in range(0, len(pair[0])):
-      # TODO: Get all possible run prefixes from zo1, not just the first at this YZ
-      pre1 = pair[0][zo1]
-      for i in range(0, len(pgdata.c2_word1_y_mapping[pre1])):
-        if len(pgdata.c2_word1_y_mapping[pre1]) > i and pgdata.c2_word1_y_mapping[pre1][i][0] == frag0:
-          for zo2 in range(0, len(pair[1])):
-            # TODO: Get all possible run prefixes from zo2, not just the first at this YZ
-            pre2 = pair[1][zo2]
-            if len(pgdata.c2_word2_y_mapping[pre2]) > i and pgdata.c2_word2_y_mapping[pre2][i][0] == frag2:
-              # zo2*2 + zo1: Blu Aec, Byeia Aec, Blu Ain, Byeia Ain
-              matches.append({'coords': (i - pgdata.c2_y_mapping_offset, z*4 + zo2*2 + zo1 - pgdata.c2_positions_y0z_offset), 'offsets': (pgdata.c2_word1_y_mapping[pre1][i][1], pgdata.c2_word2_y_mapping[pre2][i][1])})
-  return matches
+  for candidate in c2_candidate_cache[(frag0, frag2)]:
+    yield {'prefixes': (candidate['f0'], candidate['f2']), 'y': candidate['y'], 'z': candidate['z'], 'offsets': (candidate['f0offset'], candidate['f2offset'])}
 
 def c2_validate_suffix(frag, base):
   suffixlist = pgdata.cx_suffixes[get_suffix_index(base)]
@@ -271,32 +248,36 @@ def c2_get_run(input):
     # Set current fragments
     frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
     frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
-    yield ("{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3]), i - sector.base_sector_coords[0])
+    yield (frags, i - sector.base_sector_coords[0])
 
 def c2_get_run_prefixes(input):
   prefixes = []
-  for pre, suf in c2_get_run(input):
-    if pre not in prefixes:
-      prefixes.append(pre)
+  for frags, xpos in c2_get_run(input):
+    if (frags[0], frags[2]) not in prefixes:
+      prefixes.append((frags[0], frags[2]))
   return prefixes
 
 c2_candidate_cache = {}
 def construct_c2_candidate_cache():
-  # Find Z slice
-  for z in range(0, len(pgdata.c2_positions_y0z)):
-    pair = pgdata.c2_positions_y0z[z]
-    for zo1 in range(0, len(pair[0])):
-      pre1 = pair[0][zo1]
-      for i in range(0, len(pgdata.c2_word1_y_mapping[pre1])):
-        if len(pgdata.c2_word1_y_mapping[pre1]) > i:
-          pre1y = pgdata.c2_word1_y_mapping[pre1][i]
-          all_pre1y = c2_get_run_prefixes(pre1y)
-          # TODO: More stuff here
-          for zo2 in range(0, len(pair[1])):
-            # TODO: Get all possible run prefixes from zo2, not just the first at this YZ
-            pre2 = pair[1][zo2]
-            #if len(pgdata.c2_word2_y_mapping[pre2]) > i and pgdata.c2_word2_y_mapping[pre2][i][0] == frag2:
-              # zo2*2 + zo1: Blu Aec, Byeia Aec, Blu Ain, Byeia Ain
+  for ((f0y0, f2y0), z) in pgdata.get_c2_positions():
+    for y in range(0, len(pgdata.c2_word1_y_mapping)):
+      if len(pgdata.c2_word1_y_mapping[f0y0]) > y and len(pgdata.c2_word2_y_mapping[f2y0]) > y:
+        f0data = pgdata.c2_word1_y_mapping[f0y0][y]
+        f2data = pgdata.c2_word2_y_mapping[f2y0][y]
+        f0 = f0data[0]
+        f2 = f2data[0]
+        if f0 in pgdata.c2_word1_suffix_starts and f2 in pgdata.c2_word2_suffix_starts \
+         and len(pgdata.c2_word1_suffix_starts[f0]) > f0data[1] and len(pgdata.c2_word2_suffix_starts[f2]) > f2data[1]:
+          f1 = pgdata.c2_word1_suffix_starts[f0][f0data[1]]
+          f3 = pgdata.c2_word2_suffix_starts[f2][f2data[1]]
+          prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
+          for pf in prefixes:
+            if pf not in c2_candidate_cache:
+              c2_candidate_cache[pf] = []
+            c2_candidate_cache[pf].append({'f0': f0, 'f0offset': f0data[1], 'f2': f2, 'f2offset': f2data[1], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
+
+construct_c2_candidate_cache()
+
 
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
@@ -420,22 +401,5 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
-      sinfo = pgdata.pg_system_regex.match(input)
-      sname = sinfo.group("sector")
-      frags = get_fragments(sname)
-      
-      yz_candidates = c2_get_yz_candidates(frags[0], frags[2])
-      for candidate in yz_candidates:
-        print("{0},{1}".format(candidate['coords'][0],candidate['coords'][1]))
-        start1 = pgdata.c2_word1_suffix_starts[frags[0]][candidate['offsets'][0]]
-        start2 = pgdata.c2_word2_suffix_starts[frags[2]][candidate['offsets'][1]]
-        print("start1 = {0}, start2 = {1}".format(start1, start2))
-        if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
-          for sysname, idx in c2_get_run([frags[0],start1,frags[2],start2]):
-            if sysname == sname:
-              s = sector.Sector(idx, candidate['coords'][0], candidate['coords'][1])
-              print("MATCH: {0}, {1}, origin: {2}".format(sname, s, s.origin))
-              
-              relpos, relpos_confidence = get_star_relative_position(sinfo.group("prefix"), sinfo.group("centre"), sinfo.group("suffix"), sinfo.group("lcode"), sinfo.group("number1"), sinfo.group("number2"))
-              
-              print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, s.origin + relpos, int(relpos_confidence)))
+      coords, relpos_confidence = get_coords_from_name(input)
+      print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))

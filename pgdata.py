@@ -167,6 +167,13 @@ c2_positions_y0z = [
   (("Syr", "My" ), ("Th", "Eu"))
 ]
 
+def get_c2_positions():
+  for idx, pair in enumerate(c2_positions_y0z):
+    yield ((pair[0][0], pair[1][0]), (idx*4)+0-c2_positions_y0z_offset)
+    yield ((pair[0][1], pair[1][0]), (idx*4)+1-c2_positions_y0z_offset)
+    yield ((pair[0][0], pair[1][1]), (idx*4)+2-c2_positions_y0z_offset)
+    yield ((pair[0][1], pair[1][1]), (idx*4)+3-c2_positions_y0z_offset)
+
 
 c2_y_mapping_offset = 3
 c2_word1_y_mapping = {
@@ -215,9 +222,9 @@ c2_word2_suffix_starts = {
    "Th": ["oe", "ooe"], "Eo": ["ch", "rl"], "Oo": ["rb", None],
    "Ai": ["ck", "hn"], 
    "Pr": ["ua", "e"], "Au": [],
-   "Phr": ["io", "ee"],
+  "Phr": ["io", "ee"],
   "Fly": ["ua", "e"], "Scr": ["oe", None],
-  "Fl": ["aae", ]
+   "Fl": ["aae", ]
 }
 
 c2_overrides = {
