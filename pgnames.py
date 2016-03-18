@@ -6,8 +6,11 @@ import logging
 import math
 import re
 import sys
+import time
+
 import pgdata
 import sector
+import util
 import vector3
 
 app_name = "pgnames"
@@ -87,7 +90,7 @@ def get_fragments(sector_name):
 
 
 def get_sector_class(sect):
-  frags = get_fragments(sect) if isinstance(sect, str) else sect
+  frags = get_fragments(sect) if util.is_str(sect) else sect
   if frags is None:
     return None
   if frags[2] in pgdata.cx_prefixes:
@@ -99,7 +102,7 @@ def get_sector_class(sect):
 
 
 def get_suffixes(prefix):
-  frags = get_fragments(prefix) if isinstance(prefix, str) else prefix
+  frags = get_fragments(prefix) if util.is_str(prefix) else prefix
   if frags is None:
     return None
   if frags[-1] in pgdata.cx_prefixes:
@@ -118,7 +121,7 @@ def get_suffixes(prefix):
       pass
 
 def c1_get_infixes(prefix):
-  frags = get_fragments(prefix) if isinstance(prefix, str) else prefix
+  frags = get_fragments(prefix) if util.is_str(prefix) else prefix
   if frags is None:
     return None
   if frags[-1] in pgdata.cx_prefixes and frags[-1] in pgdata.c1_prefix_infix_override_map:
@@ -132,7 +135,7 @@ def c1_get_infixes(prefix):
 
 # TODO: Fix this, not currently correct
 def c1_get_next_sector(sect):
-  frags = get_fragments(sect) if isinstance(sect, str) else sect
+  frags = get_fragments(sect) if util.is_str(sect) else sect
   if frags is None:
     return None
   suffixes = get_suffixes(frags[0:-1])
@@ -173,7 +176,12 @@ def get_coords_from_name(system_name):
 
 
 def get_sector_from_name(sector_name):
-  frags = get_fragments(sector_name) if isinstance(sector_name, str) else sector_name
+  frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
+  if frags is None:
+    return None
+  if frags[0] == '5':
+    print("YOU WOT M8: {0} / {1} / {2}".format(sector_name, frags, type(sector_name)))
+  
   sc = get_sector_class(frags)
   if sc == "2":
     for candidate in c2_get_yz_candidates(frags[0], frags[2]):
@@ -193,9 +201,9 @@ def get_sector_from_name(sector_name):
 
 
 def c2_get_yz_candidates(frag0, frag2):
-  matches = []
-  for candidate in c2_candidate_cache[(frag0, frag2)]:
-    yield {'prefixes': (candidate['f0'], candidate['f2']), 'y': candidate['y'], 'z': candidate['z'], 'offsets': (candidate['f0offset'], candidate['f2offset'])}
+  if (frag0, frag2) in c2_candidate_cache:
+    for candidate in c2_candidate_cache[(frag0, frag2)]:
+      yield {'prefixes': (candidate['f0'], candidate['f2']), 'y': candidate['y'], 'z': candidate['z'], 'offsets': (candidate['f0offset'], candidate['f2offset'])}
 
 def c2_validate_suffix(frag, base):
   suffixlist = pgdata.cx_suffixes[get_suffix_index(base)]
@@ -215,9 +223,20 @@ def get_suffix_index(s):
     return 3
   return None
 
+def c2_get_name(sector):
+  for (pre0y0, pre1y0), idx in pgdata.get_c2_positions():
+    if idx == sector.z:
+      pre0, sufindex0 = pgdata.c2_word1_y_mapping[pre0y0][sector.y + pgdata.c2_y_mapping_offset]
+      pre1, sufindex1 = pgdata.c2_word2_y_mapping[pre1y0][sector.y + pgdata.c2_y_mapping_offset]
+      suf0 = pgdata.c2_word1_suffix_starts[pre0][sufindex0]
+      suf1 = pgdata.c2_word2_suffix_starts[pre1][sufindex1]
+      for (frags, xpos) in c2_get_run([pre0, suf0, pre1, suf1]):
+        if xpos == sector.x:
+          return frags
+  return None
 
 def c2_get_run(input):
-  frags = get_fragments(input) if isinstance(input, str) else input
+  frags = get_fragments(input) if util.is_str(input) else input
 
   # Calculate the actual starting suffix index
   suffixes_0_temp = get_suffixes(frags[0:1])
@@ -276,7 +295,10 @@ def construct_c2_candidate_cache():
               c2_candidate_cache[pf] = []
             c2_candidate_cache[pf].append({'f0': f0, 'f0offset': f0data[1], 'f2': f2, 'f2offset': f2data[1], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
 
+
+_init_start = time.clock()
 construct_c2_candidate_cache()
+_init_time = time.clock() - _init_start
 
 
 if __name__ == '__main__':
@@ -403,3 +425,32 @@ if __name__ == '__main__':
       input = sys.argv[2]
       coords, relpos_confidence = get_coords_from_name(input)
       print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
+
+    elif sys.argv[1] == "eddbtest":
+      import env
+      
+      with open("edsm_data.txt") as f:
+        edsm_sectors = [s.strip() for s in f.readlines() if len(s) > 1]
+
+      ok = 0
+      bad = 0
+      none = 0
+      notpg = 0
+
+      for system in env.data.eddb_systems:
+        m = pgdata.pg_system_regex.match(system.name)
+        if m is not None and m.group("sector") in edsm_sectors:
+          sect = get_sector(m.group("sector"))
+          if sect is not None:
+            pos_sect = get_sector(system.position)
+            if sect == pos_sect:
+              ok += 1
+            else:
+              bad += 1
+              print("Bad: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, sect.name, sect))
+          else:
+            none += 1
+        else:
+          notpg += 1
+
+      print("Totals: OK = {0}, bad = {1}, none = {2}, notPG = {3}".format(ok, bad, none, notpg))

@@ -177,7 +177,7 @@ def get_c2_positions():
 
 c2_y_mapping_offset = 3
 c2_word1_y_mapping = {
-   "Eo": [("Th",1), ("Eo",0), ("Eo",0), ("Eo",1), ("Eo",1), ("Oo",0)],
+   "Eo": [("Th",1), ("Eo",0), ("Eo",0), ("Eo",1), ("Eo",1), ("Oo",0)], # Th may need to change? (Thaae close to end, likely wrapping)
   "Dry": [("Tr",1), ("Dry",0), ("Dry",0), ("Dry",1), ("Dry",1), ("Ou",0)],
   "Hyp": [("Sch",0), ("Sch",1), ("Sch", 1), ("Hyp",0), ("Hyp",0), ("Syst",0)], # Sch --> Hyp
    "Ph": [],
