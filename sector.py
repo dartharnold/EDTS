@@ -1,6 +1,6 @@
 import vector3
 
-base_coords = vector3.Vector3(-65, -25, 215)
+base_coords = vector3.Vector3(-65.0, -25.0, 215.0)
 cube_size = 1280.0
 base_sector_coords = [39, 3, 19] # Is Y correct?
 

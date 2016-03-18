@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+from __future__ import print_function, division
 import argparse
 import logging
 import math
@@ -61,9 +61,9 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
 
 def get_sector(pos):
   if isinstance(pos, vector3.Vector3):
-    x = math.floor((pos.x - sector.base_coords.x) / sector.cube_size)
-    y = math.floor((pos.y - sector.base_coords.y) / sector.cube_size)
-    z = math.floor((pos.z - sector.base_coords.z) / sector.cube_size)
+    x = (pos.x - sector.base_coords.x) // sector.cube_size
+    y = (pos.y - sector.base_coords.y) // sector.cube_size
+    z = (pos.z - sector.base_coords.z) // sector.cube_size
     return sector.Sector(int(x), int(y), int(z))
   else:
     return get_sector_from_name(pos)
