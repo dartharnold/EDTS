@@ -192,7 +192,7 @@ def get_sector_from_name(sector_name):
       if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
         for sysname, idx in c2_get_run([frags[0],start1,frags[2],start2]):
           if sysname == sname:
-            return sector.Sector(idx-sector.base_sector_coords[0], candidate['coords'][0], candidate['coords'][1])
+            return sector.Sector(idx, candidate['coords'][0], candidate['coords'][1])
     return None
   elif sc == "1a":
     # TODO
@@ -241,24 +241,34 @@ def c2_get_run(input):
   frags = get_fragments(input) if isinstance(input, str) else input
 
   # Calculate the actual starting suffix index
-  suffixes_0 = get_suffixes(frags[0:1])
-  suffixes_1 = get_suffixes(frags[0:-1])
-  start_idx_0 = suffixes_0.index(frags[1])
-  start_idx_1 = suffixes_1.index(frags[3])
+  suffixes_0_temp = get_suffixes(frags[0:1])
+  suffixes_1_temp = get_suffixes(frags[0:-1])
+  suffixes_0 = [(frags[0], f1) for f1 in suffixes_0_temp[suffixes_0_temp.index(frags[1]):]]
+  suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
 
-  for i in range(0, 64):
+  for i in range(0, sector.base_sector_coords[0] * 2):
     # Calculate the run state indexes for phonemes 1 and 3
     idx0 = i % len(pgdata.c2_run_states)
     idx1 = i % len(pgdata.c2_run_states)
+    
+    if i >= len(suffixes_0):
+      next_prefix0_idx = pgdata.cx_prefixes.index(suffixes_0[-1][0]) + 1
+      next_prefix0 = pgdata.cx_prefixes[next_prefix0_idx % len(pgdata.cx_prefixes)]
+      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0])]
+    if i >= len(suffixes_1):
+      next_prefix1_idx = pgdata.cx_prefixes.index(suffixes_1[-1][0]) + 1
+      next_prefix1 = pgdata.cx_prefixes[next_prefix1_idx % len(pgdata.cx_prefixes)]
+      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1])]
+    
     # Calculate the current base index
     # (in case we've done a full run and are onto the next set of phoneme 3s)
-    cur_base_0 = start_idx_0
-    cur_base_1 = start_idx_1 + int(i / len(pgdata.c2_run_states)) * 8
+    cur_base_0 = 0
+    cur_base_1 = int(i / len(pgdata.c2_run_states)) * 8
     # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
     # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
-    frags[1] = suffixes_0[(cur_base_0 + pgdata.c2_run_states[idx0][0]) % len(suffixes_0)]
-    frags[3] = suffixes_1[(cur_base_1 + pgdata.c2_run_states[idx1][1]) % len(suffixes_1)]
-    yield ("{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3]), i)
+    frags[0], frags[1] = suffixes_0[(cur_base_0 + pgdata.c2_run_states[idx0][0]) % len(suffixes_0)]
+    frags[2], frags[3] = suffixes_1[(cur_base_1 + pgdata.c2_run_states[idx1][1]) % len(suffixes_1)]
+    yield ("{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3]), i - sector.base_sector_coords[0])
 
 
 if __name__ == '__main__':
@@ -396,7 +406,7 @@ if __name__ == '__main__':
         if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
           for sysname, idx in c2_get_run([frags[0],start1,frags[2],start2]):
             if sysname == sname:
-              s = sector.Sector(idx-39, candidate['coords'][0], candidate['coords'][1])
+              s = sector.Sector(idx, candidate['coords'][0], candidate['coords'][1])
               print("MATCH: {0}, {1}, origin: {2}".format(sname, s, s.origin))
               
               relpos, relpos_confidence = get_star_relative_position(sinfo.group("prefix"), sinfo.group("centre"), sinfo.group("suffix"), sinfo.group("lcode"), sinfo.group("number1"), sinfo.group("number2"))
