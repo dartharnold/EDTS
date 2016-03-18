@@ -251,23 +251,24 @@ def c2_get_run(input):
     idx0 = i % len(pgdata.c2_run_states)
     idx1 = i % len(pgdata.c2_run_states)
     
-    if i >= len(suffixes_0):
-      next_prefix0_idx = pgdata.cx_prefixes.index(suffixes_0[-1][0]) + 1
-      next_prefix0 = pgdata.cx_prefixes[next_prefix0_idx % len(pgdata.cx_prefixes)]
-      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0])]
-    if i >= len(suffixes_1):
-      next_prefix1_idx = pgdata.cx_prefixes.index(suffixes_1[-1][0]) + 1
-      next_prefix1 = pgdata.cx_prefixes[next_prefix1_idx % len(pgdata.cx_prefixes)]
-      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1])]
-    
     # Calculate the current base index
     # (in case we've done a full run and are onto the next set of phoneme 3s)
     cur_base_0 = 0
     cur_base_1 = int(i / len(pgdata.c2_run_states)) * 8
-    # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
-    # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
-    frags[0], frags[1] = suffixes_0[(cur_base_0 + pgdata.c2_run_states[idx0][0]) % len(suffixes_0)]
-    frags[2], frags[3] = suffixes_1[(cur_base_1 + pgdata.c2_run_states[idx1][1]) % len(suffixes_1)]
+    
+    # Ensure we have all the suffixes we need, and add the next set if not
+    if (cur_base_0 + pgdata.c2_run_states[idx0][0]) >= len(suffixes_0):
+      next_prefix0_idx = pgdata.cx_prefixes.index(suffixes_0[-1][0]) + 1
+      next_prefix0 = pgdata.cx_prefixes[next_prefix0_idx % len(pgdata.cx_prefixes)]
+      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0])]
+    if (cur_base_1 + pgdata.c2_run_states[idx1][1]) >= len(suffixes_1):
+      next_prefix1_idx = pgdata.cx_prefixes.index(suffixes_1[-1][0]) + 1
+      next_prefix1 = pgdata.cx_prefixes[next_prefix1_idx % len(pgdata.cx_prefixes)]
+      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1])]
+    
+    # Set current fragments
+    frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
+    frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
     yield ("{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3]), i - sector.base_sector_coords[0])
 
 
