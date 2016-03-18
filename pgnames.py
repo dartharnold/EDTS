@@ -273,6 +273,30 @@ def c2_get_run(input):
     frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
     yield ("{0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3]), i - sector.base_sector_coords[0])
 
+def c2_get_run_prefixes(input):
+  prefixes = []
+  for pre, suf in c2_get_run(input):
+    if pre not in prefixes:
+      prefixes.append(pre)
+  return prefixes
+
+c2_candidate_cache = {}
+def construct_c2_candidate_cache():
+  # Find Z slice
+  for z in range(0, len(pgdata.c2_positions_y0z)):
+    pair = pgdata.c2_positions_y0z[z]
+    for zo1 in range(0, len(pair[0])):
+      pre1 = pair[0][zo1]
+      for i in range(0, len(pgdata.c2_word1_y_mapping[pre1])):
+        if len(pgdata.c2_word1_y_mapping[pre1]) > i:
+          pre1y = pgdata.c2_word1_y_mapping[pre1][i]
+          all_pre1y = c2_get_run_prefixes(pre1y)
+          # TODO: More stuff here
+          for zo2 in range(0, len(pair[1])):
+            # TODO: Get all possible run prefixes from zo2, not just the first at this YZ
+            pre2 = pair[1][zo2]
+            #if len(pgdata.c2_word2_y_mapping[pre2]) > i and pgdata.c2_word2_y_mapping[pre2][i][0] == frag2:
+              # zo2*2 + zo1: Blu Aec, Byeia Aec, Blu Ain, Byeia Ain
 
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
