@@ -101,6 +101,10 @@ def get_sector_class(sect):
     return "1b"
 
 
+def get_next_prefix(prefix):
+  return pgdata.cx_prefixes[(pgdata.cx_prefixes.index(prefix) + 1) % len(pgdata.cx_prefixes)]
+
+
 def get_suffixes(prefix):
   frags = get_fragments(prefix) if util.is_str(prefix) else prefix
   if frags is None:
@@ -110,15 +114,16 @@ def get_suffixes(prefix):
     suffix_map_idx = 1
     if frags[-1] in pgdata.c2_prefix_suffix_override_map:
       suffix_map_idx = pgdata.c2_prefix_suffix_override_map[frags[-1]]
-    return pgdata.cx_suffixes[suffix_map_idx]
+    return pgdata.c2_suffixes[suffix_map_idx]
   else:
     # Likely C1
     if frags[-1] in pgdata.c1_infixes[2]:
       # Last infix is consonant-ish, return the vowel-ish suffix list
-      return pgdata.cx_suffixes[1]
+      return pgdata.c1_suffixes[1]
     else:
       # TODO: Work out how it decides which list to use
       pass
+
 
 def c1_get_infixes(prefix):
   frags = get_fragments(prefix) if util.is_str(prefix) else prefix
@@ -132,6 +137,7 @@ def c1_get_infixes(prefix):
     return pgdata.c1_infixes[1]
   else:
     return None
+
 
 # TODO: Fix this, not currently correct
 def c1_get_next_sector(sect):
@@ -179,16 +185,12 @@ def get_sector_from_name(sector_name):
   frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
   if frags is None:
     return None
-  if frags[0] == '5':
-    print("YOU WOT M8: {0} / {1} / {2}".format(sector_name, frags, type(sector_name)))
   
   sc = get_sector_class(frags)
   if sc == "2":
     for candidate in c2_get_yz_candidates(frags[0], frags[2]):
-      start1 = pgdata.c2_word1_suffix_starts[candidate['prefixes'][0]][candidate['offsets'][0]]
-      start2 = pgdata.c2_word2_suffix_starts[candidate['prefixes'][1]][candidate['offsets'][1]]
-      # if c2_validate_suffix(frags[1], start1) and c2_validate_suffix(frags[3], start2):
-      for testfrags, idx in c2_get_run([candidate['prefixes'][0],start1,candidate['prefixes'][1],start2]):
+      for idx, testfrags in c2_get_run(candidate['frags']):
+        # print("candidate: [{0}] {1}".format(idx, testfrags))
         if testfrags == frags:
           return sector.Sector(idx, candidate['y'], candidate['z'], "{0}{1} {2}{3}".format(*frags))
     return None
@@ -203,16 +205,8 @@ def get_sector_from_name(sector_name):
 def c2_get_yz_candidates(frag0, frag2):
   if (frag0, frag2) in c2_candidate_cache:
     for candidate in c2_candidate_cache[(frag0, frag2)]:
-      yield {'prefixes': (candidate['f0'], candidate['f2']), 'y': candidate['y'], 'z': candidate['z'], 'offsets': (candidate['f0offset'], candidate['f2offset'])}
+      yield {'frags': list(candidate['frags']), 'y': candidate['y'], 'z': candidate['z']}
 
-def c2_validate_suffix(frag, base):
-  suffixlist = pgdata.cx_suffixes[get_suffix_index(base)]
-  base_idx = suffixlist.index(base)
-  if frag in suffixlist[base_idx:base_idx+8]:
-    return True
-  if base_idx + 8 >= len(suffixlist) and frag in suffixlist[0:((base_idx+8) % len(suffixlist))]:
-    return True
-  return False
 
 def get_suffix_index(s):
   if s in pgdata.cx_suffixes_s1:
@@ -223,17 +217,17 @@ def get_suffix_index(s):
     return 3
   return None
 
+
 def c2_get_name(sector):
   for (pre0y0, pre1y0), idx in pgdata.get_c2_positions():
     if idx == sector.z:
-      pre0, sufindex0 = pgdata.c2_word1_y_mapping[pre0y0][sector.y + pgdata.c2_y_mapping_offset]
-      pre1, sufindex1 = pgdata.c2_word2_y_mapping[pre1y0][sector.y + pgdata.c2_y_mapping_offset]
-      suf0 = pgdata.c2_word1_suffix_starts[pre0][sufindex0]
-      suf1 = pgdata.c2_word2_suffix_starts[pre1][sufindex1]
-      for (frags, xpos) in c2_get_run([pre0, suf0, pre1, suf1]):
+      pre0, suf0 = pgdata.c2_word1_y_mapping[pre0y0][sector.y + pgdata.c2_y_mapping_offset]
+      pre1, suf1 = pgdata.c2_word2_y_mapping[pre1y0][sector.y + pgdata.c2_y_mapping_offset]
+      for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
         if xpos == sector.x:
           return frags
   return None
+
 
 def c2_get_run(input):
   frags = get_fragments(input) if util.is_str(input) else input
@@ -267,33 +261,30 @@ def c2_get_run(input):
     # Set current fragments
     frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
     frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
-    yield (frags, i - sector.base_sector_coords[0])
+    yield (i - sector.base_sector_coords[0], frags)
+
 
 def c2_get_run_prefixes(input):
   prefixes = []
-  for frags, xpos in c2_get_run(input):
+  for xpos, frags in c2_get_run(input):
     if (frags[0], frags[2]) not in prefixes:
       prefixes.append((frags[0], frags[2]))
   return prefixes
+
 
 c2_candidate_cache = {}
 def construct_c2_candidate_cache():
   for ((f0y0, f2y0), z) in pgdata.get_c2_positions():
     for y in range(0, len(pgdata.c2_word1_y_mapping)):
       if len(pgdata.c2_word1_y_mapping[f0y0]) > y and len(pgdata.c2_word2_y_mapping[f2y0]) > y:
-        f0data = pgdata.c2_word1_y_mapping[f0y0][y]
-        f2data = pgdata.c2_word2_y_mapping[f2y0][y]
-        f0 = f0data[0]
-        f2 = f2data[0]
-        if f0 in pgdata.c2_word1_suffix_starts and f2 in pgdata.c2_word2_suffix_starts \
-         and len(pgdata.c2_word1_suffix_starts[f0]) > f0data[1] and len(pgdata.c2_word2_suffix_starts[f2]) > f2data[1]:
-          f1 = pgdata.c2_word1_suffix_starts[f0][f0data[1]]
-          f3 = pgdata.c2_word2_suffix_starts[f2][f2data[1]]
+        f0, f1 = pgdata.c2_word1_y_mapping[f0y0][y]
+        f2, f3 = pgdata.c2_word2_y_mapping[f2y0][y]
+        if None not in [f0, f1, f2, f3]:
           prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
           for pf in prefixes:
             if pf not in c2_candidate_cache:
               c2_candidate_cache[pf] = []
-            c2_candidate_cache[pf].append({'f0': f0, 'f0offset': f0data[1], 'f2': f2, 'f2offset': f2data[1], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
+            c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
 
 
 _init_start = time.clock()
@@ -325,49 +316,6 @@ if __name__ == '__main__':
       print(len(prefixes))
       for p in pgdata.cx_prefixes:
         print("{0}: {1}".format(p, prefixes[p] if p in prefixes else 0))
-    elif sys.argv[1] == "baseline":
-      baselines = {
-        "Vegnao": vector3.Vector3(4300, 1000, 36650),
-        "Vegnau": vector3.Vector3(5200, 1000, 36650),
-        "Weqo": vector3.Vector3(6500, 1000, 36650),
-        "Veqo": vector3.Vector3(-38450, 1000, 36650),
-        "Vequia": vector3.Vector3(-26560, 1000, 36650),
-        "Veqeau": vector3.Vector3(-22750, 1000, 36650),
-        "Veqee": vector3.Vector3(-21700, 1000, 36650)
-      }
-      
-      start = "Veqo"
-      start_coords = baselines[start]
-      
-      current = start
-      current_coords = start_coords
-      for i in range(0, int(sys.argv[1])):
-        extra = ""
-        if current in baselines:
-          if get_sector(current_coords) == get_sector(baselines[current]):
-            extra = " CORRECT"
-          else:
-            extra = " INCORRECT"
-            
-        print("{0} @ {1} / {2}{3}".format(current, get_sector(current_coords).origin, get_sector(current_coords), extra))
-        frags = get_fragments(current)
-        
-        suffix_idx = pgdata.cx_suffixes[1].index(frags[-1])
-        if suffix_idx + 1 >= len(pgdata.cx_suffixes[1]):
-          frags[-1] = pgdata.cx_suffixes[1][0]
-          done = False
-          cur_frag = len(frags) - 2
-          while not done:
-            cur_idx = pgdata.cx_infix.index(frags[cur_frag])
-            if cur_idx + 1 >= len(pgdata.cx_infix):
-              frags[cur_frag] = pgdata.cx_infix[0]
-            else:
-              frags[cur_frag] = pgdata.cx_infix[cur_idx+1]
-              done = True
-        else:
-          frags[-1] = pgdata.cx_suffixes[1][suffix_idx+1]
-        current = "".join(frags)
-        current_coords.x += sector.cube_size
 
     elif sys.argv[1] == "run1":
       input = sys.argv[2] # "Smooreau"
@@ -389,37 +337,13 @@ if __name__ == '__main__':
       
     elif sys.argv[1] == "run2":
       input = sys.argv[2] # "Schuae Flye"
+      limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
-      frags = get_fragments(input)
-
-      # This should put us at -49985
-      start_x = sector.base_coords.x - (int(sys.argv[3]) * 1280)
-
-      # The index in the valid set of suffixes we believe we're at
-      base_idx_0 = 0
-      base_idx_1 = 0
-      # The state that we think this system is at in the run
-      base_slot_0 = 0
-      base_slot_1 = 0
-      # Calculate the actual starting suffix index
-      suffixes_0 = get_suffixes(frags[0:1])
-      suffixes_1 = get_suffixes(frags[0:-1])
-      start_idx_0 = suffixes_0.index(frags[1]) - base_idx_0
-      start_idx_1 = suffixes_1.index(frags[3]) - base_idx_1
-
-      for i in range(0, int(sys.argv[4])):
-        # Calculate the run state indexes for phonemes 1 and 3
-        idx0 = (i+base_slot_0) % len(pgdata.c2_run_states)
-        idx1 = (i+base_slot_1) % len(pgdata.c2_run_states)
-        # Calculate the current base index
-        # (in case we've done a full run and are onto the next set of phoneme 3s)
-        cur_base_0 = start_idx_0
-        cur_base_1 = start_idx_1 + int((i + base_slot_1) / len(pgdata.c2_run_states)) * 8
-        # print("idx0 = {0}, idx1 = {1}, cb0 = {2}, cb1 = {3}".format(idx0, idx1, cur_base_0, cur_base_1))
-        # print("slots[{0}] = {1}, slots[{2}] = {3}".format(idx0, slots[idx0][0], idx1, slots[idx1][1]))
-        frags[1] = suffixes_0[(cur_base_0 + pgdata.c2_run_states[idx0][0]) % len(suffixes_0)]
-        frags[3] = suffixes_1[(cur_base_1 + pgdata.c2_run_states[idx1][1]) % len(suffixes_1)]
-        print ("[{4}/{5},{6}/{7},{8}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], start_x + (i * 1280), idx0, idx1, cur_base_0, cur_base_1))
+      for idx, frags in c2_get_run(input):
+        if limit is not None and (idx + sector.base_sector_coords[0]) >= limit:
+          break
+        x = sector.base_coords.x + (idx * sector.cube_size)
+        print ("[{4}/{5}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], idx, x))
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
@@ -434,7 +358,8 @@ if __name__ == '__main__':
 
       ok = 0
       bad = 0
-      none = 0
+      none1 = 0
+      none2 = 0
       notpg = 0
 
       for system in env.data.eddb_systems:
@@ -447,10 +372,15 @@ if __name__ == '__main__':
               ok += 1
             else:
               bad += 1
-              print("Bad: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, sect.name, sect))
+              bn = c2_get_name(sect)
+              print("Bad: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, "{0}{1} {2}{3}".format(bn[0], bn[1], bn[2], bn[3]), sect))
           else:
-            none += 1
+            cls = get_sector_class(m.group("sector"))
+            if cls == "2":
+              none2 += 1
+            else:
+              none1 += 1
         else:
           notpg += 1
 
-      print("Totals: OK = {0}, bad = {1}, none = {2}, notPG = {3}".format(ok, bad, none, notpg))
+      print("Totals: OK = {0}, bad = {1}, none1 = {2}, none2 = {3}, notPG = {4}".format(ok, bad, none1, none2, notpg))

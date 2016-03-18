@@ -83,7 +83,7 @@ cx_suffixes_s1 = [
 ]
 
 # Sequence 2
-cx_suffixes_s2 = [
+c1_suffixes_s2 = [
   "b", "scs", "wsy", "c", "d", "vsky", "f", "sms",
   "dst", "g", "rb", "h", "nts", "ch", "rd", "rld",
   "k", "lls", "ck", "rgh", "l", "rg", "m", "n", 
@@ -94,6 +94,8 @@ cx_suffixes_s2 = [
   "x", "rs", "cy", "y", "rt", "z", "ws", "lch", # "y" is speculation
   "my", "ry", "nks"
 ]
+
+c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
 # Sequence 3
 cx_suffixes_s3 = [
@@ -117,10 +119,17 @@ cx_suffixes_s3 = [
 ]
 
 
-cx_suffixes = [
+c1_suffixes = [
   None,
   cx_suffixes_s1,
-  cx_suffixes_s2,
+  c1_suffixes_s2,
+  cx_suffixes_s3
+]
+
+c2_suffixes = [
+  None,
+  cx_suffixes_s1,
+  c2_suffixes_s2,
   cx_suffixes_s3
 ]
 
@@ -177,14 +186,14 @@ def get_c2_positions():
 
 c2_y_mapping_offset = 3
 c2_word1_y_mapping = {
-   "Eo": [("Th",1), ("Eo",0), ("Eo",0), ("Eo",1), ("Eo",1), ("Oo",0)], # Th may need to change? (Thaae close to end, likely wrapping)
-  "Dry": [("Tr",1), ("Dry",0), ("Dry",0), ("Dry",1), ("Dry",1), ("Ou",0)],
-  "Hyp": [("Sch",0), ("Sch",1), ("Sch", 1), ("Hyp",0), ("Hyp",0), ("Syst",0)], # Sch --> Hyp
-   "Ph": [],
-   "Pl": [(None,1), ("Fly",0), ("Fly",0), ("Pl",0), ("Pl",0), (None,0)],
-   "Pr": [("Au",1), ("Pr",0), ("Pr",0), ("Pr",1), ("Pr",1), ("Hyph",0)],
-   "Bl": [("Tyr",1), ("Bl",0), ("Bl",0), ("Bl",1), ("Bl",1), ("Cry",0)],
-   "By": [("Gr",0), ("Gr",1), ("Gr",1), ("By",0), ("By",0), ("By",1)],
+   "Eo": [("Th","aae"), ("Eo","ch"), ("Eo","ch"), ("Eo","rl"), ("Eo","rl"), ("Oo","rb")],
+  "Dry": [("Tr","aea"), ("Dry","io"), ("Dry","io"), ("Dry","uae"), ("Dry","uae"), ("Dry","eau")],
+  "Hyp": [("Sch","uae"), ("Sch","eau"), ("Sch","eau"), ("Hyp","iae"), ("Hyp","iae"), ("Syst","ua")], # Sch --> Hyp
+   "Ph": [("Kyl","oae"), ("Phr","io"), ("Phr","io"), ("Ph","oi"), ("Ph","oi"), ("Ph","ao")],
+   "Pl": [(None,None), ("Fly","ua"), ("Fly","ua"), ("Pl","io"), ("Pl","io"), (None,None)],
+   "Pr": [("Au","rk"), ("Pr","ua"), ("Pr","ua"), ("Pr","o"), ("Pr","o"), ("Hyph","oea")],
+   "Bl": [("Tyr","e"), ("Bl","aa"), ("Bl","aa"), ("Bl","au"), ("Bl","au"), ("Cry","io")],
+   "By": [("Gr","eia"), ("Gr","eae"), ("Gr","eae"), ("By","oi"), ("By","oi"), ("By","ao")],
    "Ch": [],
    "Py": [],
   "Syr": [],
@@ -192,48 +201,26 @@ c2_word1_y_mapping = {
 }
 
 c2_word2_y_mapping = {
-  "Th": [],
-  "Eu": [],
-  "Ae": [],
-  "Ai": [("Phr",1), ("Phr",0), ("Phr",1), ("Ai",0), ("Ai",1), ("Ai",0)], # Eae --> Phr
-  "Ao": [("Fly",1), ("Fly",0), ("Fly",1), ("Fl",0), ("Scr",0), ("Fl",0)], # Fl --> Ao
-  "Au": [("Pr",1), ("Pr",0), ("Pr",1), ("Fr",0), ("Au",1), ("Fr",0)],
+  "Th": [(None,None), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), (None,None)],
+  "Eu": [(None,None), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), (None,None)],
+  "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","aae"), ("Ae","vsky"), ("Phl","aae")],
+  "Ai": [("Phr","ee"), ("Phr","io"), ("Phr","ee"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")], # Eae --> Phr
+  "Ao": [("Fly","e"), ("Fly","ua"), ("Fly","e"), ("Fl","aae"), ("Scr","oe"), ("Fl","aae")], # Fl --> Ao
+  "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
   "Ch": [],
   "Br": []
 }
 
-# [0, 16] --> [-3, 13] --> [-6, 10] ?
-c2_word1_suffix_starts = {
-   "Th": [None, "aae"], "Eo": ["ch", "rl"],  "Oo": ["rb", None],
-   "Tr": [], "Dry": [], "Ou": [],
-  "Sch": ["uae", "eau"], "Hyp": ["iae", None], "Syst": ["ua", None],
-   "Ph": [],
-  "Fly": ["ua", None], "Pl": ["io", None],
-   "Au": [], "Pr": ["ua", "o"],
-  "Tyr": [None,  "e"],    "Bl": ["aa", "au"], "Cry": ["io", None],
-   "Gr": ["eia", "eae"],  "By": ["oi", "ao"],  # None
-   "Ch": [],
-   "Py": [],
-  "Syr": [],
-   "My": []
-}
-
-c2_word2_suffix_starts = {
-   "Th": ["oe", "ooe"], "Eo": ["ch", "rl"], "Oo": ["rb", None],
-   "Ai": ["ck", "hn"], 
-   "Pr": ["ua", "e"], "Au": [],
-  "Phr": ["io", "ee"],
-  "Fly": ["ua", "e"], "Scr": ["oe", None],
-   "Fl": ["aae", ]
-}
-
-c2_overrides = {
-  "Eo": {"rn": ["Oo", "b"], "ct": ["Oo", "scs"]}
+c2_word2_overrides = {
+  # "Eo": {"rn": ["Oo", "b"], "ct": ["Oo", "scs"]}
+  ("Ae","nts"): ("Sch","oe")
 }
 
 
 # C1: four prefixes per stack?
 # C1: how to decide whether to increment phoneme 1 or 3?
+
+# Kueloe + 2 stacks = Pueloe
 
 # More checkerboards on long runs?
 # Plaa Aowsy --> Plaa Scrua --> Plua Aowsy
