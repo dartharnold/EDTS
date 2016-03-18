@@ -208,10 +208,12 @@ def c2_get_yz_candidates(frag0, frag2):
   for z in range(0, len(pgdata.c2_positions_y0z)):
     pair = pgdata.c2_positions_y0z[z]
     for zo1 in range(0, len(pair[0])):
+      # TODO: Get all possible run prefixes from zo1, not just the first at this YZ
       pre1 = pair[0][zo1]
       for i in range(0, len(pgdata.c2_word1_y_mapping[pre1])):
         if len(pgdata.c2_word1_y_mapping[pre1]) > i and pgdata.c2_word1_y_mapping[pre1][i][0] == frag0:
           for zo2 in range(0, len(pair[1])):
+            # TODO: Get all possible run prefixes from zo2, not just the first at this YZ
             pre2 = pair[1][zo2]
             if len(pgdata.c2_word2_y_mapping[pre2]) > i and pgdata.c2_word2_y_mapping[pre2][i][0] == frag2:
               # zo2*2 + zo1: Blu Aec, Byeia Aec, Blu Ain, Byeia Ain
