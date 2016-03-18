@@ -202,7 +202,7 @@ c2_word2_y_mapping = {
   "Br": []
 }
 
-
+# [0, 16] --> [-3, 13] --> [-6, 10] ?
 c2_word1_suffix_starts = {
    "Th": [None, "aae"], "Eo": ["ch", "rl"],  "Oo": ["rb", None],
    "Tr": [], "Dry": [], "Ou": [],
