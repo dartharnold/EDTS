@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
-import argparse
 import logging
-import math
-import re
 import sys
 import time
 
@@ -67,8 +64,10 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
   if (approx_x < 0 or approx_x > sector.cube_size
    or approx_y < 0 or approx_y > sector.cube_size
    or approx_z < 0 or approx_z > sector.cube_size):
-    input_star = "{0}{1}-{2} {3}{4}".format(prefix, centre, suffix, lcode, "{0}-{1}".format(number1, number2) if number1 > 0 else number2)
-    log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. Please report this error.".format(approx_x, approx_y, approx_z, input_star))
+    input_star = "{0}{1}-{2} {3}{4}".format(
+      prefix, centre, suffix, lcode, "{0}-{1}".format(number1, number2) if number1 > 0 else number2)
+    log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. " \
+      "Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
   return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
 
@@ -89,9 +88,9 @@ def get_sector(pos):
 # Get a list of fragments from an input sector name
 # e.g. "Dryau Aowsy" --> ["Dry","au","Ao","wsy"]
 def get_fragments(sector_name):
-  input = sector_name.replace(' ', '')
+  sector_name = sector_name.replace(' ', '')
   segments = []
-  current_str = input
+  current_str = sector_name
   while len(current_str) > 0:
     found = False
     for frag in pgdata.cx_fragments:
@@ -215,17 +214,6 @@ def c2_get_yz_candidates(frag0, frag2):
       yield {'frags': list(candidate['frags']), 'y': candidate['y'], 'z': candidate['z']}
 
 
-# Convenience function to get the right suffix list for a particular suffix
-def get_suffix_index(s):
-  if s in pgdata.cx_suffixes_s1:
-    return 1
-  if s in pgdata.cx_suffixes_s2:
-    return 2
-  if s in pgdata.cx_suffixes_s3:
-    return 3
-  return None
-
-
 # Get the name of a class 2 sector based on its position
 def c2_get_name(sector):
   # For each set of prefix combinations going upwards in Z...
@@ -251,19 +239,19 @@ def c1_get_run(input):
   suff_index = suffixes.index(frags[-1])
   if suff_index + 1 >= len(suffixes):
     # Last suffix, jump to next prefix unless it's in overrides
-    if frags[-2] in c1_infix_rollover_overrides:
-      infixes = c1_get_infixes(frags[0:-2])
-      inf_index = infixes.index(frags[-2])
-      if inf_index + 1 >= len(infixes):
-        frags[-2] = infixes[0]
-      else:
-        frags[-2] = infixes[inf_index+1]
+    #if frags[-2] in c1_infix_rollover_overrides:
+    #  infixes = c1_get_infixes(frags[0:-2])
+    #  inf_index = infixes.index(frags[-2])
+    #  if inf_index + 1 >= len(infixes):
+    #    frags[-2] = infixes[0]
+    #  else:
+    #    frags[-2] = infixes[inf_index+1]
+    #else:
+    pre_index = pgdata.cx_prefixes.index(frags[0])
+    if pre_index + 1 >= len(pgdata.cx_prefixes):
+      frags[0] = pgdata.cx_prefixes[0]
     else:
-      pre_index = pgdata.cx_prefixes.index(frags[0])
-      if pre_index + 1 >= len(pgdata.cx_prefixes):
-        frags[0] = pgdata.cx_prefixes[0]
-      else:
-        frags[0] = pgdata.cx_prefixes[pre_index+1]
+      frags[0] = pgdata.cx_prefixes[pre_index+1]
     frags[-1] = suffixes[0]
   else:
     frags[-1] = suffixes[suff_index+1]
@@ -351,27 +339,7 @@ _init_time = time.clock() - _init_start
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "debug":
-      with open("edsm_data.txt") as f:
-        names = [n.strip() for n in f.readlines()]
-      
-      print(len(names))
-      
-      prefixes = {}
-      
-      for n in names:
-        frags = get_fragments(n)
-        sc = get_sector_class(n)
-        if sc != "2":
-          if frags[0] not in prefixes:
-            prefixes[frags[0]] = 1
-          if get_suffix_index(frags[-1]) is not None:
-            prefixes[frags[0]] += 1
-          else:
-            print("Bad sector: {0}".format(n))
-          
-      print(len(prefixes))
-      for p in pgdata.cx_prefixes:
-        print("{0}: {1}".format(p, prefixes[p] if p in prefixes else 0))
+      pass
 
     elif sys.argv[1] == "run1":
       input = sys.argv[2] # "Smooreau"
