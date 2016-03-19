@@ -118,15 +118,10 @@ cx_suffixes_s3 = [
   "lz", "nth", "phs"
 ]
 
-c2_suffixes_Eae = [
-  "b", "scs", "wsy", "c"
-]
-c2_suffixes_Phl = [
-  "oe",  "io",  "oea", "oi",  "aa",  "ua", "eia", "ae",
-  "ooe", "oo",  "a",   "ue",  "ai"
-]
-
-
+c2_suffixes_Eae = c2_suffixes_s2[0:4]
+c2_suffixes_Phl = cx_suffixes_s1[0:13]
+c2_suffixes_Fly = cx_suffixes_s1[0:20]
+c2_suffixes_Ae  = c2_suffixes_s2[0:12]
 
 c1_suffixes = [
   None,
@@ -141,14 +136,16 @@ c2_suffixes = [
   c2_suffixes_s2,
   cx_suffixes_s3,
   c2_suffixes_Eae,
-  c2_suffixes_Phl
+  c2_suffixes_Phl,
+  c2_suffixes_Fly,
+  c2_suffixes_Ae
 ]
 
 c2_prefix_suffix_override_map = {
-  "Eo":  2, "Oo": 2, "Eu": 2,
-  "Ou":  2, "Ae": 2, "Ai": 2,
-  "Eae": 4, "Ao": 2, "Au": 2,
-  "Phl": 5
+  "Eo":  2,  "Oo": 2, "Eu": 2,
+  "Ou":  2,  "Ae": 7, "Ai": 2,
+  "Eae": 4,  "Ao": 2, "Au": 2,
+  "Phl": 5, "Fly": 6
 }
 
 c1_prefix_infix_override_map = {
@@ -221,14 +218,6 @@ c2_word2_y_mapping = {
   "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
  "Chr": [("Bl","ai"), ("Bl","aa"), ("Bl","ai"), ("Chr","aea"), ("Chr","aae"), ("Chr","aea")],
   "Br": [("Gr","uia"), ("Gr","eae"), ("Gr","uia"), ("Br","oo"), ("Br","uae"), ("Br","oo")]
-}
-
-c2_word1_overrides = {
-}
-
-c2_word2_overrides = {
-  ("Ae","nts"): ("Sch","oe"),
-  ("Fly","au"): ("Pl","oe"),
 }
 
 

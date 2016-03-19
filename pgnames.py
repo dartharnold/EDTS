@@ -262,11 +262,6 @@ def c2_get_run(input):
     frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
     frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
     
-    if (frags[0], frags[1]) in pgdata.c2_word1_overrides:
-      frags[0], frags[1] = pgdata.c2_word1_overrides[(frags[0], frags[1])]
-    if (frags[2], frags[3]) in pgdata.c2_word2_overrides:
-      frags[2], frags[3] = pgdata.c2_word2_overrides[(frags[2], frags[3])]
-    
     yield (i - sector.base_sector_coords[0], frags)
 
 
