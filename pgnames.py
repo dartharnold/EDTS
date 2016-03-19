@@ -25,22 +25,29 @@ _srp_rowlength = 128
 _srp_sidelength = _srp_rowlength**2
 
 # Get a star's relative position within a sector
-# Original version by Jackie Silver
+# Original version by Kay Johnston (CMDR Jackie Silver)
+# Note that in the form "Sector AB-C d3", the "3" is number2, NOT 1
 def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
+  if number1 is None:
+    number1 = 0
+
   position = int(number1) * _srp_biggest
-  
-  for letter in range(_srp_divisor):
-      if _srp_alphabet[letter] == suffix:
-          position += letter * _srp_middle
-          
-  for letter in range(_srp_divisor):
-      if _srp_alphabet[letter] == centre:
-          position += letter * _srp_divisor
-          
-  for letter in range(_srp_divisor):
-      if _srp_alphabet[letter] == prefix:
-          position += letter
-          
+
+  suffix_idx = _srp_alphabet.index(suffix.upper())
+  if suffix_idx is None:
+    return None
+  position += suffix_idx * _srp_middle
+
+  centre_idx = _srp_alphabet.index(centre.upper())
+  if centre_idx is None:
+    return None
+  position += centre_idx * _srp_divisor
+
+  prefix_idx = _srp_alphabet.index(prefix.upper())
+  if prefix_idx is None:
+    return None
+  position += prefix_idx
+
   working = position
 
   row = int(working / _srp_sidelength)
@@ -143,8 +150,11 @@ def c1_get_infixes(input):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
-  if frags[-1] in pgdata.cx_prefixes and frags[-1] in pgdata.c1_prefix_infix_override_map:
-    return pgdata.c1_infixes[pgdata.c1_prefix_infix_override_map[frags[-1]]]
+  if frags[-1] in pgdata.cx_prefixes:
+    if frags[-1] in pgdata.c1_prefix_infix_override_map:
+      return pgdata.c1_infixes[pgdata.c1_prefix_infix_override_map[frags[-1]]]
+    else:
+      return pgdata.c1_infixes[1]
   elif frags[-1] in pgdata.c1_infixes[1]:
     return pgdata.c1_infixes[2]
   elif frags[-1] in pgdata.c1_infixes[2]:
@@ -152,33 +162,6 @@ def c1_get_infixes(input):
   else:
     return None
 
-
-# TODO: Fix this, not currently correct
-def c1_get_next_sector(sect):
-  frags = get_fragments(sect) if util.is_str(sect) else sect
-  if frags is None:
-    return None
-  suffixes = get_suffixes(frags[0:-1])
-  suff_index = suffixes.index(frags[-1])
-  if suff_index + 1 >= len(suffixes):
-    # Last suffix, jump to next prefix unless it's in overrides
-    if frags[-2] in c1_infix_rollover_overrides:
-      infixes = c1_get_infixes(frags[0:-2])
-      inf_index = infixes.index(frags[-2])
-      if inf_index + 1 >= len(infixes):
-        frags[-2] = infixes[0]
-      else:
-        frags[-2] = infixes[inf_index+1]
-    else:
-      pre_index = pgdata.cx_prefixes.index(frags[0])
-      if pre_index + 1 >= len(pgdata.cx_prefixes):
-        frags[0] = pgdata.cx_prefixes[0]
-      else:
-        frags[0] = pgdata.cx_prefixes[pre_index+1]
-    frags[-1] = suffixes[0]
-  else:
-    frags[-1] = suffixes[suff_index+1]
-  return frags
 
 
 # Given a full system name, get its approximate coordinates
@@ -251,6 +234,35 @@ def c2_get_name(sector):
         if xpos == sector.x:
           return frags
   return None
+
+
+
+# TODO: Fix this, not currently correct
+def c1_get_run(input):
+  frags = get_fragments(input) if util.is_str(input) else input
+  if frags is None:
+    return None
+  suffixes = get_suffixes(frags[0:-1])
+  suff_index = suffixes.index(frags[-1])
+  if suff_index + 1 >= len(suffixes):
+    # Last suffix, jump to next prefix unless it's in overrides
+    if frags[-2] in c1_infix_rollover_overrides:
+      infixes = c1_get_infixes(frags[0:-2])
+      inf_index = infixes.index(frags[-2])
+      if inf_index + 1 >= len(infixes):
+        frags[-2] = infixes[0]
+      else:
+        frags[-2] = infixes[inf_index+1]
+    else:
+      pre_index = pgdata.cx_prefixes.index(frags[0])
+      if pre_index + 1 >= len(pgdata.cx_prefixes):
+        frags[0] = pgdata.cx_prefixes[0]
+      else:
+        frags[0] = pgdata.cx_prefixes[pre_index+1]
+    frags[-1] = suffixes[0]
+  else:
+    frags[-1] = suffixes[suff_index+1]
+  return frags
 
 
 # Get a full run of class 2 system names
@@ -360,11 +372,11 @@ if __name__ == '__main__':
       input = sys.argv[2] # "Smooreau"
       frags = get_fragments(input)
       
-      start_x = sector.base_coords.x - (int(sys.argv[3]) * 1280)
+      start_x = sector.base_coords.x - (39 * 1280)
       
       cur_idx = pgdata.cx_suffixes_s1.index(frags[-1])
       
-      for i in range(0, int(sys.argv[4])):
+      for i in range(0, int(sys.argv[3])):
         frags[-1] = pgdata.cx_suffixes_s1[cur_idx]
         print ("[{1}] {0}".format("".join(frags), start_x + (i * 1280)))
         if cur_idx + 1 == len(pgdata.cx_suffixes_s1):

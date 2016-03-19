@@ -1,10 +1,8 @@
 import re
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
-pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\\w)-(?P<suffix>\\w) (?P<lcode>\\w)(?P<number1>\\d+)(?:-(?P<number2>\\d+))?$')
+pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\\w)-(?P<suffix>\\w) (?P<lcode>\\w)(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
 
-
-# Actual data, should be accurate
 
 # Hopefully-complete list of valid name fragments / phonemes
 cx_raw_fragments = [
@@ -100,23 +98,19 @@ c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
 # Sequence 3
 cx_suffixes_s3 = [
-  "nd", "sc", "ng", "sh", "nk",
-  "sk", "nn", "ds", "sm", "sp", "ns",
-  # Formerly sequence 4a/5
-  "nt",
-  "dy", "ss", "st", "rrs", "xt", "nz", "sy", "xy",
-  "rsch", "rphs", "sts", "sys", "sty", "th", "tl", "tls",
-  "rds", "nch", "rns", "ts", "wls", "rnt", "tt", "rdy",
-  "rst", "pps", "tz", "tch", "sks", "ppy", "ff", "sps",
-  "kh", "sky", "ph", "lts", 
+  "nd", "sc", "ng", "sh", "nk", "sk", "nn", "ds",
+  "sm", "sp", "ns", "nt", "dy", "ss", "st", "rrs",
+  "xt", "nz", "sy", "xy", "rsch", "rphs", "sts", "sys",
+  "sty", "th", "tl", "tls", "rds", "nch", "rns", "ts",
+  "wls", "rnt", "tt", "rdy", "rst", "pps", "tz", "tch",
+  "sks", "ppy", "ff", "sps", "kh", "sky", "ph", "lts", 
   # Formerly sequence 4b/5
-  "wnst",
-  "rth", "ths", "fs", "pp", "ft", "ks", "pr", "ps",
-  "pt", "fy", "rts", "ky", "rshch", "mly", "py", "bb",
-  "nds", "wry", "zz", "nns", "ld", "lf", "gh", "lks",
-  "sly", "lk", "ll", "rph", "ln", "bs", "rsts", "gs",
-  "ls", "vvy", "lt", "rks", "qs", "rps", "gy", "wns",
-  "lz", "nth", "phs"
+  "wnst", "rth", "ths", "fs", "pp", "ft", "ks", "pr",
+  "ps", "pt", "fy", "rts", "ky", "rshch", "mly", "py",
+  "bb", "nds", "wry", "zz", "nns", "ld", "lf", "gh",
+  "lks", "sly", "lk", "ll", "rph", "ln", "bs", "rsts",
+  "gs", "ls", "vvy", "lt", "rks", "qs", "rps", "gy",
+  "wns", "lz", "nth", "phs"
 ]
 
 # These prefixes appear to use a restricted subset of suffixes
