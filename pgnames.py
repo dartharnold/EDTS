@@ -48,16 +48,14 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
     return None
   position += prefix_idx
 
-  working = position
+  row = int(position / _srp_sidelength)
+  position = position - (row * _srp_sidelength)
 
-  row = int(working / _srp_sidelength)
-  working = working - (row * _srp_sidelength)
+  stack = int(position / _srp_rowlength)
+  position = position - (stack * _srp_rowlength)
 
-  stack = int(working / _srp_rowlength)
-  working = working - (stack * _srp_rowlength)
+  column = position
 
-  column = working
-  
   cubeside = sector.cube_size / pow(2, ord('h') - ord(lcode.lower()))
   halfwidth = cubeside / 2
 
