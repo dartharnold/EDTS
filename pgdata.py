@@ -1,7 +1,7 @@
 import re
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
-pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>\\w)(?P<centre>\\w)-(?P<suffix>\\w) (?P<lcode>\\w)(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
+pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>[A-Za-z])(?P<centre>[A-Za-z])-(?P<suffix>[A-Za-z]) (?P<lcode>[A-Za-z])(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
 
 
 # Hopefully-complete list of valid name fragments / phonemes

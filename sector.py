@@ -25,11 +25,11 @@ class Sector(object):
 
   def __str__(self):
     x, y, z = self._v
-    return "Sector(%d, %d, %d)" % (x, y, z)
+    return "Sector({0}, {1}, {2})".format(x, y, z)
 
   def __repr__(self):
     x, y, z = self._v
-    return "Sector(%d, %d, %d)" % (x, y, z)
+    return "Sector({0}, {1}, {2})".format(x, y, z)
 
   def __len__(self):
     return 3

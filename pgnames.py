@@ -2,6 +2,8 @@
 
 from __future__ import print_function, division
 import logging
+import math
+import string
 import sys
 import time
 
@@ -15,8 +17,7 @@ app_name = "pgnames"
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger(app_name)
 
-_srp_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-_srp_divisor = len(_srp_alphabet)
+_srp_divisor = len(string.ascii_uppercase)
 _srp_middle = _srp_divisor**2
 _srp_biggest = _srp_divisor**3
 _srp_rowlength = 128
@@ -31,19 +32,25 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
 
   position = int(number1) * _srp_biggest
 
-  suffix_idx = _srp_alphabet.index(suffix.upper())
-  if suffix_idx is None:
-    return None
+  try:
+    suffix_idx = string.ascii_uppercase.index(suffix.upper())
+  except ValueError:
+    log.error("Invalid suffix provided to get_star_relative_position: {0}".format(suffix))
+    return None, None
   position += suffix_idx * _srp_middle
 
-  centre_idx = _srp_alphabet.index(centre.upper())
-  if centre_idx is None:
-    return None
+  try:
+    centre_idx = string.ascii_uppercase.index(centre.upper())
+  except ValueError:
+    log.error("Invalid centre provided to get_star_relative_position: {0}".format(centre))
+    return None, None
   position += centre_idx * _srp_divisor
 
-  prefix_idx = _srp_alphabet.index(prefix.upper())
-  if prefix_idx is None:
-    return None
+  try:
+    prefix_idx = string.ascii_uppercase.index(prefix.upper())
+  except ValueError:
+    log.error("Invalid prefix provided to get_star_relative_position: {0}".format(prefix))
+    return None, None
   position += prefix_idx
 
   row = int(position / _srp_sidelength)
@@ -69,7 +76,7 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
     log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. " \
       "Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
-  return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
+  return (vector3.Vector3(approx_x,approx_y,approx_z), cubeside)
 
 
 # Get a sector, either from its position or from its name
@@ -181,7 +188,10 @@ def get_coords_from_name(system_name):
   # Also get the +/- error bounds
   rel_pos, rel_pos_confidence = get_star_relative_position(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
 
-  return (abs_pos + rel_pos, rel_pos_confidence)
+  if abs_pos is not None and rel_pos is not None:
+    return (abs_pos + rel_pos, rel_pos_confidence)
+  else:
+    return (None, None)
 
 
 # Given a sector name, get a sector object representing it
@@ -385,19 +395,42 @@ if __name__ == '__main__':
       none1 = 0
       none2 = 0
       notpg = 0
+      
+      get_sector_avg = 0.0
+      get_sector_cnt = 0
+      get_coords_avg = 0.0
+      get_coords_cnt = 0
 
       for system in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(system.name)
         if m is not None and m.group("sector") in edsm_sectors:
+          start = time.clock()
           sect = get_sector(m.group("sector"))
+          tm = time.clock() - start
           if sect is not None:
+            get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
+            get_sector_cnt += 1
             pos_sect = get_sector(system.position)
             if sect == pos_sect:
-              ok += 1
+              start = time.clock()
+              coords, dist = get_coords_from_name(system.name)
+              tm = time.clock() - start
+              if coords is None or dist is None:
+                print("Could not parse system name {0}".format(system.name))
+                bad += 1
+                continue
+              get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
+              get_coords_cnt += 1
+              realdist = (coords - system.position).length
+              if realdist <= math.hypot(dist, dist):
+                ok += 1
+              else:
+                bad += 1
+                print("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, math.hypot(dist, dist), system.position, realdist, system.name))
             else:
               bad += 1
               bn = c2_get_name(sect)
-              print("Bad: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, "{0}{1} {2}{3}".format(bn[0], bn[1], bn[2], bn[3]), sect))
+              print("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, "{0}{1} {2}{3}".format(bn[0], bn[1], bn[2], bn[3]), sect))
           else:
             cls = get_sector_class(m.group("sector"))
             if cls == "2":
@@ -409,3 +442,4 @@ if __name__ == '__main__':
           notpg += 1
 
       print("Totals: OK = {0}, bad = {1}, none1 = {2}, none2 = {3}, notPG = {4}".format(ok, bad, none1, none2, notpg))
+      print("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
