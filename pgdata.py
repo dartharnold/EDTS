@@ -118,6 +118,15 @@ cx_suffixes_s3 = [
   "lz", "nth", "phs"
 ]
 
+c2_suffixes_Eae = [
+  "b", "scs", "wsy", "c"
+]
+c2_suffixes_Phl = [
+  "oe",  "io",  "oea", "oi",  "aa",  "ua", "eia", "ae",
+  "ooe", "oo",  "a",   "ue",  "ai"
+]
+
+
 
 c1_suffixes = [
   None,
@@ -130,13 +139,16 @@ c2_suffixes = [
   None,
   cx_suffixes_s1,
   c2_suffixes_s2,
-  cx_suffixes_s3
+  cx_suffixes_s3,
+  c2_suffixes_Eae,
+  c2_suffixes_Phl
 ]
 
 c2_prefix_suffix_override_map = {
   "Eo":  2, "Oo": 2, "Eu": 2,
   "Ou":  2, "Ae": 2, "Ai": 2,
-  "Eae": 2, "Ao": 2, "Au": 2
+  "Eae": 4, "Ao": 2, "Au": 2,
+  "Phl": 5
 }
 
 c1_prefix_infix_override_map = {
@@ -156,24 +168,24 @@ c1_infix_rollover_overrides = [
 # Commented values are the Phoneme 3 values at Y=0
 c2_positions_y0z_offset = 19
 c2_positions_y0z = [
-  (("Eo",  "Dry"), ("Th", "Eu")), # SPECULATION
-  (("Hyp", "Ph" ), ("Th", "Eu")),
-  (("Eo",  "Dry"), ("Ae", "Ai")),
-  (("Hyp", "Ph" ), ("Ae", "Ai")),
-  (("Pl",  "Pr" ), ("Th", "Eu")),
-  (("Bl",  "By" ), ("Th", "Eu")),
-  (("Pl",  "Pr" ), ("Ae", "Ai")),
-  (("Bl",  "By" ), ("Ae", "Ai")),
-  (("Eo",  "Dry"), ("Ao", "Au")),
-  (("Hyp", "Ph" ), ("Ao", "Au")),
-  (("Eo",  "Dry"), ("Ch", "Br")),
-  (("Hyp", "Ph" ), ("Ch", "Br")),
-  (("Pl",  "Pr" ), ("Ao", "Au")),
-  (("Bl",  "By" ), ("Ao", "Au")),
-  (("Pl",  "Pr" ), ("Ch", "Br")),
-  (("Bl",  "By" ), ("Ch", "Br")),
-  (("Ch",  "Py" ), ("Th", "Eu")),
-  (("Syr", "My" ), ("Th", "Eu"))
+  (("Eo",  "Dry"), ("Th",  "Eu")), # SPECULATION
+  (("Hyp", "Ph" ), ("Th",  "Eu")),
+  (("Eo",  "Dry"), ("Ae",  "Ai")),
+  (("Hyp", "Ph" ), ("Ae",  "Ai")),
+  (("Pl",  "Pr" ), ("Th",  "Eu")),
+  (("Bl",  "By" ), ("Th",  "Eu")),
+  (("Pl",  "Pr" ), ("Ae",  "Ai")),
+  (("Bl",  "By" ), ("Ae",  "Ai")),
+  (("Eo",  "Dry"), ("Ao",  "Au")),
+  (("Hyp", "Ph" ), ("Ao",  "Au")),
+  (("Eo",  "Dry"), ("Chr", "Br")),
+  (("Hyp", "Ph" ), ("Chr", "Br")),
+  (("Pl",  "Pr" ), ("Ao",  "Au")),
+  (("Bl",  "By" ), ("Ao",  "Au")),
+  (("Pl",  "Pr" ), ("Chr", "Br")),
+  (("Bl",  "By" ), ("Chr", "Br")),
+  (("Ch",  "Pyr"), ("Th",  "Eu")),
+  (("Syr", "My" ), ("Th",  "Eu"))
 ]
 
 def get_c2_positions():
@@ -194,26 +206,29 @@ c2_word1_y_mapping = {
    "Pr": [("Au","rk"), ("Pr","ua"), ("Pr","ua"), ("Pr","o"), ("Pr","o"), ("Hyph","oea")],
    "Bl": [("Tyr","e"), ("Bl","aa"), ("Bl","aa"), ("Bl","au"), ("Bl","au"), ("Cry","io")],
    "By": [("Gr","eia"), ("Gr","eae"), ("Gr","eae"), ("By","oi"), ("By","oi"), ("By","ao")],
-   "Ch": [],
-   "Py": [],
-  "Syr": [],
-   "My": []
+   "Ch": [(None,None), ("Ch","oi"), ("Ch","oi"), ("Ch","ao"), ("Ch","ao"), (None,None)], # [4] is speculative
+  "Pyr": [(None,None), ("Pyr","ae"), ("Pyr","ae"), ("Pyr","u"), ("Pyr","u"), (None,None)], # [1] and [4] are speculative
+  "Syr": [(None,None), ("Str","uia"), ("Str","uia"), ("Syr","ue"), ("Syr","ue"), (None,None)], # [1] and [4] are speculative
+   "My": [(None,None), ("Hy","eae"), ("Hy","eae"), ("My","oi"), ("My","oi"), (None,None)] # [1] and [4] are speculative
 }
 
 c2_word2_y_mapping = {
-  "Th": [(None,None), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), (None,None)],
-  "Eu": [(None,None), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), (None,None)],
-  "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","aae"), ("Ae","vsky"), ("Phl","aae")],
+  "Th": [("Eo","rg"), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), ("Th","oe")], # [0] and [5] are speculative
+  "Eu": [("Dry","oo"), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), ("Eu","n")], # [0] and [5] are speculative
+  "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","a"), ("Ae","vsky"), ("Phl","a")],
   "Ai": [("Phr","ee"), ("Phr","io"), ("Phr","ee"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")], # Eae --> Phr
   "Ao": [("Fly","e"), ("Fly","ua"), ("Fly","e"), ("Fl","aae"), ("Scr","oe"), ("Fl","aae")], # Fl --> Ao
   "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
-  "Ch": [],
-  "Br": []
+ "Chr": [("Bl","ai"), ("Bl","aa"), ("Bl","ai"), ("Chr","aea"), ("Chr","aae"), ("Chr","aea")],
+  "Br": [("Gr","uia"), ("Gr","eae"), ("Gr","uia"), ("Br","oo"), ("Br","uae"), ("Br","oo")]
+}
+
+c2_word1_overrides = {
 }
 
 c2_word2_overrides = {
-  # "Eo": {"rn": ["Oo", "b"], "ct": ["Oo", "scs"]}
-  ("Ae","nts"): ("Sch","oe")
+  ("Ae","nts"): ("Sch","oe"),
+  ("Fly","au"): ("Pl","oe"),
 }
 
 

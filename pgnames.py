@@ -244,9 +244,9 @@ def c2_get_run(input):
     idx1 = i % len(pgdata.c2_run_states)
     
     # Calculate the current base index
-    # (in case we've done a full run and are onto the next set of phoneme 3s)
-    cur_base_0 = 0
-    cur_base_1 = int(i / len(pgdata.c2_run_states)) * 8
+    # (in case we've done a full run and are onto the next set of phoneme 1s)
+    cur_base_0 = int(i / len(pgdata.c2_run_states)) * 8
+    cur_base_1 = 0
     
     # Ensure we have all the suffixes we need, and add the next set if not
     if (cur_base_0 + pgdata.c2_run_states[idx0][0]) >= len(suffixes_0):
@@ -261,6 +261,12 @@ def c2_get_run(input):
     # Set current fragments
     frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
     frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
+    
+    if (frags[0], frags[1]) in pgdata.c2_word1_overrides:
+      frags[0], frags[1] = pgdata.c2_word1_overrides[(frags[0], frags[1])]
+    if (frags[2], frags[3]) in pgdata.c2_word2_overrides:
+      frags[2], frags[3] = pgdata.c2_word2_overrides[(frags[2], frags[3])]
+    
     yield (i - sector.base_sector_coords[0], frags)
 
 
@@ -378,6 +384,7 @@ if __name__ == '__main__':
             cls = get_sector_class(m.group("sector"))
             if cls == "2":
               none2 += 1
+              print("None2: {0} @ {1}".format(system.name, system.position))
             else:
               none1 += 1
         else:
