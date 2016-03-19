@@ -15,6 +15,7 @@ import vector3
 
 app_name = "pgnames"
 
+logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger(app_name)
 
 _srp_alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
@@ -62,6 +63,12 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
   approx_x = (column * cubeside) + halfwidth
   approx_y = (stack * cubeside) + halfwidth
   approx_z = (row * cubeside) + halfwidth
+  
+  if (approx_x < 0 or approx_x > sector.cube_size
+   or approx_y < 0 or approx_y > sector.cube_size
+   or approx_z < 0 or approx_z > sector.cube_size):
+    input_star = "{0}{1}-{2} {3}{4}".format(prefix, centre, suffix, lcode, "{0}-{1}".format(number1, number2) if number1 > 0 else number2)
+    log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
   return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
 
