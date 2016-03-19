@@ -44,7 +44,7 @@ cx_raw_fragments = [
 # Sort fragments by length to ensure we check the longest ones first
 cx_fragments = sorted(cx_raw_fragments, key=len, reverse=True)
 
-# Not sure if order here is relevant
+# Order here is relevant, keep it
 cx_prefixes = cx_raw_fragments[0:111]
 
 #
@@ -95,6 +95,7 @@ c1_suffixes_s2 = [
   "my", "ry", "nks"
 ]
 
+# Class 2 appears to use a subset of sequence 2
 c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
 # Sequence 3
@@ -118,6 +119,7 @@ cx_suffixes_s3 = [
   "lz", "nth", "phs"
 ]
 
+# These prefixes appear to use a restricted subset of suffixes
 c2_suffixes_Eae = c2_suffixes_s2[0:4]
 c2_suffixes_Phl = cx_suffixes_s1[0:13]
 c2_suffixes_Fly = cx_suffixes_s1[0:20]
@@ -141,6 +143,7 @@ c2_suffixes = [
   c2_suffixes_Ae
 ]
 
+# These prefixes use the specified index into the c2_suffixes list
 c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
   "Ou":  2,  "Ae": 7, "Ai": 2,
@@ -148,6 +151,7 @@ c2_prefix_suffix_override_map = {
   "Phl": 5, "Fly": 6
 }
 
+# These prefixes use the specified index into the c1_infixes list
 c1_prefix_infix_override_map = {
   "Eo": 2, "Oo":  2, "Eu":  2, "Ou": 2,
   "Ae": 2, "Ai":  2, "Eae": 2, "Ao": 2,
@@ -161,8 +165,7 @@ c1_infix_rollover_overrides = [
 ]
 
 
-# Phoneme 1, from the "near" side of the galaxy to the far side
-# Commented values are the Phoneme 3 values at Y=0
+# Phonemes 1 and 3, from the "near" side of the galaxy to the far side
 c2_positions_y0z_offset = 19
 c2_positions_y0z = [
   (("Eo",  "Dry"), ("Th",  "Eu")), # SPECULATION
@@ -185,6 +188,7 @@ c2_positions_y0z = [
   (("Syr", "My" ), ("Th",  "Eu"))
 ]
 
+# Generator to return the C2 positions in order
 def get_c2_positions():
   for idx, pair in enumerate(c2_positions_y0z):
     yield ((pair[0][0], pair[1][0]), (idx*4)+0-c2_positions_y0z_offset)
@@ -193,7 +197,9 @@ def get_c2_positions():
     yield ((pair[0][1], pair[1][1]), (idx*4)+3-c2_positions_y0z_offset)
 
 
+# This is the index which Y=0 is at
 c2_y_mapping_offset = 3
+# Mapping of word 1 prefixes to start points at different Y levels
 c2_word1_y_mapping = {
    "Eo": [("Th","aae"), ("Eo","ch"), ("Eo","ch"), ("Eo","rl"), ("Eo","rl"), ("Oo","rb")],
   "Dry": [("Tr","aea"), ("Dry","io"), ("Dry","io"), ("Dry","uae"), ("Dry","uae"), ("Dry","eau")],
@@ -209,11 +215,12 @@ c2_word1_y_mapping = {
    "My": [(None,None), ("Hy","eae"), ("Hy","eae"), ("My","oi"), ("My","oi"), (None,None)] # [1] and [4] are speculative
 }
 
+# Mapping of word 2 prefixes to start points at different Y levels
 c2_word2_y_mapping = {
   "Th": [("Eo","rg"), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), ("Th","oe")], # [0] and [5] are speculative
   "Eu": [("Dry","oo"), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), ("Eu","n")], # [0] and [5] are speculative
   "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","a"), ("Ae","vsky"), ("Phl","a")],
-  "Ai": [("Phr","ee"), ("Phr","io"), ("Phr","ee"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")], # Eae --> Phr
+  "Ai": [("Phr","ee"), ("Phr","io"), ("Phr","ee"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")],
   "Ao": [("Fly","e"), ("Fly","ua"), ("Fly","e"), ("Fl","aae"), ("Scr","oe"), ("Fl","aae")], # Fl --> Ao
   "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
  "Chr": [("Bl","ai"), ("Bl","aa"), ("Bl","ai"), ("Chr","aea"), ("Chr","aae"), ("Chr","aea")],
@@ -225,10 +232,6 @@ c2_word2_y_mapping = {
 # C1: how to decide whether to increment phoneme 1 or 3?
 
 # Kueloe + 2 stacks = Pueloe
-
-# More checkerboards on long runs?
-# Plaa Aowsy --> Plaa Scrua --> Plua Aowsy
-
 
 # Index modifiers for all states
 # In pairs of (phoneme 1, phoneme 3)
