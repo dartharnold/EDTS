@@ -73,10 +73,10 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
    or approx_z < 0 or approx_z > sector.cube_size):
     input_star = "{0}{1}-{2} {3}{4}".format(
       prefix, centre, suffix, lcode, "{0}-{1}".format(number1, number2) if number1 > 0 else number2)
-    log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. " \
+    log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. "
       "Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
-  return (vector3.Vector3(approx_x,approx_y,approx_z), cubeside)
+  return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
 
 
 # Get a sector, either from its position or from its name
@@ -422,11 +422,12 @@ if __name__ == '__main__':
               get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
               get_coords_cnt += 1
               realdist = (coords - system.position).length
-              if realdist <= math.hypot(dist, dist):
+              limit = math.sqrt(dist*dist*3)
+              if realdist <= limit:
                 ok += 1
               else:
                 bad += 1
-                print("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, math.hypot(dist, dist), system.position, realdist, system.name))
+                print("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
             else:
               bad += 1
               bn = c2_get_name(sect)
