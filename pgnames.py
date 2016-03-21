@@ -17,9 +17,9 @@ app_name = "pgnames"
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger(app_name)
 
-_srp_divisor = len(string.ascii_uppercase)
-_srp_middle = _srp_divisor**2
-_srp_biggest = _srp_divisor**3
+_srp_divisor1 = len(string.ascii_uppercase)
+_srp_divisor2 = _srp_divisor1**2
+_srp_divisor3 = _srp_divisor1**3
 _srp_rowlength = 128
 _srp_sidelength = _srp_rowlength**2
 
@@ -30,34 +30,16 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
   if number1 is None:
     number1 = 0
 
-  position = int(number1) * _srp_biggest
+  position  = _srp_divisor3 * int(number1)
+  position += _srp_divisor2 * string.ascii_uppercase.index(suffix.upper())
+  position += _srp_divisor1 * string.ascii_uppercase.index(centre.upper())
+  position +=                 string.ascii_uppercase.index(prefix.upper())
 
-  try:
-    suffix_idx = string.ascii_uppercase.index(suffix.upper())
-  except ValueError:
-    log.error("Invalid suffix provided to get_star_relative_position: {0}".format(suffix))
-    return None, None
-  position += suffix_idx * _srp_middle
+  row = int(position // _srp_sidelength)
+  position -= (row * _srp_sidelength)
 
-  try:
-    centre_idx = string.ascii_uppercase.index(centre.upper())
-  except ValueError:
-    log.error("Invalid centre provided to get_star_relative_position: {0}".format(centre))
-    return None, None
-  position += centre_idx * _srp_divisor
-
-  try:
-    prefix_idx = string.ascii_uppercase.index(prefix.upper())
-  except ValueError:
-    log.error("Invalid prefix provided to get_star_relative_position: {0}".format(prefix))
-    return None, None
-  position += prefix_idx
-
-  row = int(position / _srp_sidelength)
-  position = position - (row * _srp_sidelength)
-
-  stack = int(position / _srp_rowlength)
-  position = position - (stack * _srp_rowlength)
+  stack = int(position // _srp_rowlength)
+  position -= (stack * _srp_rowlength)
 
   column = position
 
@@ -112,6 +94,14 @@ def get_fragments(sector_name):
     return segments
   else:
     return None
+
+
+# Format a given set of fragments into a full name
+def format_name(frags):
+  if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
+    return "{0}{1} {2}{3}".format(*frags)
+  else:
+    return "".join(frags)
 
 
 # Get the class of the sector
@@ -186,10 +176,10 @@ def get_coords_from_name(system_name):
   abs_pos = sect.origin
   # Get the relative position of the star within the sector
   # Also get the +/- error bounds
-  rel_pos, rel_pos_confidence = get_star_relative_position(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
+  rel_pos, rel_pos_error = get_star_relative_position(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
 
   if abs_pos is not None and rel_pos is not None:
-    return (abs_pos + rel_pos, rel_pos_confidence)
+    return (abs_pos + rel_pos, rel_pos_error)
   else:
     return (None, None)
 
@@ -206,7 +196,7 @@ def get_sector_from_name(sector_name):
     for candidate in c2_get_yz_candidates(frags[0], frags[2]):
       for idx, testfrags in c2_get_run(candidate['frags']):
         if testfrags == frags:
-          return sector.Sector(idx, candidate['y'], candidate['z'], "{0}{1} {2}{3}".format(*frags))
+          return sector.Sector(idx, candidate['y'], candidate['z'], format_name(frags))
     return None
   elif sc == "1a":
     # TODO
@@ -377,7 +367,7 @@ if __name__ == '__main__':
         if limit is not None and (idx + sector.base_sector_coords[0]) >= limit:
           break
         x = sector.base_coords.x + (idx * sector.cube_size)
-        print ("[{4}/{5}] {0}{1} {2}{3}".format(frags[0], frags[1], frags[2], frags[3], idx, x))
+        print ("[{1}/{2}] {0}".format(format_name(frags), idx, x))
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
@@ -431,7 +421,7 @@ if __name__ == '__main__':
             else:
               bad += 1
               bn = c2_get_name(sect)
-              print("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, "{0}{1} {2}{3}".format(bn[0], bn[1], bn[2], bn[3]), sect))
+              print("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, format_name(bn), sect))
           else:
             cls = get_sector_class(m.group("sector"))
             if cls == "2":
