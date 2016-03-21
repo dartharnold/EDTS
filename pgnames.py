@@ -444,3 +444,41 @@ if __name__ == '__main__':
 
       print("Totals: OK = {0}, bad = {1}, none1 = {2}, none2 = {3}, notPG = {4}".format(ok, bad, none1, none2, notpg))
       print("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
+
+    elif sys.argv[1] == "eddbspaff":
+      import env
+      
+      with open("edsm_data.txt") as f:
+        edsm_sectors = [s.strip() for s in f.readlines() if len(s) > 1]
+
+      y_levels = {}
+      
+      for system in env.data.eddb_systems:
+        m = pgdata.pg_system_regex.match(system.name)
+        if m is not None and m.group("sector") in edsm_sectors:
+          sname = m.group("sector")
+          cls = get_sector_class(m.group("sector"))
+          if cls != "2":
+            sect = get_sector(system.position)
+            if sect.y not in y_levels:
+              y_levels[sect.y] = {}
+            if sect.z not in y_levels[sect.y]:
+              y_levels[sect.y][sect.z] = {}
+            if sect.x not in y_levels[sect.y][sect.z]:
+              y_levels[sect.y][sect.z][sect.x] = {}
+            if sname not in y_levels[sect.y][sect.z][sect.x]:
+              y_levels[sect.y][sect.z][sect.x][sname] = 0
+            y_levels[sect.y][sect.z][sect.x][sname] += 1
+
+      xcount = sector.galaxy_sector_counts[0]
+      zcount = sector.galaxy_sector_counts[2]
+      for y in y_levels:
+        with open("sectors_{0}.csv".format(y), 'w') as f:
+          for z in range(zcount - sector.base_sector_coords[2], -sector.base_sector_coords[2], -1):
+            zvalues = ["" for _ in range(xcount)]
+            if z in y_levels[y]:
+              for x in range(-sector.base_sector_coords[0], xcount - sector.base_sector_coords[0], 1):
+                if x in y_levels[y][z]:
+                  zvalues[x + sector.base_sector_coords[0]] = max(y_levels[y][z][x], key=lambda t: y_levels[y][z][x][t])
+            f.write(",".join(zvalues) + "\n")
+            
