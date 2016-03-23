@@ -90,28 +90,23 @@ c1_suffixes_s2 = [
   "s", "cs", "wyg", "rn", "ct", "t", "hs", "rbs",
   "rp", "tts", "v", "wn", "ms", "w", "rr", "mt",
   "x", "rs", "cy", "y", "rt", "z", "ws", "lch", # "y" is speculation
-  "my", "ry", "nks"
+  "my", "ry", "nks", "nd", "sc", "ng", "sh", "nk",
+  "sk", "nn", "ds", "sm", "sp", "ns", "nt", "dy",
+  "ss", "st", "rrs", "xt", "nz", "sy", "xy", "rsch",
+  "rphs", "sts", "sys", "sty", "th", "tl", "tls", "rds",
+  "nch", "rns", "ts", "wls", "rnt", "tt", "rdy", "rst",
+  "pps", "tz", "tch", "sks", "ppy", "ff", "sps", "kh",
+  "sky", "ph", "lts", "wnst", "rth", "ths", "fs", "pp",
+  "ft", "ks", "pr", "ps", "pt", "fy", "rts", "ky",
+  "rshch", "mly", "py", "bb", "nds", "wry", "zz", "nns",
+  "ld", "lf", "gh", "lks", "sly", "lk", "ll", "rph",
+  "ln", "bs", "rsts", "gs", "ls", "vvy", "lt", "rks",
+  "qs", "rps", "gy", "wns", "lz", "nth", "phs"
 ]
 
 # Class 2 appears to use a subset of sequence 2
 c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
-# Sequence 3
-cx_suffixes_s3 = [
-  "nd", "sc", "ng", "sh", "nk", "sk", "nn", "ds",
-  "sm", "sp", "ns", "nt", "dy", "ss", "st", "rrs",
-  "xt", "nz", "sy", "xy", "rsch", "rphs", "sts", "sys",
-  "sty", "th", "tl", "tls", "rds", "nch", "rns", "ts",
-  "wls", "rnt", "tt", "rdy", "rst", "pps", "tz", "tch",
-  "sks", "ppy", "ff", "sps", "kh", "sky", "ph", "lts", 
-  # Formerly sequence 4b/5
-  "wnst", "rth", "ths", "fs", "pp", "ft", "ks", "pr",
-  "ps", "pt", "fy", "rts", "ky", "rshch", "mly", "py",
-  "bb", "nds", "wry", "zz", "nns", "ld", "lf", "gh",
-  "lks", "sly", "lk", "ll", "rph", "ln", "bs", "rsts",
-  "gs", "ls", "vvy", "lt", "rks", "qs", "rps", "gy",
-  "wns", "lz", "nth", "phs"
-]
 
 # These prefixes appear to use a restricted subset of suffixes
 c2_suffixes_Eae = c2_suffixes_s2[0:4]
@@ -122,15 +117,13 @@ c2_suffixes_Ae  = c2_suffixes_s2[0:12]
 c1_suffixes = [
   None,
   cx_suffixes_s1,
-  c1_suffixes_s2,
-  cx_suffixes_s3
+  c1_suffixes_s2
 ]
 
 c2_suffixes = [
   None,
   cx_suffixes_s1,
   c2_suffixes_s2,
-  cx_suffixes_s3,
   c2_suffixes_Eae,
   c2_suffixes_Phl,
   c2_suffixes_Fly,
@@ -140,9 +133,9 @@ c2_suffixes = [
 # These prefixes use the specified index into the c2_suffixes list
 c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
-  "Ou":  2,  "Ae": 7, "Ai": 2,
-  "Eae": 4,  "Ao": 2, "Au": 2,
-  "Phl": 5, "Fly": 6
+  "Ou":  2,  "Ae": 6, "Ai": 2,
+  "Eae": 3,  "Ao": 2, "Au": 2,
+  "Phl": 4, "Fly": 5
 }
 
 # These prefixes use the specified index into the c1_infixes list
