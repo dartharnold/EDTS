@@ -155,7 +155,7 @@ c1_infix_rollover_overrides = [
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side
 c2_positions_y0z_offset = 19
 c2_positions_y0z = [
-  (("Eo",  "Dry"), ("Th",  "Eu")), # SPECULATION
+  (("Eo",  "Dry"), ("Th",  "Eu")), # Speculation
   (("Hyp", "Ph" ), ("Th",  "Eu")),
   (("Eo",  "Dry"), ("Ae",  "Ai")),
   (("Hyp", "Ph" ), ("Ae",  "Ai")),
@@ -172,7 +172,9 @@ c2_positions_y0z = [
   (("Pl",  "Pr" ), ("Chr", "Br")),
   (("Bl",  "By" ), ("Chr", "Br")),
   (("Ch",  "Pyr"), ("Th",  "Eu")),
-  (("Syr", "My" ), ("Th",  "Eu"))
+  (("Syr", "My" ), ("Th",  "Eu")),
+  (("Ch",  "Pyr"), ("Ae",  "Ai")), # Speculation
+  (("Syr", "My" ), ("Ae",  None))  # Speculation
 ]
 
 # Generator to return the C2 positions in order
@@ -180,8 +182,9 @@ def get_c2_positions():
   for idx, pair in enumerate(c2_positions_y0z):
     yield ((pair[0][0], pair[1][0]), (idx*4)+0-c2_positions_y0z_offset)
     yield ((pair[0][1], pair[1][0]), (idx*4)+1-c2_positions_y0z_offset)
-    yield ((pair[0][0], pair[1][1]), (idx*4)+2-c2_positions_y0z_offset)
-    yield ((pair[0][1], pair[1][1]), (idx*4)+3-c2_positions_y0z_offset)
+    if pair[1][1] is not None:
+      yield ((pair[0][0], pair[1][1]), (idx*4)+2-c2_positions_y0z_offset)
+      yield ((pair[0][1], pair[1][1]), (idx*4)+3-c2_positions_y0z_offset)
 
 
 # This is the index which Y=0 is at
