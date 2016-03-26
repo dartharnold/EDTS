@@ -168,10 +168,10 @@ def c1_get_infixes(input):
 
 
 def get_prefix_run_length(prefix):
-  if prefix in pgdata.c1_prefix_length_overrides:
-    return pgdata.c1_prefix_length_overrides[prefix]
+  if prefix in pgdata.cx_prefix_length_overrides:
+    return pgdata.cx_prefix_length_overrides[prefix]
   else:
-    return pgdata.c1_prefix_length_default
+    return pgdata.cx_prefix_length_default
 
 
 # Given a full system name, get its approximate coordinates
@@ -238,35 +238,6 @@ def c2_get_name(sector):
             return frags
   return None
 
-
-
-# TODO: Fix this, not currently correct
-def c1_get_run(input):
-  frags = get_fragments(input) if util.is_str(input) else input
-  if frags is None:
-    return None
-  suffixes = get_suffixes(frags[0:-1])
-  suff_index = suffixes.index(frags[-1])
-  if suff_index + 1 >= len(suffixes):
-    # Last suffix, jump to next prefix unless it's in overrides
-    #if frags[-2] in c1_infix_rollover_overrides:
-    #  infixes = c1_get_infixes(frags[0:-2])
-    #  inf_index = infixes.index(frags[-2])
-    #  if inf_index + 1 >= len(infixes):
-    #    frags[-2] = infixes[0]
-    #  else:
-    #    frags[-2] = infixes[inf_index+1]
-    #else:
-    pre_index = pgdata.cx_prefixes.index(frags[0])
-    if pre_index + 1 >= len(pgdata.cx_prefixes):
-      frags[0] = pgdata.cx_prefixes[0]
-    else:
-      frags[0] = pgdata.cx_prefixes[pre_index+1]
-    frags[-1] = suffixes[0]
-  else:
-    frags[-1] = suffixes[suff_index+1]
-  return frags
-
   
 def c1_get_single_run(input, length = None):
   frags = get_fragments(input) if util.is_str(input) else input
@@ -274,10 +245,7 @@ def c1_get_single_run(input, length = None):
     return
   
   if length is None:
-    if frags[0] in pgdata.c1_prefix_length_overrides:
-      length = pgdata.c1_prefix_length_overrides[frags[0]]
-    else:
-      length = pgdata.c1_prefix_length_default
+    length = get_prefix_run_length(frags[0])
   
   # Get the initial frag lists
   frag2list_full = c1_get_infixes(frags[0:-2])
@@ -297,14 +265,11 @@ def c1_get_single_run(input, length = None):
 
 
 # TODO: More work on this, currently quite simplistic
-def c1_get_extended_run(input, length):
-  frags = get_fragments(input) if util.is_str(input) else input
-  if frags is None:
-    return
+def c1_get_extended_run(length = 1248):
+  frags = ["Th", "o", "ll", "oe"]
   
-  start_prefix_idx = pgdata.cx_prefixes.index(frags[0])
   for i in range(0, length):
-    prefix = pgdata.cx_prefixes[(start_prefix_idx + i) % len(pgdata.cx_prefixes)]
+    prefix = pgdata.cx_prefixes[i % len(pgdata.cx_prefixes)]
     for (j, name) in c1_get_single_run([prefix, frags[1], frags[2], frags[3]]):
       yield (i, j, name)
 
@@ -456,7 +421,29 @@ if __name__ == '__main__':
         x = sector.base_coords.x + (idx * sector.cube_size)
         print ("[{1}/{2}] {0}".format(format_name(frags), idx, x))
         
-        
+      
+    elif sys.argv[1] == "fr1":
+      limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
+      
+      x = -sector.base_sector_coords[0]
+      y = -8
+      z = -sector.base_sector_coords[2]
+      count = 0
+      ok = 0
+      bad = 0
+      for (i, j, name) in c1_get_extended_run():
+        print("[{0},{1},{2}] {3}".format(x, y, z, name))
+        x += 1
+        if x >= 89:
+          y += 1
+          if y >= 8:
+            y = -8
+            z += 1
+        if count + 1 > limit:
+          break
+        count += 1
+      # print("Count: {0}, OK: {1}, bad: {2}".format(count, ok, bad))
+      
     elif sys.argv[1] == "fr2":
       limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
       

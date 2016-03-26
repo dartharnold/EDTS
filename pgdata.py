@@ -108,14 +108,6 @@ c1_suffixes_s2 = [
 c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
 
-# These prefixes appear to use a restricted subset of suffixes
-c2_suffixes_Eae = c2_suffixes_s2[0:4]
-c2_suffixes_Phl = cx_suffixes_s1[0:13]
-c2_suffixes_Fly = cx_suffixes_s1[0:20]
-c2_suffixes_Ae  = c2_suffixes_s2[0:12]
-c2_suffixes_Phr = cx_suffixes_s1[0:10]
-c2_suffixes_Sly = cx_suffixes_s1[0:4]
-
 c1_suffixes = [
   None,
   cx_suffixes_s1,
@@ -125,22 +117,15 @@ c1_suffixes = [
 c2_suffixes = [
   None,
   cx_suffixes_s1,
-  c2_suffixes_s2,
-  c2_suffixes_Eae,
-  c2_suffixes_Phl,
-  c2_suffixes_Fly,
-  c2_suffixes_Ae,
-  c2_suffixes_Phr,
-  c2_suffixes_Sly
+  c2_suffixes_s2
 ]
 
 # These prefixes use the specified index into the c2_suffixes list
 c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
-  "Ou":  2,  "Ae": 6, "Ai": 2,
-  "Eae": 3,  "Ao": 2, "Au": 2,
-  "Aae": 2, "Phl": 4, "Fly": 5,
-  "Phr": 7, "Sly": 8
+  "Ou":  2,  "Ae": 2, "Ai": 2,
+  "Eae": 2,  "Ao": 2, "Au": 2,
+  "Aae": 2
 }
 
 # These prefixes use the specified index into the c1_infixes list
@@ -153,10 +138,11 @@ c1_prefix_infix_override_map = {
 }
 
 
-c1_prefix_length_default = 35
-c1_prefix_length_overrides = {
+cx_prefix_length_default = 35
+cx_prefix_length_overrides = {
    'Tz':  1, 'Shr': 11, 'Myr':  4, 'Lys': 10,
-   'Pyth': 1, 'Schr': 3,
+   'Pyth': 1, 'Schr': 3, 'Eae': 4, 'Phl': 13,
+   'Fly': 20, 'Ae': 12, 'Phr': 10,
    # Unconfirmed
   'Sly':  4, 'Hyph': 13, 'Py': 13, 'Scr': 24,
   'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 7,
