@@ -113,6 +113,7 @@ c2_suffixes_Eae = c2_suffixes_s2[0:4]
 c2_suffixes_Phl = cx_suffixes_s1[0:13]
 c2_suffixes_Fly = cx_suffixes_s1[0:20]
 c2_suffixes_Ae  = c2_suffixes_s2[0:12]
+c2_suffixes_Phr = cx_suffixes_s1[0:10]
 
 c1_suffixes = [
   None,
@@ -127,7 +128,8 @@ c2_suffixes = [
   c2_suffixes_Eae,
   c2_suffixes_Phl,
   c2_suffixes_Fly,
-  c2_suffixes_Ae
+  c2_suffixes_Ae,
+  c2_suffixes_Phr
 ]
 
 # These prefixes use the specified index into the c2_suffixes list
@@ -135,7 +137,7 @@ c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
   "Ou":  2,  "Ae": 6, "Ai": 2,
   "Eae": 3,  "Ao": 2, "Au": 2,
-  "Phl": 4, "Fly": 5
+  "Phl": 4, "Fly": 5, "Phr": 7
 }
 
 # These prefixes use the specified index into the c1_infixes list
@@ -219,7 +221,7 @@ c2_word2_y_mapping = {
   "Th": [("Eo","rg"), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), ("Th","oe")], # [0] and [5] are speculative
   "Eu": [("Dry","oo"), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), ("Eu","n")], # [0] and [5] are speculative
   "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","a"), ("Ae","vsky"), ("Phl","a")],
-  "Ai": [("Phr","ee"), ("Phr","io"), ("Phr","ee"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")],
+  "Ai": [("Phr","oo"), ("Phr","io"), ("Phr","oo"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")],
   "Ao": [("Fly","e"), ("Fly","ua"), ("Fly","e"), ("Fl","aae"), ("Scr","oe"), ("Fl","aae")], # Fl --> Ao
   "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
  "Chr": [("Bl","ai"), ("Bl","aa"), ("Bl","ai"), ("Chr","aea"), ("Chr","aae"), ("Chr","aea")],

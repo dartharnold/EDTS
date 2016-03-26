@@ -406,9 +406,7 @@ if __name__ == '__main__':
       input = sys.argv[2] # "Schuae Flye"
       limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
-      for idx, frags in c2_get_run(input):
-        if limit is not None and (idx + sector.base_sector_coords[0]) >= limit:
-          break
+      for idx, frags in c2_get_run(input, limit):
         x = sector.base_coords.x + (idx * sector.cube_size)
         print ("[{1}/{2}] {0}".format(format_name(frags), idx, x))
 
