@@ -360,17 +360,21 @@ def c2_get_run_prefixes(input):
       prefixes.append((frags[0], frags[2]))
   return prefixes
 
-def c2_get_start_points():
+# TODO: Get rid of casual magic numbers in here
+def c2_get_start_points(limit = 1248):
   base_idx0 = 0
   base_idx1 = 0
-  
-  for i in range(0, limit):
+  count = 0
+  while count < limit:
     for (ors0, ors1) in pgdata.c2_really_outer_states:
       for (oos0, oos1) in pgdata.c2_really_outer_states:
         for (os0, os1) in pgdata.c2_outer_states:
           cur_idx0 = base_idx0 + (ors0 * 512) + (oos0 * 128) + (os0 * 8)
           cur_idx1 = base_idx1 + (ors1 * 512) + (oos1 * 128) + (os1 * 8)
           yield (_prefix_runs[cur_idx0], _prefix_runs[cur_idx1])
+          count += 1
+          if count >= limit:
+            return
       
     base_idx0 += 256 * len(pgdata.c2_really_outer_states)
     base_idx1 += 256 * len(pgdata.c2_really_outer_states)
@@ -382,30 +386,41 @@ _c2_candidate_cache = {}
 def construct_c2_candidate_cache():
   global _c2_candidate_cache
   # For each Z slice...
-  for ((f0y0, f2y0), z) in pgdata.get_c2_positions():
+  for z in range(len(_c2_start_points)):
     # For each Y stack...
-    for y in range(0, len(pgdata.c2_word1_y_mapping)):
-      # As long as we have data for it...
-      if len(pgdata.c2_word1_y_mapping[f0y0]) > y and len(pgdata.c2_word2_y_mapping[f2y0]) > y:
-        # Get the correct starting fragments, check they aren't blank
-        f0, f1 = pgdata.c2_word1_y_mapping[f0y0][y]
-        f2, f3 = pgdata.c2_word2_y_mapping[f2y0][y]
-        if None not in [f0, f1, f2, f3]:
-          # Get all run prefixes present, and store that they're in this YZ-constrained line
-          prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
-          for pf in prefixes:
-            if pf not in _c2_candidate_cache:
-              _c2_candidate_cache[pf] = []
-            _c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
+    for y in range(len(_c2_start_points[z])):
+      # Get the correct starting fragments, check they aren't blank
+      f0, f1 = _c2_start_points[z][y][0]
+      f2, f3 = _c2_start_points[z][y][1]
+      # Get all run prefixes present, and store that they're in this YZ-constrained line
+      prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
+      for pf in prefixes:
+        if pf not in _c2_candidate_cache:
+          _c2_candidate_cache[pf] = []
+        _c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - sector.base_sector_coords[1], 'z': z - sector.base_sector_coords[2]})
 
 _prefix_runs = []
 def construct_prefix_run_cache():
   global _prefix_runs
   _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p], False)]
 
+_c2_start_points = [[None for _ in range(sector.galaxy_sector_counts[1])] for _ in range(sector.galaxy_sector_counts[2])]
+def construct_c2_start_point_cache():
+  global _c2_start_points
+  y = 0
+  z = 0
+  for w in c2_get_start_points():
+    _c2_start_points[z][y] = w
+    y += 1
+    if y >= sector.galaxy_sector_counts[1]:
+      y = 0
+      z += 1
+
+  
 # Initialisation
 _init_start = time.clock()
 construct_prefix_run_cache()
+construct_c2_start_point_cache()
 construct_c2_candidate_cache()
 _init_time = time.clock() - _init_start
 
@@ -443,28 +458,31 @@ if __name__ == '__main__':
         
         
     elif sys.argv[1] == "fr2":
-      limit = int(sys.argv[2])
+      limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
       
       x = -sector.base_sector_coords[0]
       y = -8
       z = -sector.base_sector_coords[2]
       count = 0
+      ok = 0
+      bad = 0
       for ((f0, f1), (f2, f3)) in c2_get_start_points():
         extra = ""
         if y >= -3 and y <= 2:
           sect = c2_get_name(sector.Sector(x,y,z))
           if sect == [f0, f1, f2, f3]:
-            extra = " (OK)"
+            ok += 1
           elif sect is not None:
-            extra = " (BAD: {0})".format(format_name(sect))
-        print("[{0},{1},{2}] {3}{4} {5}{6}{7}".format(x,y,z,f0,f1,f2,f3,extra))
+            bad += 1
+            print("[{0},{1},{2}] {3}{4} {5}{6} (BAD: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
         y += 1
         if y >= 8:
           y = -8
           z += 1
-        count += 1
-        if count > limit:
+        if count + 1 > limit:
           break
+        count += 1
+      print("Count: {0}, OK: {1}, bad: {2}".format(count, ok, bad))
     
 
     elif sys.argv[1] == "search2":
