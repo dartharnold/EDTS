@@ -139,8 +139,8 @@ c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
   "Ou":  2,  "Ae": 6, "Ai": 2,
   "Eae": 3,  "Ao": 2, "Au": 2,
-  "Phl": 4, "Fly": 5, "Phr": 7,
-  "Sly": 8
+  "Aae": 2, "Phl": 4, "Fly": 5,
+  "Phr": 7, "Sly": 8
 }
 
 # These prefixes use the specified index into the c1_infixes list
@@ -162,7 +162,8 @@ c1_prefix_length_overrides = {
   'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 13,
   'Lych': 3, 'Myn': 11, 'Rh': 17, 'Sty': 5,
   'Sph': 20, 'Spl': 17, 'Sk': 29, 'Sq': 9,
-  'Sw': 27, 'Lyr': 11, 'Eu': 31,
+  'Sw': 27, 'Lyr': 11, 'Eu': 31, 'Hyp': 25,
+  'Kyl': 30
 }
 
 
@@ -237,6 +238,12 @@ c2_word2_y_mapping = {
 c2_really_outer_states = [
   (0, 0), (1, 0),
   (0, 1), (1, 1),
+  (2, 0), (3, 0),
+  (2, 1), (3, 1),
+  (0, 2), (1, 2),
+  (0, 3), (1, 3),
+  (2, 2), (3, 2),
+  (2, 3), (3, 3),
 ]
 
 # Index modifiers for runs

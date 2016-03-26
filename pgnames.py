@@ -227,10 +227,11 @@ def c2_get_name(sector):
       # If the Z value is correct, find the appropriate starting prefix/suffix at that Y level
       pre0, suf0 = pgdata.c2_word1_y_mapping[pre0y0][sector.y + pgdata.c2_y_mapping_offset]
       pre1, suf1 = pgdata.c2_word2_y_mapping[pre1y0][sector.y + pgdata.c2_y_mapping_offset]
-      # Now do a full run across it until we reach the right x position
-      for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
-        if xpos == sector.x:
-          return frags
+      if None not in [pre0, suf0, pre1, suf1]:
+        # Now do a full run across it until we reach the right x position
+        for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
+          if xpos == sector.x:
+            return frags
   return None
 
 
@@ -369,15 +370,15 @@ def c2_get_start_points(limit):
   base_idx1 = 0
   
   for i in range(0, limit // 128):
-    for (oos0, oos1) in pgdata.c2_outer_outer_states:
+    for (oos0, oos1) in pgdata.c2_really_outer_states:
       for (os0, os1) in pgdata.c2_outer_states:
         cur_idx0 = base_idx0 + (oos0 * 128) + (os0 * 8)
         cur_idx1 = base_idx1 + (oos1 * 128) + (os1 * 8)
         log.debug("oos = {0},{1}; os = {2},{3}".format(oos0, oos1, os0, os1))
         yield (runs[cur_idx0], runs[cur_idx1])
       
-    base_idx0 += 128 * len(pgdata.c2_outer_outer_states)
-    base_idx1 += 128 * len(pgdata.c2_outer_outer_states)
+    base_idx0 += 64 * len(pgdata.c2_really_outer_states)
+    base_idx1 += 64 * len(pgdata.c2_really_outer_states)
     
 
 # Cache to support faster repeat querying
@@ -448,7 +449,14 @@ if __name__ == '__main__':
       y = -8
       z = -sector.base_sector_coords[2]
       for ((f0, f1), (f2, f3)) in c2_get_start_points(limit):
-        print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+        extra = ""
+        if y >= -3 and y <= 2:
+          sect = c2_get_name(sector.Sector(x,y,z))
+          if sect == [f0, f1, f2, f3]:
+            extra = " (OK)"
+          elif sect is not None:
+            extra = " (BAD: {0})".format(format_name(sect))
+        print("[{0},{1},{2}] {3}{4} {5}{6}{7}".format(x,y,z,f0,f1,f2,f3,extra))
         y += 1
         if y >= 8:
           y = -8
