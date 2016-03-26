@@ -114,6 +114,7 @@ c2_suffixes_Phl = cx_suffixes_s1[0:13]
 c2_suffixes_Fly = cx_suffixes_s1[0:20]
 c2_suffixes_Ae  = c2_suffixes_s2[0:12]
 c2_suffixes_Phr = cx_suffixes_s1[0:10]
+c2_suffixes_Sly = cx_suffixes_s1[0:4]
 
 c1_suffixes = [
   None,
@@ -129,7 +130,8 @@ c2_suffixes = [
   c2_suffixes_Phl,
   c2_suffixes_Fly,
   c2_suffixes_Ae,
-  c2_suffixes_Phr
+  c2_suffixes_Phr,
+  c2_suffixes_Sly
 ]
 
 # These prefixes use the specified index into the c2_suffixes list
@@ -137,7 +139,8 @@ c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
   "Ou":  2,  "Ae": 6, "Ai": 2,
   "Eae": 3,  "Ao": 2, "Au": 2,
-  "Phl": 4, "Fly": 5, "Phr": 7
+  "Phl": 4, "Fly": 5, "Phr": 7,
+  "Sly": 8
 }
 
 # These prefixes use the specified index into the c1_infixes list
@@ -159,7 +162,7 @@ c1_prefix_length_overrides = {
   'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 13,
   'Lych': 3, 'Myn': 11, 'Rh': 17, 'Sty': 5,
   'Sph': 20, 'Spl': 17, 'Sk': 29, 'Sq': 9,
-  'Sw': 27, 'Lyr': 11, 
+  'Sw': 27, 'Lyr': 11, 'Eu': 31,
 }
 
 
@@ -229,10 +232,21 @@ c2_word2_y_mapping = {
 }
 
 
-# C1: four prefixes per stack?
-# C1: how to decide whether to increment phoneme 1 or 3?
+# Index modifiers for outer states
+# Unit is a full run set using 128 suffixes
+c2_really_outer_states = [
+  (0, 0), (1, 0),
+  (0, 1), (1, 1),
+]
 
-# Kueloe + 2 stacks = Pueloe
+# Index modifiers for runs
+# Unit is a full run using 8 suffixes
+c2_outer_states = [
+  (0, 2), (0, 3), (2, 2), (2, 3),
+  (4, 6), (4, 7), (6, 6), (6, 7),
+  (8, 0), (8, 1), (10, 0), (10, 1),
+  (12, 4), (12, 5), (14, 4), (14, 5),
+]
 
 # Index modifiers for all states
 # In pairs of (phoneme 1, phoneme 3)

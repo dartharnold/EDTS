@@ -163,6 +163,12 @@ def c1_get_infixes(input):
     return None
 
 
+def get_prefix_run_length(prefix):
+  if prefix in pgdata.c1_prefix_length_overrides:
+    return pgdata.c1_prefix_length_overrides[prefix]
+  else:
+    return pgdata.c1_prefix_length_default
+
 
 # Given a full system name, get its approximate coordinates
 def get_coords_from_name(system_name):
@@ -321,7 +327,7 @@ def c2_get_run(input, length = None):
     
     # Calculate the current base index
     # (in case we've done a full run and are onto the next set of phonemes)
-    cur_base_0 = int(i / len(pgdata.c2_run_states)) * 8
+    cur_base_0 = int(i // len(pgdata.c2_run_states)) * 8
     cur_base_1 = 0
     
     # Ensure we have all the suffixes we need, and append the next set if not
@@ -349,6 +355,30 @@ def c2_get_run_prefixes(input):
       prefixes.append((frags[0], frags[2]))
   return prefixes
 
+def get_suffixes_r(frags):
+  sufs = get_suffixes(frags)
+  return sufs[0 : get_prefix_run_length(frags[0])]
+
+def c2_get_start_points(limit):
+  runs = []
+  for p in pgdata.cx_prefixes:
+    sufs = get_suffixes_r([p])
+    runs += [(p, suf) for suf in sufs]
+
+  base_idx0 = 0
+  base_idx1 = 0
+  
+  for i in range(0, limit // 128):
+    for (oos0, oos1) in pgdata.c2_outer_outer_states:
+      for (os0, os1) in pgdata.c2_outer_states:
+        cur_idx0 = base_idx0 + (oos0 * 128) + (os0 * 8)
+        cur_idx1 = base_idx1 + (oos1 * 128) + (os1 * 8)
+        log.debug("oos = {0},{1}; os = {2},{3}".format(oos0, oos1, os0, os1))
+        yield (runs[cur_idx0], runs[cur_idx1])
+      
+    base_idx0 += 128 * len(pgdata.c2_outer_outer_states)
+    base_idx1 += 128 * len(pgdata.c2_outer_outer_states)
+    
 
 # Cache to support faster repeat querying
 c2_candidate_cache = {}
@@ -409,6 +439,21 @@ if __name__ == '__main__':
       for idx, frags in c2_get_run(input, limit):
         x = sector.base_coords.x + (idx * sector.cube_size)
         print ("[{1}/{2}] {0}".format(format_name(frags), idx, x))
+        
+        
+    elif sys.argv[1] == "fr2":
+      limit = int(sys.argv[2])
+      
+      x = -sector.base_sector_coords[0]
+      y = -8
+      z = -sector.base_sector_coords[2]
+      for ((f0, f1), (f2, f3)) in c2_get_start_points(limit):
+        print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+        y += 1
+        if y >= 8:
+          y = -8
+          z += 1
+    
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
