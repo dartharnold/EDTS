@@ -141,12 +141,11 @@ def get_suffixes(input):
       # Last infix is consonant-ish, return the vowel-ish suffix list
       return pgdata.c1_suffixes[1]
     else:
-      # TODO: Work out how it decides which list to use
-      pass
+      return pgdata.c1_suffixes[2]
 
 
 # Get the full list of infixes for a given set of fragments missing an infix
-# e.g. "Ogai", "Wre", "Pue"
+# e.g. "Ogai", "Wre", "P"
 def c1_get_infixes(input):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
@@ -257,10 +256,51 @@ def c1_get_run(input):
     frags[-1] = suffixes[suff_index+1]
   return frags
 
+  
+def c1_get_single_run(input, length = None):
+  frags = get_fragments(input) if util.is_str(input) else input
+  if frags is None:
+    return
+  
+  if length is None:
+    if frags[0] in pgdata.c1_prefix_length_overrides:
+      length = pgdata.c1_prefix_length_overrides[frags[0]]
+    else:
+      length = pgdata.c1_prefix_length_default
+  
+  # Get the initial frag lists
+  frag2list_full = c1_get_infixes(frags[0:-2])
+  frag3list_temp = get_suffixes(frags[0:-1])
+  frag3list = [(frags[-2], f3) for f3 in frag3list_temp[frag3list_temp.index(frags[-1]):]]
+  
+  for i in range (0, length):
+    # Ensure we have all the suffixes we need, and append the next set if not
+    if i >= len(frag3list):
+      next_frag2_idx = frag2list_full.index(frags[-2]) + 1
+      next_frag2 = frag2list_full[next_frag2_idx % len(frag2list_full)]
+      frag3list += [(next_frag2, f3) for f3 in get_suffixes([frags[0], frags[1], next_frag2])]
+    
+    # Set current fragments
+    frags[-2], frags[-1] = frag3list[i]
+    yield (i, frags)
+
+
+# TODO: More work on this, currently quite simplistic
+def c1_get_extended_run(input, length):
+  frags = get_fragments(input) if util.is_str(input) else input
+  if frags is None:
+    return
+  
+  start_prefix_idx = pgdata.cx_prefixes.index(frags[0])
+  for i in range(0, length):
+    prefix = pgdata.cx_prefixes[(start_prefix_idx + i) % len(pgdata.cx_prefixes)]
+    for (j, name) in c1_get_single_run([prefix, frags[1], frags[2], frags[3]]):
+      yield (i, j, name)
+
 
 # Get a full run of class 2 system names
 # The input MUST be the start point (at c2_run_states[0]), or it'll be wrong
-def c2_get_run(input):
+def c2_get_run(input, length = None):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return
@@ -271,7 +311,10 @@ def c2_get_run(input):
   suffixes_0 = [(frags[0], f1) for f1 in suffixes_0_temp[suffixes_0_temp.index(frags[1]):]]
   suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
 
-  for i in range(0, sector.base_sector_coords[0] * 2):
+  if length is None:
+    length = sector.base_sector_coords[0] * 2
+  
+  for i in range(0, length):
     # Calculate the run state indexes for phonemes 1 and 3
     idx0 = i % len(pgdata.c2_run_states)
     idx1 = i % len(pgdata.c2_run_states)

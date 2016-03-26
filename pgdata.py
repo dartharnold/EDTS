@@ -147,9 +147,18 @@ c1_prefix_infix_override_map = {
   "U":  2, "Ee":  2, "Ei":  2, "Oe": 2
 }
 
-c1_infix_rollover_overrides = [
-  "q" # q --> gn
-]
+
+c1_prefix_length_default = 35
+c1_prefix_length_overrides = {
+   'Tz':  1, 'Shr': 11, 'Myr':  4, 'Lys': 10,
+   'Pyth': 1, 'Schr': 3,
+   # Unconfirmed
+  'Sly':  4, 'Hyph': 15, 'Py': 13, 'Scr': 25,
+  'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 13,
+  'Lych': 3, 'Myn': 11, 'Rh': 17, 'Sty': 5,
+  'Sph': 20, 'Spl': 17, 'Sk': 29, 'Sq': 9,
+  'Sw': 27, 'Lyr': 11, 
+}
 
 
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side
