@@ -125,7 +125,7 @@ def get_next_prefix(prefix):
 
 # Get the full list of suffixes for a given set of fragments missing a suffix
 # e.g. "Dryau Ao", "Ogair", "Wreg"
-def get_suffixes(input):
+def get_suffixes(input, get_all = True):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
@@ -134,14 +134,18 @@ def get_suffixes(input):
     suffix_map_idx = 1
     if frags[-1] in pgdata.c2_prefix_suffix_override_map:
       suffix_map_idx = pgdata.c2_prefix_suffix_override_map[frags[-1]]
-    return pgdata.c2_suffixes[suffix_map_idx]
+    result = pgdata.c2_suffixes[suffix_map_idx]
   else:
     # Likely C1
     if frags[-1] in pgdata.c1_infixes[2]:
       # Last infix is consonant-ish, return the vowel-ish suffix list
-      return pgdata.c1_suffixes[1]
+      result = pgdata.c1_suffixes[1]
     else:
-      return pgdata.c1_suffixes[2]
+      result = pgdata.c1_suffixes[2]
+  
+  if not get_all:
+    result = result[0 : get_prefix_run_length(frags[0])]
+  return result
 
 
 # Get the full list of infixes for a given set of fragments missing an infix
@@ -214,8 +218,8 @@ def get_sector_from_name(sector_name):
 # Get all YZ-constrained lines which could possibly contain the prefixes specified
 # Note that multiple lines can (and often do) match, this is filtered later
 def c2_get_yz_candidates(frag0, frag2):
-  if (frag0, frag2) in c2_candidate_cache:
-    for candidate in c2_candidate_cache[(frag0, frag2)]:
+  if (frag0, frag2) in _c2_candidate_cache:
+    for candidate in _c2_candidate_cache[(frag0, frag2)]:
       yield {'frags': list(candidate['frags']), 'y': candidate['y'], 'z': candidate['z']}
 
 
@@ -356,35 +360,27 @@ def c2_get_run_prefixes(input):
       prefixes.append((frags[0], frags[2]))
   return prefixes
 
-def get_suffixes_r(frags):
-  sufs = get_suffixes(frags)
-  return sufs[0 : get_prefix_run_length(frags[0])]
-
-def c2_get_start_points(limit):
-  runs = []
-  for p in pgdata.cx_prefixes:
-    sufs = get_suffixes_r([p])
-    runs += [(p, suf) for suf in sufs]
-
+def c2_get_start_points():
   base_idx0 = 0
   base_idx1 = 0
   
-  for i in range(0, limit // 128):
-    for (oos0, oos1) in pgdata.c2_really_outer_states:
-      for (os0, os1) in pgdata.c2_outer_states:
-        cur_idx0 = base_idx0 + (oos0 * 128) + (os0 * 8)
-        cur_idx1 = base_idx1 + (oos1 * 128) + (os1 * 8)
-        log.debug("oos = {0},{1}; os = {2},{3}".format(oos0, oos1, os0, os1))
-        yield (runs[cur_idx0], runs[cur_idx1])
+  for i in range(0, limit):
+    for (ors0, ors1) in pgdata.c2_really_outer_states:
+      for (oos0, oos1) in pgdata.c2_really_outer_states:
+        for (os0, os1) in pgdata.c2_outer_states:
+          cur_idx0 = base_idx0 + (ors0 * 512) + (oos0 * 128) + (os0 * 8)
+          cur_idx1 = base_idx1 + (ors1 * 512) + (oos1 * 128) + (os1 * 8)
+          yield (_prefix_runs[cur_idx0], _prefix_runs[cur_idx1])
       
-    base_idx0 += 64 * len(pgdata.c2_really_outer_states)
-    base_idx1 += 64 * len(pgdata.c2_really_outer_states)
+    base_idx0 += 256 * len(pgdata.c2_really_outer_states)
+    base_idx1 += 256 * len(pgdata.c2_really_outer_states)
     
 
 # Cache to support faster repeat querying
-c2_candidate_cache = {}
+_c2_candidate_cache = {}
 # Constructs a cache to speed up later searching for YZ candidates
 def construct_c2_candidate_cache():
+  global _c2_candidate_cache
   # For each Z slice...
   for ((f0y0, f2y0), z) in pgdata.get_c2_positions():
     # For each Y stack...
@@ -398,16 +394,20 @@ def construct_c2_candidate_cache():
           # Get all run prefixes present, and store that they're in this YZ-constrained line
           prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
           for pf in prefixes:
-            if pf not in c2_candidate_cache:
-              c2_candidate_cache[pf] = []
-            c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
+            if pf not in _c2_candidate_cache:
+              _c2_candidate_cache[pf] = []
+            _c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
 
+_prefix_runs = []
+def construct_prefix_run_cache():
+  global _prefix_runs
+  _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p], False)]
 
 # Initialisation
 _init_start = time.clock()
+construct_prefix_run_cache()
 construct_c2_candidate_cache()
 _init_time = time.clock() - _init_start
-
 
 # Test modes
 if __name__ == '__main__':
@@ -448,7 +448,8 @@ if __name__ == '__main__':
       x = -sector.base_sector_coords[0]
       y = -8
       z = -sector.base_sector_coords[2]
-      for ((f0, f1), (f2, f3)) in c2_get_start_points(limit):
+      count = 0
+      for ((f0, f1), (f2, f3)) in c2_get_start_points():
         extra = ""
         if y >= -3 and y <= 2:
           sect = c2_get_name(sector.Sector(x,y,z))
@@ -461,6 +462,9 @@ if __name__ == '__main__':
         if y >= 8:
           y = -8
           z += 1
+        count += 1
+        if count > limit:
+          break
     
 
     elif sys.argv[1] == "search2":

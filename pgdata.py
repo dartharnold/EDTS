@@ -158,12 +158,13 @@ c1_prefix_length_overrides = {
    'Tz':  1, 'Shr': 11, 'Myr':  4, 'Lys': 10,
    'Pyth': 1, 'Schr': 3,
    # Unconfirmed
-  'Sly':  4, 'Hyph': 15, 'Py': 13, 'Scr': 25,
-  'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 13,
-  'Lych': 3, 'Myn': 11, 'Rh': 17, 'Sty': 5,
+  'Sly':  4, 'Hyph': 13, 'Py': 13, 'Scr': 24,
+  'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 7,
+  'Lych': 3, 'Myn': 11, 'Rh': 17, 'Sty': 5, # if Rh lower, Wh --> 35
   'Sph': 20, 'Spl': 17, 'Sk': 29, 'Sq': 9,
   'Sw': 27, 'Lyr': 11, 'Eu': 31, 'Hyp': 25,
-  'Kyl': 30
+  'Kyl': 30, 'Ao': 5, 'Pry': 3, 'Tyr': 25,
+  'Myc': 6, 'Gyr': 9, 'Wh': 33, 'Cy': 31
 }
 
 
