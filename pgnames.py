@@ -282,8 +282,8 @@ def c2_get_run(input, length = None):
     return
 
   # Get the initial suffix list
-  suffixes_0_temp = get_suffixes(frags[0:1])
-  suffixes_1_temp = get_suffixes(frags[0:-1])
+  suffixes_0_temp = get_suffixes(frags[0:1], False)
+  suffixes_1_temp = get_suffixes(frags[-2:-1], False)
   suffixes_0 = [(frags[0], f1) for f1 in suffixes_0_temp[suffixes_0_temp.index(frags[1]):]]
   suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
 
@@ -304,11 +304,11 @@ def c2_get_run(input, length = None):
     if (cur_base_0 + pgdata.c2_run_states[idx0][0]) >= len(suffixes_0):
       next_prefix0_idx = pgdata.cx_prefixes.index(suffixes_0[-1][0]) + 1
       next_prefix0 = pgdata.cx_prefixes[next_prefix0_idx % len(pgdata.cx_prefixes)]
-      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0])]
+      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0], False)]
     if (cur_base_1 + pgdata.c2_run_states[idx1][1]) >= len(suffixes_1):
       next_prefix1_idx = pgdata.cx_prefixes.index(suffixes_1[-1][0]) + 1
       next_prefix1 = pgdata.cx_prefixes[next_prefix1_idx % len(pgdata.cx_prefixes)]
-      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1])]
+      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1], False)]
     
     # Set current fragments
     frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
@@ -459,9 +459,14 @@ if __name__ == '__main__':
           sect = c2_get_name(sector.Sector(x,y,z))
           if sect == [f0, f1, f2, f3]:
             ok += 1
+            print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
           elif sect is not None:
             bad += 1
             print("[{0},{1},{2}] {3}{4} {5}{6} (BAD: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
+          else:
+            print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+        else:
+          print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
         y += 1
         if y >= 8:
           y = -8
