@@ -148,13 +148,12 @@ cx_prefix_length_overrides = {
   'Phyl':  8, 'Tyr': 25,  'Cry':  5,  'Aae':  6,
   'Myc':  6,  'Gyr':  9,  'Myl':  7, 'Lych':  3,
   'Myn': 11,  'Myr':  4,   'Rh': 17,   'Wh': 33,  # if Rh lower, Wh --> 35
-   'Cy': 31,  
+   'Cy': 31, 'Pyth':  1, 'Schr':  3,
    # ...
    'Sk': 27,  'Lys': 10,
    # Low confidence
   'Sty':   5, 'Sph': 20,  'Spl': 17,   'Sq': 9,
-  'Pyth':  1, 'Lyr': 11,   'Sw': 27,  'Lys': 10,
-  'Schr':  3,
+  'Lyr': 11,   'Sw': 27,
 }
 
 
