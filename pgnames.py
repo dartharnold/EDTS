@@ -125,16 +125,18 @@ def get_next_prefix(prefix):
 
 # Get the full list of suffixes for a given set of fragments missing a suffix
 # e.g. "Dryau Ao", "Ogair", "Wreg"
-def get_suffixes(input, get_all = True):
+def get_suffixes(input, get_all = False):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
+  wordstart = frags[0]
   if frags[-1] in pgdata.cx_prefixes:
     # Append suffix straight onto a prefix (probably C2)
     suffix_map_idx = 1
     if frags[-1] in pgdata.c2_prefix_suffix_override_map:
       suffix_map_idx = pgdata.c2_prefix_suffix_override_map[frags[-1]]
     result = pgdata.c2_suffixes[suffix_map_idx]
+    wordstart = frags[-1]
   else:
     # Likely C1
     if frags[-1] in pgdata.c1_infixes[2]:
@@ -143,9 +145,10 @@ def get_suffixes(input, get_all = True):
     else:
       result = pgdata.c1_suffixes[2]
   
-  if not get_all:
-    result = result[0 : get_prefix_run_length(frags[0])]
-  return result
+  if get_all:
+    return result
+  else:
+    return result[0 : get_prefix_run_length(wordstart)]
 
 
 # Get the full list of infixes for a given set of fragments missing an infix
@@ -282,8 +285,8 @@ def c2_get_run(input, length = None):
     return
 
   # Get the initial suffix list
-  suffixes_0_temp = get_suffixes(frags[0:1], False)
-  suffixes_1_temp = get_suffixes(frags[-2:-1], False)
+  suffixes_0_temp = get_suffixes(frags[0:1])
+  suffixes_1_temp = get_suffixes(frags[-2:-1])
   suffixes_0 = [(frags[0], f1) for f1 in suffixes_0_temp[suffixes_0_temp.index(frags[1]):]]
   suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
 
@@ -304,11 +307,11 @@ def c2_get_run(input, length = None):
     if (cur_base_0 + pgdata.c2_run_states[idx0][0]) >= len(suffixes_0):
       next_prefix0_idx = pgdata.cx_prefixes.index(suffixes_0[-1][0]) + 1
       next_prefix0 = pgdata.cx_prefixes[next_prefix0_idx % len(pgdata.cx_prefixes)]
-      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0], False)]
+      suffixes_0 += [(next_prefix0, f1) for f1 in get_suffixes([next_prefix0])]
     if (cur_base_1 + pgdata.c2_run_states[idx1][1]) >= len(suffixes_1):
       next_prefix1_idx = pgdata.cx_prefixes.index(suffixes_1[-1][0]) + 1
       next_prefix1 = pgdata.cx_prefixes[next_prefix1_idx % len(pgdata.cx_prefixes)]
-      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1], False)]
+      suffixes_1 += [(next_prefix1, f3) for f3 in get_suffixes([next_prefix1])]
     
     # Set current fragments
     frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
@@ -367,7 +370,7 @@ def construct_c2_candidate_cache():
 _prefix_runs = []
 def construct_prefix_run_cache():
   global _prefix_runs
-  _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p], False)]
+  _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p])]
 
 _c2_start_points = [[None for _ in range(sector.galaxy_sector_counts[1])] for _ in range(sector.galaxy_sector_counts[2])]
 def construct_c2_start_point_cache():
