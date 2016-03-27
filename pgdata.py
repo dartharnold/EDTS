@@ -140,17 +140,21 @@ c1_prefix_infix_override_map = {
 
 cx_prefix_length_default = 35
 cx_prefix_length_overrides = {
-   'Tz':  1, 'Shr': 11, 'Myr':  4, 'Lys': 10,
-   'Pyth': 1, 'Schr': 3, 'Eae': 4, 'Phl': 13,
-   'Fly': 20, 'Ae': 12, 'Phr': 10,
-   # Unconfirmed
-  'Sly':  4, 'Hyph': 13, 'Py': 13, 'Scr': 24,
-  'Phyl': 8, 'Cry': 5, 'Aae': 6, 'Myl': 7,
-  'Lych': 3, 'Myn': 11, 'Rh': 17, 'Sty': 5, # if Rh lower, Wh --> 35
-  'Sph': 20, 'Spl': 17, 'Sk': 29, 'Sq': 9,
-  'Sw': 27, 'Lyr': 11, 'Eu': 31, 'Hyp': 25,
-  'Kyl': 30, 'Ao': 5, 'Pry': 3, 'Tyr': 25,
-  'Myc': 6, 'Gyr': 9, 'Wh': 33, 'Cy': 31
+  # High confidence
+   'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
+   'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
+  'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
+  'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
+  'Phyl':  8, 'Tyr': 25,  'Cry':  5,  'Aae':  6,
+  'Myc':  6,  'Gyr':  9,  'Myl':  7, 'Lych':  3,
+  'Myn': 11,  'Myr':  4,   'Rh': 17,   'Wh': 33,  # if Rh lower, Wh --> 35
+   'Cy': 31,  
+   # ...
+   'Sk': 27,  'Lys': 10,
+   # Low confidence
+  'Sty':   5, 'Sph': 20,  'Spl': 17,   'Sq': 9,
+  'Pyth':  1, 'Lyr': 11,   'Sw': 27,  'Lys': 10,
+  'Schr':  3,
 }
 
 
