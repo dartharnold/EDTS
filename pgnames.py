@@ -397,7 +397,26 @@ if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "debug":
       pass
-
+    
+    elif sys.argv[1] == "pdiff":
+      for x in range(2, len(sys.argv)-1):
+        idx1 = pgdata.cx_prefixes.index(sys.argv[x])
+        idx2 = pgdata.cx_prefixes.index(sys.argv[x+1])
+        roll = False
+        
+        if idx2 < idx1:
+          dif = (len(pgdata.cx_prefixes) - idx1) + idx2
+          roll = True
+        else:
+          dif = idx2 - idx1
+        
+        cnt = 0
+        for i in range(dif):
+          idx = (idx1 + i) % len(pgdata.cx_prefixes)
+          cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
+        
+        print("{0} --> {1}: {2} prefixes (rollover: {3}, predicted len: {4})".format(sys.argv[x], sys.argv[x+1], dif, roll, cnt))
+      
     elif sys.argv[1] == "run1":
       input = sys.argv[2] # "Smooreau"
       frags = get_fragments(input)
