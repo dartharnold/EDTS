@@ -609,6 +609,8 @@ if __name__ == '__main__':
               print("None2: {0} @ {1}".format(system.name, system.position))
             else:
               none1 += 1
+              if not is_valid_name(m.group("sector")):
+                print("Invalid1: {0} @ {1}".format(system.name, system.position))
         else:
           notpg += 1
 
