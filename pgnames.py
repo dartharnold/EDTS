@@ -96,6 +96,32 @@ def get_fragments(sector_name):
     return None
 
 
+# Mild weakness: due to the way get_fragments works, this currently ignores all spaces
+# This means that names like "Synoo kio" are considered valid
+def is_valid_name(input):
+  frags = get_fragments(input) if util.is_str(input) else frags
+  if frags is None or len(frags) == 0 or frags[0] not in pgdata.cx_prefixes:
+    return False
+  if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
+    # Class 2
+    f1idx = pgdata.c2_prefix_suffix_override_map.get(frags[0], 1)
+    f3idx = pgdata.c2_prefix_suffix_override_map.get(frags[2], 1)
+    return (frags[1] in pgdata.c2_suffixes[f1idx] and frags[3] in pgdata.c2_suffixes[f3idx])
+  elif len(frags) in [3,4]:
+    # Class 1
+    fli_idx = pgdata.c1_prefix_infix_override_map.get(frags[0], 1)
+    if frags[1] not in pgdata.c1_infixes[fli_idx]:
+      return False
+    if len(frags) == 4:
+      fli_idx = 2 if fli_idx == 1 else 1
+      if frags[2] not in pgdata.c1_infixes[fli_idx]:
+        return False
+    flastidx = 2 if fli_idx == 1 else 1
+    return (frags[-1] in pgdata.c1_suffixes[flastidx])
+  else:
+    # Class NOPE
+    return False
+
 # Format a given set of fragments into a full name
 def format_name(frags):
   if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
@@ -132,9 +158,7 @@ def get_suffixes(input, get_all = False):
   wordstart = frags[0]
   if frags[-1] in pgdata.cx_prefixes:
     # Append suffix straight onto a prefix (probably C2)
-    suffix_map_idx = 1
-    if frags[-1] in pgdata.c2_prefix_suffix_override_map:
-      suffix_map_idx = pgdata.c2_prefix_suffix_override_map[frags[-1]]
+    suffix_map_idx = pgdata.c2_prefix_suffix_override_map.get(frags[-1], 1)
     result = pgdata.c2_suffixes[suffix_map_idx]
     wordstart = frags[-1]
   else:
@@ -171,10 +195,7 @@ def c1_get_infixes(input):
 
 
 def get_prefix_run_length(prefix):
-  if prefix in pgdata.cx_prefix_length_overrides:
-    return pgdata.cx_prefix_length_overrides[prefix]
-  else:
-    return pgdata.cx_prefix_length_default
+  return pgdata.cx_prefix_length_overrides.get(prefix, pgdata.cx_prefix_length_default)
 
 
 # Given a full system name, get its approximate coordinates
@@ -396,7 +417,21 @@ _init_time = time.clock() - _init_start
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "debug":
-      pass
+      frags = [sys.argv[2] if len(sys.argv) > 2 else "Fr", 'e', 'ck', 'oe']
+      
+      total_runlen = 1 + pgdata.cx_prefixes.index('Dr') - pgdata.cx_prefixes.index('Fr')
+      cnt = 0
+      for i in range(0, total_runlen):
+        runlen = get_prefix_run_length(frags[0])
+        print("[{2}] {0} for {1}".format(frags[0], runlen, cnt))
+        nextidx = pgdata.cx_prefixes.index(frags[0]) + 1
+        if nextidx >= len(pgdata.cx_prefixes):
+          nextidx = 0
+          nextidx2 = (pgdata.c1_infixes_s1.index(frags[1]) + 1) % len(pgdata.c1_infixes_s1)
+          frags[1] = pgdata.c1_infixes_s1[nextidx2]
+        frags[0] = pgdata.cx_prefixes[nextidx]
+        # if runlen == pgdata.cx_prefix_length_default and frags[0] not in pgdata.c1_prefix_infix_override_map:
+        cnt += runlen
     
     elif sys.argv[1] == "pdiff":
       for x in range(2, len(sys.argv)-1):
@@ -416,6 +451,19 @@ if __name__ == '__main__':
           cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
         
         print("{0} --> {1}: {2} prefixes (rollover: {3}, predicted len: {4})".format(sys.argv[x], sys.argv[x+1], dif, roll, cnt))
+      
+    elif sys.argv[1] == "pdiff2":
+      idx1 = pgdata.cx_prefixes.index(sys.argv[2])
+      dif = int(sys.argv[3])
+      inc = int(sys.argv[4]) if len(sys.argv) > 4 else 1
+      
+      cnt = 0
+      for i in range(0, dif, inc):
+        idx = (100 * len(pgdata.cx_prefixes) + idx1 + i) % len(pgdata.cx_prefixes)
+        cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
+        print("[{0}] {1}".format(cnt, pgdata.cx_prefixes[idx]))
+      
+      print("{0} prefixes (predicted len: {1})".format(dif, cnt))
       
     elif sys.argv[1] == "run1":
       input = sys.argv[2] # "Smooreau"
@@ -481,14 +529,16 @@ if __name__ == '__main__':
           sect = c2_get_name(sector.Sector(x,y,z))
           if sect == [f0, f1, f2, f3]:
             ok += 1
-            print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
+            # print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
           elif sect is not None:
             bad += 1
             print("[{0},{1},{2}] {3}{4} {5}{6} (BAD: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
           else:
-            print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+            # print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+            pass
         else:
-          print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+          # print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+          pass
         y += 1
         if y >= 8:
           y = -8
