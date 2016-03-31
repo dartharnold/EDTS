@@ -125,28 +125,34 @@ def get_next_prefix(prefix):
 
 # Get the full list of suffixes for a given set of fragments missing a suffix
 # e.g. "Dryau Ao", "Ogair", "Wreg"
-def get_suffixes(input):
+def get_suffixes(input, get_all = False):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
+  wordstart = frags[0]
   if frags[-1] in pgdata.cx_prefixes:
     # Append suffix straight onto a prefix (probably C2)
     suffix_map_idx = 1
     if frags[-1] in pgdata.c2_prefix_suffix_override_map:
       suffix_map_idx = pgdata.c2_prefix_suffix_override_map[frags[-1]]
-    return pgdata.c2_suffixes[suffix_map_idx]
+    result = pgdata.c2_suffixes[suffix_map_idx]
+    wordstart = frags[-1]
   else:
     # Likely C1
     if frags[-1] in pgdata.c1_infixes[2]:
       # Last infix is consonant-ish, return the vowel-ish suffix list
-      return pgdata.c1_suffixes[1]
+      result = pgdata.c1_suffixes[1]
     else:
-      # TODO: Work out how it decides which list to use
-      pass
+      result = pgdata.c1_suffixes[2]
+  
+  if get_all:
+    return result
+  else:
+    return result[0 : get_prefix_run_length(wordstart)]
 
 
 # Get the full list of infixes for a given set of fragments missing an infix
-# e.g. "Ogai", "Wre", "Pue"
+# e.g. "Ogai", "Wre", "P"
 def c1_get_infixes(input):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
@@ -163,6 +169,12 @@ def c1_get_infixes(input):
   else:
     return None
 
+
+def get_prefix_run_length(prefix):
+  if prefix in pgdata.cx_prefix_length_overrides:
+    return pgdata.cx_prefix_length_overrides[prefix]
+  else:
+    return pgdata.cx_prefix_length_default
 
 
 # Given a full system name, get its approximate coordinates
@@ -209,8 +221,8 @@ def get_sector_from_name(sector_name):
 # Get all YZ-constrained lines which could possibly contain the prefixes specified
 # Note that multiple lines can (and often do) match, this is filtered later
 def c2_get_yz_candidates(frag0, frag2):
-  if (frag0, frag2) in c2_candidate_cache:
-    for candidate in c2_candidate_cache[(frag0, frag2)]:
+  if (frag0, frag2) in _c2_candidate_cache:
+    for candidate in _c2_candidate_cache[(frag0, frag2)]:
       yield {'frags': list(candidate['frags']), 'y': candidate['y'], 'z': candidate['z']}
 
 
@@ -222,63 +234,73 @@ def c2_get_name(sector):
       # If the Z value is correct, find the appropriate starting prefix/suffix at that Y level
       pre0, suf0 = pgdata.c2_word1_y_mapping[pre0y0][sector.y + pgdata.c2_y_mapping_offset]
       pre1, suf1 = pgdata.c2_word2_y_mapping[pre1y0][sector.y + pgdata.c2_y_mapping_offset]
-      # Now do a full run across it until we reach the right x position
-      for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
-        if xpos == sector.x:
-          return frags
+      if None not in [pre0, suf0, pre1, suf1]:
+        # Now do a full run across it until we reach the right x position
+        for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
+          if xpos == sector.x:
+            return frags
   return None
 
-
-
-# TODO: Fix this, not currently correct
-def c1_get_run(input):
+  
+def c1_get_single_run(input, length = None):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
-    return None
-  suffixes = get_suffixes(frags[0:-1])
-  suff_index = suffixes.index(frags[-1])
-  if suff_index + 1 >= len(suffixes):
-    # Last suffix, jump to next prefix unless it's in overrides
-    #if frags[-2] in c1_infix_rollover_overrides:
-    #  infixes = c1_get_infixes(frags[0:-2])
-    #  inf_index = infixes.index(frags[-2])
-    #  if inf_index + 1 >= len(infixes):
-    #    frags[-2] = infixes[0]
-    #  else:
-    #    frags[-2] = infixes[inf_index+1]
-    #else:
-    pre_index = pgdata.cx_prefixes.index(frags[0])
-    if pre_index + 1 >= len(pgdata.cx_prefixes):
-      frags[0] = pgdata.cx_prefixes[0]
-    else:
-      frags[0] = pgdata.cx_prefixes[pre_index+1]
-    frags[-1] = suffixes[0]
-  else:
-    frags[-1] = suffixes[suff_index+1]
-  return frags
+    return
+  
+  if length is None:
+    length = get_prefix_run_length(frags[0])
+  
+  # Get the initial frag lists
+  frag2list_full = c1_get_infixes(frags[0:-2])
+  frag3list_temp = get_suffixes(frags[0:-1])
+  frag3list = [(frags[-2], f3) for f3 in frag3list_temp[frag3list_temp.index(frags[-1]):]]
+  
+  for i in range (0, length):
+    # Ensure we have all the suffixes we need, and append the next set if not
+    if i >= len(frag3list):
+      next_frag2_idx = frag2list_full.index(frags[-2]) + 1
+      next_frag2 = frag2list_full[next_frag2_idx % len(frag2list_full)]
+      frag3list += [(next_frag2, f3) for f3 in get_suffixes([frags[0], frags[1], next_frag2])]
+    
+    # Set current fragments
+    frags[-2], frags[-1] = frag3list[i]
+    yield (i, frags)
+
+
+# TODO: More work on this, currently quite simplistic
+def c1_get_extended_run(length = 1248):
+  frags = ["Th", "o", "ll", "oe"]
+  
+  for i in range(0, length):
+    prefix = pgdata.cx_prefixes[i % len(pgdata.cx_prefixes)]
+    for (j, name) in c1_get_single_run([prefix, frags[1], frags[2], frags[3]]):
+      yield (i, j, name)
 
 
 # Get a full run of class 2 system names
 # The input MUST be the start point (at c2_run_states[0]), or it'll be wrong
-def c2_get_run(input):
+def c2_get_run(input, length = None):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return
 
   # Get the initial suffix list
   suffixes_0_temp = get_suffixes(frags[0:1])
-  suffixes_1_temp = get_suffixes(frags[0:-1])
+  suffixes_1_temp = get_suffixes(frags[-2:-1])
   suffixes_0 = [(frags[0], f1) for f1 in suffixes_0_temp[suffixes_0_temp.index(frags[1]):]]
   suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
 
-  for i in range(0, sector.base_sector_coords[0] * 2):
+  if length is None:
+    length = sector.base_sector_coords[0] * 2
+  
+  for i in range(0, length):
     # Calculate the run state indexes for phonemes 1 and 3
     idx0 = i % len(pgdata.c2_run_states)
     idx1 = i % len(pgdata.c2_run_states)
     
     # Calculate the current base index
     # (in case we've done a full run and are onto the next set of phonemes)
-    cur_base_0 = int(i / len(pgdata.c2_run_states)) * 8
+    cur_base_0 = int(i // len(pgdata.c2_run_states)) * 8
     cur_base_1 = 0
     
     # Ensure we have all the suffixes we need, and append the next set if not
@@ -306,41 +328,95 @@ def c2_get_run_prefixes(input):
       prefixes.append((frags[0], frags[2]))
   return prefixes
 
+# TODO: Get rid of casual magic numbers in here
+def c2_get_start_points(limit = 1248):
+  base_idx0 = 0
+  base_idx1 = 0
+  count = 0
+  while count < limit:
+    for (ors0, ors1) in pgdata.c2_really_outer_states:
+      for (oos0, oos1) in pgdata.c2_really_outer_states:
+        for (os0, os1) in pgdata.c2_outer_states:
+          cur_idx0 = base_idx0 + (ors0 * 512) + (oos0 * 128) + (os0 * 8)
+          cur_idx1 = base_idx1 + (ors1 * 512) + (oos1 * 128) + (os1 * 8)
+          yield (_prefix_runs[cur_idx0], _prefix_runs[cur_idx1])
+          count += 1
+          if count >= limit:
+            return
+      
+    base_idx0 += 256 * len(pgdata.c2_really_outer_states)
+    base_idx1 += 256 * len(pgdata.c2_really_outer_states)
+    
 
 # Cache to support faster repeat querying
-c2_candidate_cache = {}
+_c2_candidate_cache = {}
 # Constructs a cache to speed up later searching for YZ candidates
 def construct_c2_candidate_cache():
+  global _c2_candidate_cache
   # For each Z slice...
-  for ((f0y0, f2y0), z) in pgdata.get_c2_positions():
+  for z in range(len(_c2_start_points)):
     # For each Y stack...
-    for y in range(0, len(pgdata.c2_word1_y_mapping)):
-      # As long as we have data for it...
-      if len(pgdata.c2_word1_y_mapping[f0y0]) > y and len(pgdata.c2_word2_y_mapping[f2y0]) > y:
-        # Get the correct starting fragments, check they aren't blank
-        f0, f1 = pgdata.c2_word1_y_mapping[f0y0][y]
-        f2, f3 = pgdata.c2_word2_y_mapping[f2y0][y]
-        if None not in [f0, f1, f2, f3]:
-          # Get all run prefixes present, and store that they're in this YZ-constrained line
-          prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
-          for pf in prefixes:
-            if pf not in c2_candidate_cache:
-              c2_candidate_cache[pf] = []
-            c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - pgdata.c2_y_mapping_offset, 'z': z})
+    for y in range(len(_c2_start_points[z])):
+      # Get the correct starting fragments, check they aren't blank
+      f0, f1 = _c2_start_points[z][y][0]
+      f2, f3 = _c2_start_points[z][y][1]
+      # Get all run prefixes present, and store that they're in this YZ-constrained line
+      prefixes = c2_get_run_prefixes([f0, f1, f2, f3])
+      for pf in prefixes:
+        if pf not in _c2_candidate_cache:
+          _c2_candidate_cache[pf] = []
+        _c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - sector.base_sector_coords[1], 'z': z - sector.base_sector_coords[2]})
 
+_prefix_runs = []
+def construct_prefix_run_cache():
+  global _prefix_runs
+  _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p])]
 
+_c2_start_points = [[None for _ in range(sector.galaxy_sector_counts[1])] for _ in range(sector.galaxy_sector_counts[2])]
+def construct_c2_start_point_cache():
+  global _c2_start_points
+  y = 0
+  z = 0
+  for w in c2_get_start_points():
+    _c2_start_points[z][y] = w
+    y += 1
+    if y >= sector.galaxy_sector_counts[1]:
+      y = 0
+      z += 1
+
+  
 # Initialisation
 _init_start = time.clock()
+construct_prefix_run_cache()
+construct_c2_start_point_cache()
 construct_c2_candidate_cache()
 _init_time = time.clock() - _init_start
-
 
 # Test modes
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "debug":
       pass
-
+    
+    elif sys.argv[1] == "pdiff":
+      for x in range(2, len(sys.argv)-1):
+        idx1 = pgdata.cx_prefixes.index(sys.argv[x])
+        idx2 = pgdata.cx_prefixes.index(sys.argv[x+1])
+        roll = False
+        
+        if idx2 < idx1:
+          dif = (len(pgdata.cx_prefixes) - idx1) + idx2
+          roll = True
+        else:
+          dif = idx2 - idx1
+        
+        cnt = 0
+        for i in range(dif):
+          idx = (idx1 + i) % len(pgdata.cx_prefixes)
+          cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
+        
+        print("{0} --> {1}: {2} prefixes (rollover: {3}, predicted len: {4})".format(sys.argv[x], sys.argv[x+1], dif, roll, cnt))
+      
     elif sys.argv[1] == "run1":
       input = sys.argv[2] # "Smooreau"
       frags = get_fragments(input)
@@ -363,11 +439,65 @@ if __name__ == '__main__':
       input = sys.argv[2] # "Schuae Flye"
       limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
-      for idx, frags in c2_get_run(input):
-        if limit is not None and (idx + sector.base_sector_coords[0]) >= limit:
-          break
+      for idx, frags in c2_get_run(input, limit):
         x = sector.base_coords.x + (idx * sector.cube_size)
         print ("[{1}/{2}] {0}".format(format_name(frags), idx, x))
+        
+      
+    elif sys.argv[1] == "fr1":
+      limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
+      
+      x = -sector.base_sector_coords[0]
+      y = -8
+      z = -sector.base_sector_coords[2]
+      count = 0
+      ok = 0
+      bad = 0
+      for (i, j, name) in c1_get_extended_run():
+        print("[{0},{1},{2}] {3}".format(x, y, z, name))
+        x += 1
+        if x >= 89:
+          y += 1
+          if y >= 8:
+            y = -8
+            z += 1
+        if count + 1 > limit:
+          break
+        count += 1
+      # print("Count: {0}, OK: {1}, bad: {2}".format(count, ok, bad))
+      
+    elif sys.argv[1] == "fr2":
+      limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
+      
+      x = -sector.base_sector_coords[0]
+      y = -8
+      z = -sector.base_sector_coords[2]
+      count = 0
+      ok = 0
+      bad = 0
+      for ((f0, f1), (f2, f3)) in c2_get_start_points():
+        extra = ""
+        if y >= -3 and y <= 2:
+          sect = c2_get_name(sector.Sector(x,y,z))
+          if sect == [f0, f1, f2, f3]:
+            ok += 1
+            print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
+          elif sect is not None:
+            bad += 1
+            print("[{0},{1},{2}] {3}{4} {5}{6} (BAD: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
+          else:
+            print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+        else:
+          print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
+        y += 1
+        if y >= 8:
+          y = -8
+          z += 1
+        if count + 1 > limit:
+          break
+        count += 1
+      print("Count: {0}, OK: {1}, bad: {2}".format(count, ok, bad))
+    
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]

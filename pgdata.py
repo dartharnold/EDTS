@@ -90,59 +90,42 @@ c1_suffixes_s2 = [
   "s", "cs", "wyg", "rn", "ct", "t", "hs", "rbs",
   "rp", "tts", "v", "wn", "ms", "w", "rr", "mt",
   "x", "rs", "cy", "y", "rt", "z", "ws", "lch", # "y" is speculation
-  "my", "ry", "nks"
+  "my", "ry", "nks", "nd", "sc", "ng", "sh", "nk",
+  "sk", "nn", "ds", "sm", "sp", "ns", "nt", "dy",
+  "ss", "st", "rrs", "xt", "nz", "sy", "xy", "rsch",
+  "rphs", "sts", "sys", "sty", "th", "tl", "tls", "rds",
+  "nch", "rns", "ts", "wls", "rnt", "tt", "rdy", "rst",
+  "pps", "tz", "tch", "sks", "ppy", "ff", "sps", "kh",
+  "sky", "ph", "lts", "wnst", "rth", "ths", "fs", "pp",
+  "ft", "ks", "pr", "ps", "pt", "fy", "rts", "ky",
+  "rshch", "mly", "py", "bb", "nds", "wry", "zz", "nns",
+  "ld", "lf", "gh", "lks", "sly", "lk", "ll", "rph",
+  "ln", "bs", "rsts", "gs", "ls", "vvy", "lt", "rks",
+  "qs", "rps", "gy", "wns", "lz", "nth", "phs"
 ]
 
 # Class 2 appears to use a subset of sequence 2
 c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
-# Sequence 3
-cx_suffixes_s3 = [
-  "nd", "sc", "ng", "sh", "nk", "sk", "nn", "ds",
-  "sm", "sp", "ns", "nt", "dy", "ss", "st", "rrs",
-  "xt", "nz", "sy", "xy", "rsch", "rphs", "sts", "sys",
-  "sty", "th", "tl", "tls", "rds", "nch", "rns", "ts",
-  "wls", "rnt", "tt", "rdy", "rst", "pps", "tz", "tch",
-  "sks", "ppy", "ff", "sps", "kh", "sky", "ph", "lts", 
-  # Formerly sequence 4b/5
-  "wnst", "rth", "ths", "fs", "pp", "ft", "ks", "pr",
-  "ps", "pt", "fy", "rts", "ky", "rshch", "mly", "py",
-  "bb", "nds", "wry", "zz", "nns", "ld", "lf", "gh",
-  "lks", "sly", "lk", "ll", "rph", "ln", "bs", "rsts",
-  "gs", "ls", "vvy", "lt", "rks", "qs", "rps", "gy",
-  "wns", "lz", "nth", "phs"
-]
-
-# These prefixes appear to use a restricted subset of suffixes
-c2_suffixes_Eae = c2_suffixes_s2[0:4]
-c2_suffixes_Phl = cx_suffixes_s1[0:13]
-c2_suffixes_Fly = cx_suffixes_s1[0:20]
-c2_suffixes_Ae  = c2_suffixes_s2[0:12]
 
 c1_suffixes = [
   None,
   cx_suffixes_s1,
-  c1_suffixes_s2,
-  cx_suffixes_s3
+  c1_suffixes_s2
 ]
 
 c2_suffixes = [
   None,
   cx_suffixes_s1,
-  c2_suffixes_s2,
-  cx_suffixes_s3,
-  c2_suffixes_Eae,
-  c2_suffixes_Phl,
-  c2_suffixes_Fly,
-  c2_suffixes_Ae
+  c2_suffixes_s2
 ]
 
 # These prefixes use the specified index into the c2_suffixes list
 c2_prefix_suffix_override_map = {
   "Eo":  2,  "Oo": 2, "Eu": 2,
-  "Ou":  2,  "Ae": 7, "Ai": 2,
-  "Eae": 4,  "Ao": 2, "Au": 2,
-  "Phl": 5, "Fly": 6
+  "Ou":  2,  "Ae": 2, "Ai": 2,
+  "Eae": 2,  "Ao": 2, "Au": 2,
+  "Aae": 2
 }
 
 # These prefixes use the specified index into the c1_infixes list
@@ -154,9 +137,25 @@ c1_prefix_infix_override_map = {
   "U":  2, "Ee":  2, "Ei":  2, "Oe": 2
 }
 
-c1_infix_rollover_overrides = [
-  "q" # q --> gn
-]
+
+cx_prefix_length_default = 35
+cx_prefix_length_overrides = {
+  # High confidence
+   'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
+   'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
+  'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
+  'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
+ 'Phyl':  8,  'Tyr': 25,  'Cry':  5, 
+  'Myn': 11,  'Myr':  4,   'Rh': 17,   'Wh': 33,  # if Rh lower, Wh --> 35
+   'Cy': 31, 'Pyth':  1, 'Schr':  3,
+   # ...
+   'Sk': 27,  'Lys': 10,
+   # Low confidence
+  'Aae':  5,  # Aae 4-5
+  'Myc':  3,  'Gyr': 13,  'Myl':  7, 'Lych':  3,  # Aae + Myc + Gyr = 21
+  'Sty':  5,  'Sph': 20,  'Spl': 17,   'Sq':  9,
+  'Lyr': 11,   'Sw': 27,
+}
 
 
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side
@@ -217,7 +216,7 @@ c2_word2_y_mapping = {
   "Th": [("Eo","rg"), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), ("Th","oe")], # [0] and [5] are speculative
   "Eu": [("Dry","oo"), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), ("Eu","n")], # [0] and [5] are speculative
   "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","a"), ("Ae","vsky"), ("Phl","a")],
-  "Ai": [("Phr","ee"), ("Phr","io"), ("Phr","ee"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")],
+  "Ai": [("Phr","oo"), ("Phr","io"), ("Phr","oo"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")],
   "Ao": [("Fly","e"), ("Fly","ua"), ("Fly","e"), ("Fl","aae"), ("Scr","oe"), ("Fl","aae")], # Fl --> Ao
   "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
  "Chr": [("Bl","ai"), ("Bl","aa"), ("Bl","ai"), ("Chr","aea"), ("Chr","aae"), ("Chr","aea")],
@@ -225,10 +224,27 @@ c2_word2_y_mapping = {
 }
 
 
-# C1: four prefixes per stack?
-# C1: how to decide whether to increment phoneme 1 or 3?
+# Index modifiers for outer states
+# Unit is a full run set using 128 suffixes
+c2_really_outer_states = [
+  (0, 0), (1, 0),
+  (0, 1), (1, 1),
+  (2, 0), (3, 0),
+  (2, 1), (3, 1),
+  (0, 2), (1, 2),
+  (0, 3), (1, 3),
+  (2, 2), (3, 2),
+  (2, 3), (3, 3),
+]
 
-# Kueloe + 2 stacks = Pueloe
+# Index modifiers for runs
+# Unit is a full run using 8 suffixes
+c2_outer_states = [
+  (0, 2), (0, 3), (2, 2), (2, 3),
+  (4, 6), (4, 7), (6, 6), (6, 7),
+  (8, 0), (8, 1), (10, 0), (10, 1),
+  (12, 4), (12, 5), (14, 4), (14, 5),
+]
 
 # Index modifiers for all states
 # In pairs of (phoneme 1, phoneme 3)

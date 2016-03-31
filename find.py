@@ -5,6 +5,7 @@ import argparse
 import env
 import fnmatch
 import logging
+import re
 
 app_name = "find"
 
@@ -21,6 +22,7 @@ class Application(object):
     ap.add_argument("-t", "--stations", default=False, action='store_true', help="Limit the search to station names")
     ap.add_argument("-i", "--show-ids", default=False, action='store_true', help="Show system and station IDs in output")
     ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
+    ap.add_argument("-r", "--regex", default=False, action='store_true', help="Takes input as a regex rather than a glob")
     ap.add_argument("system", metavar="system", type=str, nargs=1, help="The system or station to find")
     self.args = ap.parse_args(arg)
 
@@ -31,10 +33,17 @@ class Application(object):
     stn_matches = []
 
     if not self.args.anagram:
-      if self.args.systems or not self.args.stations:
-        sys_matches = fnmatch.filter(list(env.data.eddb_systems_by_name.keys()), searchname)
-      if self.args.stations or not self.args.systems:
-        stn_matches = fnmatch.filter(list(env.data.eddb_stations_by_name.keys()), searchname)
+      if self.args.regex:
+        rgx = re.compile(self.args.system[0])
+        if self.args.systems or not self.args.stations:
+          sys_matches = [s.name for s in env.data.eddb_systems if rgx.match(s.name)]
+        if self.args.stations or not self.args.systems:
+          stn_matches = [s.name for s in env.data.eddb_stations if rgx.match(s.name)]
+      else:
+        if self.args.systems or not self.args.stations:
+          sys_matches = fnmatch.filter(list(env.data.eddb_systems_by_name.keys()), searchname)
+        if self.args.stations or not self.args.systems:
+          stn_matches = fnmatch.filter(list(env.data.eddb_stations_by_name.keys()), searchname)
 
     else:
       if self.args.systems or not self.args.stations:
