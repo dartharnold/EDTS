@@ -156,10 +156,13 @@ cx_fragment_length_overrides = {
    # ...
    'sk': 27,  'lyr': 10,  'lys': 10,   'sq':  7,
    # Low confidence
-  'myc':  2,  'gyr': 10,  'myl': 13, 'lych':  1,  # Myc + Gyr = 12
-  'myn': 11,  'sty':  5,  'spl': 17,   'sw': 27,  # Myl + Lych + Myn = 25
-    'y': 30,
+  'myc':  2,  'gyr': 10,                          # Myc + Gyr = 12
+  'myl': 13, 'lych':  1,  'myn': 11,              # Myl + Lych + Myn = 25
+  'sty':  4,                                      # Sty + Wr = 35
+  'spl': 17,   'sw': 27,    'y': 30,
 }
+
+cx_prefix_total_run_length = sum([cx_fragment_length_overrides.get(p.lower(), cx_fragment_length_default) for p in cx_prefixes])
 
 
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side
