@@ -460,8 +460,8 @@ if __name__ == '__main__':
       cnt = 0
       for i in range(0, dif, inc):
         idx = (100 * len(pgdata.cx_prefixes) + idx1 + i) % len(pgdata.cx_prefixes)
-        cnt += get_fragment_run_length(pgdata.cx_prefixes[idx])
         print("[{0}] {1}".format(cnt, pgdata.cx_prefixes[idx]))
+        cnt += get_fragment_run_length(pgdata.cx_prefixes[idx])
       
       print("{0} prefixes (predicted len: {1})".format(dif, cnt))
       
