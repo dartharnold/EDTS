@@ -151,14 +151,14 @@ cx_fragment_length_overrides = {
   'eae':  4,   'ao':  5,  'scr': 24,  'shr': 11,
   'fly': 20,  'pry':  3, 'hyph': 13,   'py': 13,
  'phyl':  8,  'tyr': 25,  'cry':  5,  'aae':  5,
-  'myr':  4,   'rh': 15,
-   'wr': 31, 'pyth':  1, 'schr':  3,
-   # ...
-   'sk': 27,  'lyr': 10,  'lys': 10,   'sq':  7,
-   # Low confidence
+  'myr':  4,   'rh': 15,   'wr': 31, 'pyth':  1,
+ 'schr':  3,   'sk': 27,  'lyr': 10,  'lys': 10,
+   'sq':  7,
+   # Med confidence
   'myc':  2,  'gyr': 10,                          # Myc + Gyr = 12
-  'myl': 13, 'lych':  1,  'myn': 11,              # Myl + Lych + Myn = 25
   'sty':  4,                                      # Sty + Wr = 35
+   # Low confidence
+  'myl': 13, 'lych':  1,  'myn': 11,              # Myl + Lych + Myn = 25
   'spl': 17,   'sw': 27,    'y': 30,
 }
 
