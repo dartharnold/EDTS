@@ -151,7 +151,7 @@ cx_fragment_length_overrides = {
   'eae':  4,   'ao':  5,  'scr': 24,  'shr': 11,
   'fly': 20,  'pry':  3, 'hyph': 13,   'py': 13,
  'phyl':  8,  'tyr': 25,  'cry':  5, 
-  'myr':  4,   'rh': 17,   'wh': 33,  # if Rh lower, Wh --> 35
+  'myr':  4,   'rh': 15,
    'wr': 31, 'pyth':  1, 'schr':  3,
    # ...
    'sk': 27,  'lyr': 10,  'lys': 10,   'sq':  7,
@@ -159,7 +159,7 @@ cx_fragment_length_overrides = {
   'aae':  5,  # Aae 4-5, Aae + Myc + Gyr = 21
   'myc':  3,  'gyr': 13,  'myl': 10, 'lych':  2,  # Myl + Lych + Myn = 21
   'myn':  9,  'sty':  5,  'spl': 17,   'sw': 27,
-    'y': 32,
+    'y': 30,
 }
 
 
