@@ -172,7 +172,7 @@ def get_suffixes(input, get_all = False):
   if get_all:
     return result
   else:
-    return result[0 : get_prefix_run_length(wordstart)]
+    return result[0 : get_fragment_run_length(wordstart)]
 
 
 # Get the full list of infixes for a given set of fragments missing an infix
@@ -194,8 +194,8 @@ def c1_get_infixes(input):
     return None
 
 
-def get_prefix_run_length(prefix):
-  return pgdata.cx_prefix_length_overrides.get(prefix, pgdata.cx_prefix_length_default)
+def get_fragment_run_length(frag):
+  return pgdata.cx_fragment_length_overrides.get(frag.lower(), pgdata.cx_fragment_length_default)
 
 
 # Given a full system name, get its approximate coordinates
@@ -269,7 +269,7 @@ def c1_get_single_run(input, length = None):
     return
   
   if length is None:
-    length = get_prefix_run_length(frags[0])
+    length = get_fragment_run_length(frags[0])
   
   # Get the initial frag lists
   frag2list_full = c1_get_infixes(frags[0:-2])
@@ -422,7 +422,7 @@ if __name__ == '__main__':
       total_runlen = 1 + pgdata.cx_prefixes.index('Dr') - pgdata.cx_prefixes.index('Fr')
       cnt = 0
       for i in range(0, total_runlen):
-        runlen = get_prefix_run_length(frags[0])
+        runlen = get_fragment_run_length(frags[0])
         print("[{2}] {0} for {1}".format(frags[0], runlen, cnt))
         nextidx = pgdata.cx_prefixes.index(frags[0]) + 1
         if nextidx >= len(pgdata.cx_prefixes):
@@ -430,7 +430,7 @@ if __name__ == '__main__':
           nextidx2 = (pgdata.c1_infixes_s1.index(frags[1]) + 1) % len(pgdata.c1_infixes_s1)
           frags[1] = pgdata.c1_infixes_s1[nextidx2]
         frags[0] = pgdata.cx_prefixes[nextidx]
-        # if runlen == pgdata.cx_prefix_length_default and frags[0] not in pgdata.c1_prefix_infix_override_map:
+        # if runlen == pgdata.cx_fragment_length_default and frags[0] not in pgdata.c1_prefix_infix_override_map:
         cnt += runlen
     
     elif sys.argv[1] == "pdiff":
@@ -448,7 +448,7 @@ if __name__ == '__main__':
         cnt = 0
         for i in range(dif):
           idx = (idx1 + i) % len(pgdata.cx_prefixes)
-          cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
+          cnt += get_fragment_run_length(pgdata.cx_prefixes[idx])
         
         print("{0} --> {1}: {2} prefixes (rollover: {3}, predicted len: {4})".format(sys.argv[x], sys.argv[x+1], dif, roll, cnt))
       
@@ -460,7 +460,7 @@ if __name__ == '__main__':
       cnt = 0
       for i in range(0, dif, inc):
         idx = (100 * len(pgdata.cx_prefixes) + idx1 + i) % len(pgdata.cx_prefixes)
-        cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
+        cnt += get_fragment_run_length(pgdata.cx_prefixes[idx])
         print("[{0}] {1}".format(cnt, pgdata.cx_prefixes[idx]))
       
       print("{0} prefixes (predicted len: {1})".format(dif, cnt))

@@ -143,23 +143,23 @@ c1_prefix_infix_override_map = {
 }
 
 
-cx_prefix_length_default = 35
-cx_prefix_length_overrides = {
+cx_fragment_length_default = 35
+cx_fragment_length_overrides = {
   # High confidence
-   'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
-   'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
-  'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
-  'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
- 'Phyl':  8,  'Tyr': 25,  'Cry':  5, 
-  'Myr':  4,   'Rh': 17,   'Wh': 33,  # if Rh lower, Wh --> 35
-   'Cy': 33,   'Wr': 33, 'Pyth':  1, 'Schr':  3,
+   'eu': 31,  'sly':  4,   'tz':  1,  'phl': 13,
+   'ae': 12,  'hyp': 25,  'kyl': 30,  'phr': 10,
+  'eae':  4,   'ao':  5,  'scr': 24,  'shr': 11,
+  'fly': 20,  'pry':  3, 'hyph': 13,   'py': 13,
+ 'phyl':  8,  'tyr': 25,  'cry':  5, 
+  'myr':  4,   'rh': 17,   'wh': 33,  # if Rh lower, Wh --> 35
+   'wr': 31, 'pyth':  1, 'schr':  3,
    # ...
-   'Sk': 27,  'Lys': 10,
+   'sk': 27,  'lyr': 10,  'lys': 10,   'sq':  7,
    # Low confidence
-  'Aae':  5,  # Aae 4-5, Aae + Myc + Gyr = 21
-  'Myc':  3,  'Gyr': 13,  'Myl': 10, 'Lych':  2,  # Myl + Lych + Myn = 21
-  'Myn':  9,  'Sty':  5,  'Spl': 17,   'Sq':  9,
-  'Lyr': 11,   'Sw': 27,
+  'aae':  5,  # Aae 4-5, Aae + Myc + Gyr = 21
+  'myc':  3,  'gyr': 13,  'myl': 10, 'lych':  2,  # Myl + Lych + Myn = 21
+  'myn':  9,  'sty':  5,  'spl': 17,   'sw': 27,
+    'y': 32,
 }
 
 
