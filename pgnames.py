@@ -430,7 +430,7 @@ if __name__ == '__main__':
           nextidx2 = (pgdata.c1_infixes_s1.index(frags[1]) + 1) % len(pgdata.c1_infixes_s1)
           frags[1] = pgdata.c1_infixes_s1[nextidx2]
         frags[0] = pgdata.cx_prefixes[nextidx]
-        # if runlen == pgdata.cx_prefix_run_length_default and frags[0] not in pgdata.c1_prefix_infix_override_map:
+        # if runlen == pgdata.cx_prefix_length_default and frags[0] not in pgdata.c1_prefix_infix_override_map:
         cnt += runlen
     
     elif sys.argv[1] == "pdiff":
