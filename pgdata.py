@@ -143,26 +143,26 @@ c1_prefix_infix_override_map = {
 }
 
 
-cx_fragment_length_default = 35
-cx_fragment_length_overrides = {
+cx_prefix_length_default = 35
+cx_prefix_length_overrides = {
   # High confidence
-   'eu': 31,  'sly':  4,   'tz':  1,  'phl': 13,
-   'ae': 12,  'hyp': 25,  'kyl': 30,  'phr': 10,
-  'eae':  4,   'ao':  5,  'scr': 24,  'shr': 11,
-  'fly': 20,  'pry':  3, 'hyph': 13,   'py': 13,
- 'phyl':  8,  'tyr': 25,  'cry':  5,  'aae':  5,
-  'myr':  4,   'rh': 15,   'wr': 31,   'sk': 27,
-   'sq':  7, 'pyth':  1,  'lyr': 10,  'lys': 10,
- 'schr':  3,
+   'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
+   'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
+  'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
+  'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
+ 'Phyl':  8,  'Tyr': 25,  'Cry':  5,  'Aae':  5,
+  'Myr':  4,   'Rh': 15,   'Wr': 31,   'Sk': 27,
+   'Sq':  7, 'Pyth':  1,  'Lyr': 10,  'Lys': 10,
+ 'Schr':  3,
    # Med confidence
-  'myc':  2,  'gyr': 10,                          # Myc + Gyr = 12
-  'sty':  4,                                      # Sty + Wr = 35
+  'Myc':  2,  'Gyr': 10,                          # Myc + Gyr = 12
+  'Sty':  4,                                      # Sty + Wr = 35
    # Low confidence
-  'myl': 13, 'lych':  1,  'myn': 11,              # Myl + Lych + Myn = 25
-  'spl': 17,   'sw': 27,    'z': 33,              # Z = 33 or 34
+  'Myl': 13, 'Lych':  1,  'Myn': 11,              # Myl + Lych + Myn = 25
+  'Spl': 17,   'Sw': 27,    'Z': 33,              # Z = 33 or 34
 }
 
-cx_prefix_total_run_length = sum([cx_fragment_length_overrides.get(p.lower(), cx_fragment_length_default) for p in cx_prefixes])
+cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
 
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side
