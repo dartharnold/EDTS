@@ -39,7 +39,7 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
   if p_src_list is not None:
     src_list = [s if isinstance(s, Station) else Station.none(s) for s in p_src_list]
 
-  if (src is not None and 'direction' in filters):
+  if (src_list is not None and 'direction' in filters):
     direction_obj = filters['direction']
     direction_angle = filters['direction_angle'] if 'direction_angle' in filters else default_direction_angle
     max_angle = direction_angle * math.pi / 180.0
@@ -50,11 +50,11 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
   asys = []
   maxdist = 0.0
 
-  for s in sys_list:
+  for s in s_list:
     if isinstance(s, Station):
       st = s
       sy = s.system
-    elif isinstance(s, KnownSystem):
+    elif isinstance(s, System):
       st = Station.none(s)
       sy = s
     else:
@@ -64,15 +64,15 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
       else:
         log.error("Could not find system in list: \"{0}\"!".format(s))
 
-    if ('allegiance' in filters and filters['allegiance'] != sy.allegiance):
+    if ('allegiance' in filters and ((not hasattr(sy, 'allegiance')) or filters['allegiance'] != sy.allegiance):
       continue
 
-    has_stns = (sy.allegiance is not None)
+    has_stns = (hasattr(sy, 'allegiance') and sy.allegiance is not None)
     
     if ('pad' in filters and not has_stns):
       continue
 
-    if ('direction' in filters and not self.all_angles_within(src_list, sy, direction_obj, max_angle)):
+    if ('direction' in filters and src_list is not None and not self.all_angles_within(src_list, sy, direction_obj, max_angle)):
       continue
 
     if ('pad' in filters and filters['pad'] != 'L' and st.max_pad_size == 'L'):
@@ -89,7 +89,8 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
       # Sort the list by distance to ALL start systems
       asys.sort(key=lambda t: math.fsum([t.distance_to(start) for start in src_list]))
 
-      asys = asys[0:self.args.num]
+      if limit is not None:
+        asys = asys[0:limit]
       maxdist = max(dist, maxdist)
 
     return asys
@@ -97,8 +98,8 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
 
 def all_angles_within(starts, dest1, dest2, max_angle):
   for d in starts:
-    cur_dir = (dest1.position - d.system.position)
-    test_dir = (dest2.position - d.system.position)
+    cur_dir = (dest1.position - d.position)
+    test_dir = (dest2.position - d.position)
     if cur_dir.angle_to(test_dir) > max_angle:
       return False
   return True
