@@ -82,22 +82,20 @@ class Env(object):
       return []
 
   def get_system(self, sysname):
-    if sysname.lower() in self.eddb_systems_by_name:
+    # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
+    rx_match = self._regex_coords.match(sysname)
+    if rx_match is not None:
+      # If it matches, make a fake system and station at those coordinates
+      try:
+        cx = float(rx_match.group(1))
+        cy = float(rx_match.group(2))
+        cz = float(rx_match.group(3))
+        return System(cx, cy, cz, sysname)
+      except:
+        pass
+    elif sysname.lower() in self.eddb_systems_by_name:
       return self.eddb_systems_by_name[sysname.lower()]
     else:
-      # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
-      rx_match = self._regex_coords.match(sysname)
-      if rx_match is not None:
-        # If it matches, make a fake system and station at those coordinates
-        try:
-          cx = float(rx_match.group(1))
-          cy = float(rx_match.group(2))
-          cz = float(rx_match.group(3))
-          return System(cx, cy, cz, sysname)
-        except:
-          return None
-      else:
-        return None
 
   def _load_eddb_data(self):
     with self._eddb_load_lock:
@@ -145,39 +143,6 @@ class Env(object):
       self._coriolis_load_lock.acquire()
       self._coriolis_load_lock.release()
       log.debug("Finished waiting")
-
-  #
-  # Public EDDB properties
-  #
-  @property
-  def eddb_systems(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_systems
-
-  @property
-  def eddb_stations(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_stations
-
-  @property
-  def eddb_stations_by_system(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_stations_by_system
-
-  @property
-  def eddb_systems_by_id(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_systems_by_id
-
-  @property
-  def eddb_systems_by_name(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_systems_by_name
-
-  @property
-  def eddb_stations_by_name(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_stations_by_name
 
   #
   # Public Coriolis properties
