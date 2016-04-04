@@ -1,5 +1,10 @@
 import re
 
+# "Imagine the galaxy is a giant slice of Battenberg
+#  which for reasons beyond our ken has had small chunks
+#  of carrot cake pushed into it all over the place..."
+#   - CMDR Jackie Silver
+
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
 pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>[A-Za-z])(?P<centre>[A-Za-z])-(?P<suffix>[A-Za-z]) (?P<lcode>[A-Za-z])(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
 
@@ -65,7 +70,7 @@ c1_infixes_s2 = [
 ]
 
 c1_infixes = [
-  None,
+  [],
   c1_infixes_s1,
   c1_infixes_s2
 ]
@@ -109,13 +114,13 @@ c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
 
 c1_suffixes = [
-  None,
+  [],
   cx_suffixes_s1,
   c1_suffixes_s2
 ]
 
 c2_suffixes = [
-  None,
+  [],
   cx_suffixes_s1,
   c2_suffixes_s2
 ]
@@ -145,17 +150,19 @@ cx_prefix_length_overrides = {
    'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
   'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
   'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
- 'Phyl':  8,  'Tyr': 25,  'Cry':  5, 
-  'Myn': 11,  'Myr':  4,   'Rh': 17,   'Wh': 33,  # if Rh lower, Wh --> 35
-   'Cy': 31, 'Pyth':  1, 'Schr':  3,
-   # ...
-   'Sk': 27,  'Lys': 10,
+ 'Phyl':  8,  'Tyr': 25,  'Cry':  5,  'Aae':  5,
+  'Myr':  4,   'Rh': 15,   'Wr': 31,   'Sk': 27,
+   'Sq':  7, 'Pyth':  1,  'Lyr': 10,  'Lys': 10,
+ 'Schr':  3,
+   # Med confidence
+  'Myc':  2,  'Gyr': 10,                          # Myc + Gyr = 12
+  'Sty':  4,                                      # Sty + Wr = 35
    # Low confidence
-  'Aae':  5,  # Aae 4-5
-  'Myc':  3,  'Gyr': 13,  'Myl':  7, 'Lych':  3,  # Aae + Myc + Gyr = 21
-  'Sty':  5,  'Sph': 20,  'Spl': 17,   'Sq':  9,
-  'Lyr': 11,   'Sw': 27,
+  'Myl': 13, 'Lych':  1,  'Myn': 11,              # Myl + Lych + Myn = 25
+  'Spl': 17,   'Sw': 27,    'Z': 33,              # Z = 33 or 34
 }
+
+cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
 
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side

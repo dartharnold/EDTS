@@ -8,7 +8,7 @@ import time
 import util
 import eddb
 import coriolis
-from system import KnownSystem
+from system import System, KnownSystem
 from station import Station
 
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
