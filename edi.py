@@ -181,4 +181,6 @@ class EDI(cmd.Cmd):
       cmd.Cmd.print_topics(self, header, cmds, cmdlen, maxcol)
 
 if __name__ == '__main__':
+  env.start()
   EDI().cmdloop()
+  env.stop()

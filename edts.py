@@ -383,6 +383,6 @@ class Application(object):
 
 
 if __name__ == '__main__':
-  env.open()
+  env.start()
   a = Application(env.local_args, False)
   a.run()

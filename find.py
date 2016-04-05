@@ -91,5 +91,6 @@ class Application(object):
 
 
 if __name__ == '__main__':
+  env.start()
   a = Application(env.local_args, False)
   a.run()

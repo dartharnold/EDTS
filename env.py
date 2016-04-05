@@ -124,13 +124,13 @@ class Env(object):
 data = None
 
 
-def open():
+def start():
   global data
   if data is None:
     data = Env()
 
 
-def close():
+def stop():
   global data
   data.close()
   data = None
