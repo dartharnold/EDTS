@@ -109,3 +109,12 @@ class DBConnection(object):
     c.execute('SELECT data FROM eddb_systems WHERE ? <= pos_x AND pos_x < ? AND ? <= pos_y AND pos_y < ? AND ? <= pos_z AND pos_z < ?', (min_x, max_x, min_y, max_y, min_z, max_z))
     results = c.fetchall()
     return [json.loads(r[0]) for r in results]
+  
+  # Slow as sin; avoid if at all possible
+  def get_all_systems(self):
+    c = self._conn.cursor()
+    c.execute('SELECT data FROM eddb_systems')
+    result = c.fetchone()
+    while result is not None:
+      yield json.loads(result[0])
+      result = c.fetchone()
