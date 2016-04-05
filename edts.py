@@ -106,7 +106,7 @@ class Application(object):
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
     calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, route_strategy=self.args.route_strategy, slf=self.args.slf)
-    r = rx.Routing(calc, env.data.eddb_systems, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
+    r = rx.Routing(env.data, calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit)
 
     if self.args.ordered:
@@ -184,7 +184,7 @@ class Application(object):
             max_tank = None
             if cur_fuel is not None:
               fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
-              min_tank, max_tank = self.ship.fuel_weight_range(hdist, self.args.cargo * (i-1))
+              min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.cargo * (i-1))
               if max_tank >= self.ship.tank_size:
                 max_tank = None
               total_fuel_cost += fuel_cost
@@ -383,5 +383,6 @@ class Application(object):
 
 
 if __name__ == '__main__':
+  env.open()
   a = Application(env.local_args, False)
   a.run()

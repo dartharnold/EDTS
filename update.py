@@ -24,7 +24,7 @@ log.info("Initialising database...")
 sys.stdout.flush()
 if os.path.isfile(db_tmp_filename):
   os.unlink(db_tmp_filename)
-conn = db.initialise_db(db_tmp_filename)
+dbc = db.initialise_db(db_tmp_filename)
 log.info("Done.")
 
 # Download the systems.json
@@ -38,7 +38,7 @@ eddb_systems_obj = json.loads(eddb_systems_json.read())
 log.info("Done.")
 log.info("Adding EDDB Systems data to DB...")
 sys.stdout.flush()
-db.populate_table_eddb_systems(conn, eddb_systems_obj)
+dbc.populate_table_eddb_systems(eddb_systems_obj)
 log.info("Done.")
 
 log.info("Downloading EDDB Stations list from {0} ... ".format(eddb_stations_url))
@@ -51,7 +51,7 @@ eddb_stations_obj = json.loads(eddb_stations_json.read())
 log.info("Done.")
 log.info("Adding EDDB Stations data to DB...")
 sys.stdout.flush()
-db.populate_table_eddb_stations(conn, eddb_stations_obj)
+dbc.populate_table_eddb_stations(eddb_stations_obj)
 log.info("Done.")
 
 log.info("Downloading Coriolis FSD list from {0} ... ".format(coriolis_fsds_url))
@@ -67,10 +67,10 @@ sys.stdout.flush()
 fsddata = {}
 for entry in coriolis_fsds_obj['fsd']:
   fsddata['{0}{1}'.format(entry['class'], entry['rating'])] = entry
-db.populate_table_coriolis_fsds(conn, fsddata)
+dbc.populate_table_coriolis_fsds(fsddata)
 log.info("Done.")
 
-conn.close()
+dbc.close()
 
 if os.path.isfile(db.default_db_file):
   os.unlink(db.default_db_file)
