@@ -82,12 +82,26 @@ class Env(object):
     max_z = max(vec_from.z, vec_to.z) + buffer_to
     return [KnownSystem(s) for s in self._db_conn.get_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z)]
 
+  def find_systems_by_glob(self, name):
+    for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_GLOB):
+      yield KnownSystem(s)
+
+  def find_systems_by_regex(self, name):
+    for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_REGEX):
+      yield KnownSystem(s)
+
+  def find_stations_by_glob(self, name):
+    for (sy, st) in self._db_conn.find_stations_by_name(name, mode=db.FIND_GLOB):
+      yield Station(st, KnownSystem(sy))
+
+  def find_stations_by_regex(self, name):
+    for (sy, st) in self._db_conn.find_stations_by_name(name, mode=db.FIND_REGEX):
+      yield Station(st, KnownSystem(sy))
+
   def _load_data(self):
     with self._load_lock:
       self._db_conn = db.open_db()
-
       self._load_coriolis_data()
-
       self.is_data_loaded = True
       log.debug("Data loaded")
 
@@ -100,7 +114,6 @@ class Env(object):
 
   def _load_coriolis_data(self):
     with self._load_lock:
-      
       self._coriolis_fsd_list = self._db_conn.retrieve_fsd_list()
       self.is_coriolis_data_loaded = True
       log.debug("Coriolis data loaded")

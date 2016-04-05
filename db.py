@@ -10,6 +10,12 @@ log = logging.getLogger("db")
 default_db_file = 'data/edts.db'
 schema_version = 4
 
+FIND_EXACT = 0
+FIND_GLOB = 1
+FIND_REGEX = 2
+
+_find_operators = ['=','LIKE','REGEXP']
+
 def _regexp(expr, item):
   rgx = re.compile(expr)
   return rgx.search(item) is not None
@@ -39,7 +45,7 @@ class DBConnection(object):
 
   def close(self):
     self._conn.close()
-
+  
   def _create_tables(self):
     c = self._conn.cursor()
     c.execute('CREATE TABLE edts_info (db_version INTEGER, db_mtime INTEGER)')
@@ -109,6 +115,26 @@ class DBConnection(object):
     c.execute('SELECT data FROM eddb_systems WHERE ? <= pos_x AND pos_x < ? AND ? <= pos_y AND pos_y < ? AND ? <= pos_z AND pos_z < ?', (min_x, max_x, min_y, max_y, min_z, max_z))
     results = c.fetchall()
     return [json.loads(r[0]) for r in results]
+    
+  def find_systems_by_name(self, name, mode=FIND_EXACT):
+    if mode == FIND_GLOB:
+      name = name.replace('*','%').replace('?','_')
+    c = self._conn.cursor()
+    c.execute('SELECT data FROM eddb_systems WHERE name {0} ?'.format(_find_operators[mode]), (name, ))
+    result = c.fetchone()
+    while result is not None:
+      yield json.loads(result[0])
+      result = c.fetchone()
+
+  def find_stations_by_name(self, name, mode=FIND_EXACT):
+    if mode == FIND_GLOB:
+      name = name.replace('*','%').replace('?','_')
+    c = self._conn.cursor()
+    c.execute('SELECT sy.data AS sysdata, st.data AS stndata FROM eddb_systems sy, eddb_stations st WHERE st.name {0} ? AND sy.id = st.system_id'.format(_find_operators[mode]), (name, ))
+    result = c.fetchone()
+    while result is not None:
+      yield (json.loads(result[0]), json.loads(result[1]))
+      result = c.fetchone()
   
   # Slow as sin; avoid if at all possible
   def get_all_systems(self):
