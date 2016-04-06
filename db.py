@@ -15,6 +15,8 @@ FIND_GLOB = 1
 FIND_REGEX = 2
 
 _find_operators = ['=','LIKE','REGEXP']
+# This is nasty, and it may well not be used up in the main code
+_bad_char_regex = re.compile("[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -]")
 
 def _regexp(expr, item):
   rgx = re.compile(expr)
@@ -45,7 +47,7 @@ class DBConnection(object):
 
   def close(self):
     self._conn.close()
-  
+
   def _create_tables(self):
     c = self._conn.cursor()
     c.execute('CREATE TABLE edts_info (db_version INTEGER, db_mtime INTEGER)')
@@ -117,7 +119,7 @@ class DBConnection(object):
     return [json.loads(r[0]) for r in results]
     
   def find_systems_by_name(self, name, mode=FIND_EXACT):
-    if mode == FIND_GLOB:
+    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
     c.execute('SELECT data FROM eddb_systems WHERE name {0} ?'.format(_find_operators[mode]), (name, ))
@@ -127,7 +129,7 @@ class DBConnection(object):
       result = c.fetchone()
 
   def find_stations_by_name(self, name, mode=FIND_EXACT):
-    if mode == FIND_GLOB:
+    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
     c.execute('SELECT sy.data AS sysdata, st.data AS stndata FROM eddb_systems sy, eddb_stations st WHERE st.name {0} ? AND sy.id = st.system_id'.format(_find_operators[mode]), (name, ))
@@ -136,6 +138,36 @@ class DBConnection(object):
       yield (json.loads(result[0]), json.loads(result[1]))
       result = c.fetchone()
   
+  # WARNING: VERY UNSAFE, USE WITH CARE
+  # These methods exist due to a bug in the Python sqlite3 module
+  # Using bound parameters as the safe versions do results in indexes being ignored
+  # This significantly slows down searches (~500x at time of writing) due to doing full table scans
+  # So, these methods are fast but vulnerable to SQL injection due to use of string literals
+  # This will hopefully be unnecessary in Python 2.7.11+ / 3.6.0+ if porting of a newer pysqlite2 version is completed
+  def find_systems_by_name_unsafe(self, name, mode=FIND_EXACT):
+    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+      name = name.replace('*','%').replace('?','_')
+    name = _bad_char_regex.sub("", name)
+    name = name.replace("'", r"''")
+    c = self._conn.cursor()
+    c.execute("SELECT data FROM eddb_systems WHERE name {0} '{1}'".format(_find_operators[mode], name))
+    result = c.fetchone()
+    while result is not None:
+      yield json.loads(result[0])
+      result = c.fetchone()
+
+  def find_stations_by_name_unsafe(self, name, mode=FIND_EXACT):
+    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+      name = name.replace('*','%').replace('?','_')
+    name = _bad_char_regex.sub("", name)
+    name = name.replace("'", r"''")
+    c = self._conn.cursor()
+    c.execute("SELECT sy.data AS sysdata, st.data AS stndata FROM eddb_systems sy, eddb_stations st WHERE st.name {0} '{1}' AND sy.id = st.system_id".format(_find_operators[mode], name))
+    result = c.fetchone()
+    while result is not None:
+      yield (json.loads(result[0]), json.loads(result[1]))
+      result = c.fetchone()
+
   # Slow as sin; avoid if at all possible
   def get_all_systems(self):
     c = self._conn.cursor()
