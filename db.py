@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 import os
 import re
 import sqlite3
@@ -22,10 +23,17 @@ def _regexp(expr, item):
   rgx = re.compile(expr)
   return rgx.search(item) is not None
 
+def _vec3_len(x1, y1, z1, x2, y2, z2):
+  xdiff = (x2-x1)
+  ydiff = (y2-y1)
+  zdiff = (z2-z1)
+  return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
+
 
 def open_db(filename = default_db_file, check_version = True):
   conn = sqlite3.connect(filename)
   conn.create_function("REGEXP", 2, _regexp)
+  conn.create_function("vec3_len", 6, _vec3_len)
  
   if check_version:
     c = conn.cursor()

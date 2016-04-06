@@ -88,7 +88,7 @@ class Application(object):
 
     maxdist = 0.0
 
-    for s in env.data.eddb_systems:
+    for s in env.data.get_all_systems():
       # If we don't care about allegiance, or we do and it matches...
       if s.name.lower() not in start_names and (self.args.allegiance is None or s.allegiance == self.args.allegiance):
         has_stns = (s.allegiance is not None)

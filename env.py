@@ -81,6 +81,10 @@ class Env(object):
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
     return [KnownSystem(s) for s in self._db_conn.get_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z)]
+  
+  def get_all_systems(self):
+    for s in self._db_conn.get_all_systems():
+      yield KnownSystem(s)
 
   def find_systems_by_glob(self, name):
     for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_GLOB):
