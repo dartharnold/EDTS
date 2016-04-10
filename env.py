@@ -29,7 +29,7 @@ class Env(object):
     # Match a float such as "33", "-33", "-33.1"
     rgx_float = r'[-+]?\d+(?:\.\d+)?'
     # Match a set of coords such as "[33, -45.6, 78.910]"
-    rgx_coords = r'\[\s*({0})\s*,\s*({0})\s*,\s*({0})\s*\]'.format(rgx_float)
+    rgx_coords = r'\[\s*({0})\s*[,/]\s*({0})\s*[,/]\s*({0})\s*\]'.format(rgx_float)
     # Compile the regex for faster execution later
     self._regex_coords = re.compile(rgx_coords)
 
