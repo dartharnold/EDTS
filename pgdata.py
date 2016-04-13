@@ -145,24 +145,22 @@ c1_prefix_infix_override_map = {
 
 cx_prefix_length_default = 35
 cx_prefix_length_overrides = {
-  # High confidence
    'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
    'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
   'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
   'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
  'Phyl':  8,  'Tyr': 25,  'Cry':  5,  'Aae':  5,
-  'Myr':  4,   'Rh': 15,   'Wr': 31,   'Sk': 27,
-   'Sq':  7, 'Pyth':  1,  'Lyr': 10,  'Lys': 10,
- 'Schr':  3,
-   # Med confidence
-  'Myc':  2,  'Gyr': 10,                          # Myc + Gyr = 12
-  'Sty':  4,                                      # Sty + Wr = 35
-   # Low confidence
-  'Myl': 13, 'Lych':  1,  'Myn': 11,              # Myl + Lych + Myn = 25
-  'Spl': 17,   'Sw': 27,    'Z': 33,              # Z = 33 or 34
+  'Myc':  2,  'Gyr': 10,  'Myl': 13, 'Lych':  1, # Myc + Gyr = 12
+  'Myn': 11,  'Myr':  4,   'Rh': 15,   'Wr': 31, # Myl + Lych + Myn = 25
+  'Sty':  4,  'Spl': 16,   'Sk': 27,   'Sq':  7,
+ 'Pyth':  1,  'Lyr': 10,   'Sw': 24,  'Thr': 32,
+  'Lys': 10, 'Schr':  3,   'Ee': 34,
 }
-
 cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
+
+cx_infix_length_overrides = {
+    'q': 13,
+}
 
 
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side

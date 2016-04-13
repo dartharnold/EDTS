@@ -298,6 +298,35 @@ def c1_get_extended_run(length = 1248):
       yield (i, j, name)
 
 
+def c1_get_wtf_run(length = 2048):
+  cur_prefix = pgdata.cx_prefixes[0]
+  cur_prefix_run_idx = 0
+  prefix_pos = dict([(p, (0, 0)) for p in pgdata.cx_prefixes])
+  # for p in pgdata.cx_prefixes:
+  #   print("[{3}] pos = {0}, infix mod = {1}, suffix mod = {2}".format(prefix_pos[p], infix_mod[p], suffix_mod[p], p))
+  for i in range(length):
+    infix_idx, suffix_idx = prefix_pos[cur_prefix]
+    infixes = c1_get_infixes([cur_prefix])
+    # TODO: Check if we're out of infixes
+    infix = infixes[infix_idx]
+    suffixes = get_suffixes([cur_prefix, infix], True)
+    if infix in pgdata.cx_infix_length_overrides:
+      suffixes = suffixes[0:pgdata.cx_infix_length_overrides[infix]]
+    if suffix_idx >= len(suffixes):
+      infix_idx = (infix_idx + 1) % len(infixes)
+      infix = infixes[infix_idx]
+      suffixes = get_suffixes([cur_prefix, infix], True)
+      suffix_idx = 0
+    # TODO: Check if we're out of suffixes
+    suffix = suffixes[suffix_idx]
+    print("[{0}] {1}{2}{3}".format(i, cur_prefix, infix, suffix))
+    cur_prefix_run_idx += 1
+    prefix_pos[cur_prefix] = (infix_idx, suffix_idx + 1)
+    if (cur_prefix_run_idx % get_prefix_run_length(cur_prefix)) == 0:
+      cur_prefix = get_next_prefix(cur_prefix)
+      cur_prefix_run_idx = 0
+
+
 # Get a full run of class 2 system names
 # The input MUST be the start point (at c2_run_states[0]), or it'll be wrong
 def c2_get_run(input, length = None):
@@ -417,21 +446,7 @@ _init_time = time.clock() - _init_start
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "debug":
-      frags = [sys.argv[2] if len(sys.argv) > 2 else "Fr", 'e', 'ck', 'oe']
-      
-      total_runlen = 1 + pgdata.cx_prefixes.index('Dr') - pgdata.cx_prefixes.index('Fr')
-      cnt = 0
-      for i in range(0, total_runlen):
-        runlen = get_prefix_run_length(frags[0])
-        print("[{2}] {0} for {1}".format(frags[0], runlen, cnt))
-        nextidx = pgdata.cx_prefixes.index(frags[0]) + 1
-        if nextidx >= len(pgdata.cx_prefixes):
-          nextidx = 0
-          nextidx2 = (pgdata.c1_infixes_s1.index(frags[1]) + 1) % len(pgdata.c1_infixes_s1)
-          frags[1] = pgdata.c1_infixes_s1[nextidx2]
-        frags[0] = pgdata.cx_prefixes[nextidx]
-        # if runlen == pgdata.cx_prefix_length_default and frags[0] not in pgdata.c1_prefix_infix_override_map:
-        cnt += runlen
+      c1_get_wtf_run(204800)
     
     elif sys.argv[1] == "pdiff":
       for x in range(2, len(sys.argv)-1):
