@@ -1,3 +1,4 @@
+from __future__ import division
 import re
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
@@ -157,6 +158,7 @@ cx_prefix_length_overrides = {
 }
 
 
+# OLD DATA. Currently kept for checks/verification.
 # Phonemes 1 and 3, from the "near" side of the galaxy to the far side
 c2_positions_y0z_offset = 19
 c2_positions_y0z = [
@@ -182,6 +184,7 @@ c2_positions_y0z = [
   (("Syr", "My" ), ("Ae",  None))  # Speculation
 ]
 
+# OLD DATA. Currently kept for checks/verification.
 # Generator to return the C2 positions in order
 def get_c2_positions():
   for idx, pair in enumerate(c2_positions_y0z):
@@ -192,8 +195,10 @@ def get_c2_positions():
       yield ((pair[0][1], pair[1][1]), (idx*4)+3-c2_positions_y0z_offset)
 
 
+# OLD DATA. Currently kept for checks/verification.
 # This is the index which Y=0 is at
 c2_y_mapping_offset = 3
+# OLD DATA. Currently kept for checks/verification.
 # Mapping of word 1 prefixes to start points at different Y levels
 c2_word1_y_mapping = {
    "Eo": [("Th","aae"), ("Eo","ch"), ("Eo","ch"), ("Eo","rl"), ("Eo","rl"), ("Oo","rb")],
@@ -210,6 +215,7 @@ c2_word1_y_mapping = {
    "My": [(None,None), ("Hy","eae"), ("Hy","eae"), ("My","oi"), ("My","oi"), (None,None)] # [1] and [4] are speculative
 }
 
+# OLD DATA. Currently kept for checks/verification.
 # Mapping of word 2 prefixes to start points at different Y levels
 c2_word2_y_mapping = {
   "Th": [("Eo","rg"), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), ("Th","oe")], # [0] and [5] are speculative
@@ -225,7 +231,8 @@ c2_word2_y_mapping = {
 
 # Index modifiers for outer states
 # Unit is a full run set using 128 suffixes
-c2_really_outer_states = [
+c2_vouter_step = 4
+c2_vouter_states = [
   (0, 0), (1, 0),
   (0, 1), (1, 1),
   (2, 0), (3, 0),
@@ -238,6 +245,7 @@ c2_really_outer_states = [
 
 # Index modifiers for runs
 # Unit is a full run using 8 suffixes
+c2_outer_step = 16
 c2_outer_states = [
   (0, 2), (0, 3), (2, 2), (2, 3),
   (4, 6), (4, 7), (6, 6), (6, 7),
@@ -247,6 +255,7 @@ c2_outer_states = [
 
 # Index modifiers for all states
 # In pairs of (phoneme 1, phoneme 3)
+c2_run_step = 8
 c2_run_states = [
   (0, 0), (1, 0), (0, 1), (1, 1),
   (2, 0), (3, 0), (2, 1), (3, 1),
@@ -266,4 +275,13 @@ c2_run_states = [
   (6, 6), (7, 6), (6, 7), (7, 7)
 ]
 
+c2_full_run_step = c2_run_step * 2
+c2_full_outer_step = c2_full_run_step * c2_outer_step
+c2_full_vouter_step = c2_full_outer_step * c2_vouter_step
 
+c2_run_diff = c2_full_run_step // 2
+c2_outer_diff = c2_full_outer_step // 2
+c2_vouter_diff = c2_full_vouter_step // 2
+
+c1_galaxy_size = [128, 128,  78]
+c2_galaxy_size = [128,  16,  78]

@@ -300,7 +300,7 @@ def c2_get_run(input, length = None):
     
     # Calculate the current base index
     # (in case we've done a full run and are onto the next set of phonemes)
-    cur_base_0 = int(i // len(pgdata.c2_run_states)) * 8
+    cur_base_0 = int(i // len(pgdata.c2_run_states)) * pgdata.c2_run_step
     cur_base_1 = 0
     
     # Ensure we have all the suffixes we need, and append the next set if not
@@ -328,24 +328,25 @@ def c2_get_run_prefixes(input):
       prefixes.append((frags[0], frags[2]))
   return prefixes
 
-# TODO: Get rid of casual magic numbers in here
+
 def c2_get_start_points(limit = 1248):
   base_idx0 = 0
   base_idx1 = 0
   count = 0
   while count < limit:
-    for (ors0, ors1) in pgdata.c2_really_outer_states:
-      for (oos0, oos1) in pgdata.c2_really_outer_states:
+    for (ors0, ors1) in pgdata.c2_vouter_states:
+      for (oos0, oos1) in pgdata.c2_vouter_states:
         for (os0, os1) in pgdata.c2_outer_states:
-          cur_idx0 = base_idx0 + (ors0 * 512) + (oos0 * 128) + (os0 * 8)
-          cur_idx1 = base_idx1 + (ors1 * 512) + (oos1 * 128) + (os1 * 8)
+          cur_idx0 = base_idx0 + (ors0 * pgdata.c2_vouter_diff) + (oos0 * pgdata.c2_outer_diff) + (os0 * pgdata.c2_run_diff)
+          cur_idx1 = base_idx1 + (ors1 * pgdata.c2_vouter_diff) + (oos1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
           yield (_prefix_runs[cur_idx0], _prefix_runs[cur_idx1])
           count += 1
           if count >= limit:
             return
-      
-    base_idx0 += 256 * len(pgdata.c2_really_outer_states)
-    base_idx1 += 256 * len(pgdata.c2_really_outer_states)
+
+    # One more layer out...
+    base_idx0 += pgdata.c2_full_vouter_step * pgdata.c2_vouter_step
+    base_idx1 += pgdata.c2_full_vouter_step * pgdata.c2_vouter_step
     
 
 # Cache to support faster repeat querying
@@ -372,7 +373,7 @@ def construct_prefix_run_cache():
   global _prefix_runs
   _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p])]
 
-_c2_start_points = [[None for _ in range(sector.galaxy_sector_counts[1])] for _ in range(sector.galaxy_sector_counts[2])]
+_c2_start_points = [[None for _ in range(pgdata.c2_galaxy_size[1])] for _ in range(pgdata.c2_galaxy_size[2])]
 def construct_c2_start_point_cache():
   global _c2_start_points
   y = 0
@@ -380,7 +381,7 @@ def construct_c2_start_point_cache():
   for w in c2_get_start_points():
     _c2_start_points[z][y] = w
     y += 1
-    if y >= sector.galaxy_sector_counts[1]:
+    if y >= pgdata.c2_galaxy_size[1]:
       y = 0
       z += 1
 
@@ -571,8 +572,8 @@ if __name__ == '__main__':
               y_levels[sect.y][sect.z][sect.x][sname] = 0
             y_levels[sect.y][sect.z][sect.x][sname] += 1
 
-      xcount = sector.galaxy_sector_counts[0]
-      zcount = sector.galaxy_sector_counts[2]
+      xcount = pgdata.c2_galaxy_size[0]
+      zcount = pgdata.c2_galaxy_size[2]
       for y in y_levels:
         with open("sectors_{0}.csv".format(y), 'w') as f:
           for z in range(zcount - sector.base_sector_coords[2], -sector.base_sector_coords[2], -1):
