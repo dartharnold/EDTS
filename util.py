@@ -5,6 +5,10 @@ if sys.version_info >= (3, 0):
   import urllib.request
 
 
+def is_interactive():
+  return hasattr(sys, 'ps1')
+
+
 def is_str(s):
   if sys.version_info >= (3, 0):
     return isinstance(s, str)

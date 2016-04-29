@@ -4,9 +4,11 @@ import os
 import re
 import sys
 import threading
+import time
+import util
 import eddb
 import coriolis
-from system import KnownSystem
+from system import System, KnownSystem
 from station import Station
 
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
@@ -27,7 +29,7 @@ class Env(object):
     # Match a float such as "33", "-33", "-33.1"
     rgx_float = r'[-+]?\d+(?:\.\d+)?'
     # Match a set of coords such as "[33, -45.6, 78.910]"
-    rgx_coords = r'\[\s*({0})\s*,\s*({0})\s*,\s*({0})\s*\]'.format(rgx_float)
+    rgx_coords = r'\[\s*({0})\s*[,/]\s*({0})\s*[,/]\s*({0})\s*\]'.format(rgx_float)
     # Compile the regex for faster execution later
     self._regex_coords = re.compile(rgx_coords)
 
@@ -101,6 +103,7 @@ class Env(object):
 
   def _load_eddb_data(self):
     with self._eddb_load_lock:
+      load_start = time.clock()
       self._eddb_systems = [KnownSystem(s) for s in eddb.load_systems(global_args.eddb_systems_file)]
       self._eddb_systems_by_id = self._get_systems_by_id(self._eddb_systems)
       self._eddb_systems_by_name = self._get_systems_by_name(self._eddb_systems)
@@ -110,7 +113,7 @@ class Env(object):
       self._eddb_stations_by_system = self._get_stations_by_system(self._eddb_stations)
 
       self.is_eddb_data_loaded = True
-      log.debug("EDDB data loaded")
+      log.debug("EDDB data loaded after {0:.1f}ms".format((time.clock() - load_start) * 1000.0))
 
   def load_eddb_data(self, async):
     if async:
@@ -121,9 +124,10 @@ class Env(object):
 
   def _load_coriolis_data(self):
     with self._coriolis_load_lock:
+      load_start = time.clock()
       self._coriolis_fsd_list = coriolis.load_frame_shift_drives(global_args.coriolis_fsd_file)
       self.is_coriolis_data_loaded = True
-      log.debug("Coriolis data loaded")
+      log.debug("Coriolis data loaded after {0:.1f}ms".format((time.clock() - load_start) * 1000.0))
 
   def load_coriolis_data(self, async):
     if async:
@@ -206,15 +210,19 @@ arg_parser.add_argument("--eddb-stations-file", type=str, default=eddb.default_s
 arg_parser.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
 global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 
-set_verbosity(global_args.verbose)
+# Only try to parse args/set verbosity in non-interactive mode
+if not util.is_interactive():
+  set_verbosity(global_args.verbose)
 
 if not os.path.isfile(global_args.eddb_systems_file) or not os.path.isfile(global_args.eddb_stations_file):
   log.error("Error: EDDB system/station files not found. Run the eddb.py script with the --download flag to auto-download these.")
-  sys.exit(1)
+  if not util.is_interactive():
+    sys.exit(1)
 
 if not os.path.isfile(global_args.coriolis_fsd_file):
   log.error("Error: Coriolis FSD file not found. Run the coriolis.py script with the --download flag to auto-download this.")
-  sys.exit(1)
+  if not util.is_interactive():
+    sys.exit(1)
 
 # Create the object
 data = Env()

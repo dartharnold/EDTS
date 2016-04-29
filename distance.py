@@ -22,6 +22,7 @@ class Application(object):
     ap.add_argument("-o", "--ordered", action='store_true', default=False, help="List is ordered (do not sort alphabetically)")
     ap.add_argument("-f", "--full-width", action='store_true', default=False, help="Do not truncate heading names for readability")
     ap.add_argument("-s", "--start", type=str, required=False, help="Defines a start system to calculate all other distances from")
+    ap.add_argument("-r", "--route", action='store_true', default=False, help="List of systems is a sequential list to visit and get distances between")
     ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
 
     self.args = ap.parse_args(arg)
@@ -64,7 +65,26 @@ class Application(object):
 
     print('')
 
-    if self.args.start is not None:
+    if self.args.route:
+      systems = []
+      distances = []
+      d_max_len = 1.0
+      if len(self.args.systems) > 0:
+        systems.append(env.data.parse_system(self.args.systems[0]))
+      for i in range(1, len(self.args.systems)):
+        sobj1 = systems[-1]
+        sobj2 = env.data.parse_system(self.args.systems[i])
+        distances.append(sobj1.distance_to(sobj2))
+        d_max_len = max(d_max_len, distances[-1])
+        systems.append(sobj2)
+
+      d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
+      if len(systems) > 0:
+        print(systems[0].to_string())
+      for i in range(1, len(self.args.systems)):
+        print(('  === {0: >'+d_max_len+'.2f}Ly ===> {1}').format(distances[i-1], systems[i].to_string()))
+
+    elif self.args.start is not None:
       start = env.data.parse_system(self.args.start)
 
       distances = {}

@@ -1,6 +1,11 @@
 from __future__ import division
 import re
 
+# "Imagine the galaxy is a giant slice of Battenberg
+#  which for reasons beyond our ken has had small chunks
+#  of carrot cake pushed into it all over the place..."
+#   - CMDR Jackie Silver
+
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
 pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>[A-Za-z])(?P<centre>[A-Za-z])-(?P<suffix>[A-Za-z]) (?P<lcode>[A-Za-z])(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
 
@@ -66,7 +71,7 @@ c1_infixes_s2 = [
 ]
 
 c1_infixes = [
-  None,
+  [],
   c1_infixes_s1,
   c1_infixes_s2
 ]
@@ -110,13 +115,13 @@ c2_suffixes_s2 = c1_suffixes_s2[0:len(cx_suffixes_s1)]
 
 
 c1_suffixes = [
-  None,
+  [],
   cx_suffixes_s1,
   c1_suffixes_s2
 ]
 
 c2_suffixes = [
-  None,
+  [],
   cx_suffixes_s1,
   c2_suffixes_s2
 ]
@@ -141,20 +146,21 @@ c1_prefix_infix_override_map = {
 
 cx_prefix_length_default = 35
 cx_prefix_length_overrides = {
-  # High confidence
    'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
    'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
   'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
   'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
-  'Phyl':  8, 'Tyr': 25,  'Cry':  5,  'Aae':  6,
-  'Myc':  6,  'Gyr':  9,  'Myl':  7, 'Lych':  3,
-  'Myn': 11,  'Myr':  4,   'Rh': 17,   'Wh': 33,  # if Rh lower, Wh --> 35
-   'Cy': 31, 'Pyth':  1, 'Schr':  3,
-   # ...
-   'Sk': 27,  'Lys': 10,
-   # Low confidence
-  'Sty':   5, 'Sph': 20,  'Spl': 17,   'Sq': 9,
-  'Lyr': 11,   'Sw': 27,
+ 'Phyl':  8,  'Tyr': 25,  'Cry':  5,  'Aae':  5,
+  'Myc':  2,  'Gyr': 10,  'Myl': 13, 'Lych':  1, # Myc + Gyr = 12
+  'Myn': 11,  'Myr':  4,   'Rh': 15,   'Wr': 31, # Myl + Lych + Myn = 25
+  'Sty':  4,  'Spl': 16,   'Sk': 27,   'Sq':  7,
+ 'Pyth':  1,  'Lyr': 10,   'Sw': 24,  'Thr': 32,
+  'Lys': 10, 'Schr':  3,   'Ee': 34,
+}
+cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
+
+cx_infix_length_overrides = {
+    'q': 13,
 }
 
 
