@@ -184,7 +184,7 @@ class Application(object):
             max_tank = None
             if cur_fuel is not None:
               fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
-              min_tank, max_tank = self.ship.fuel_weight_range(hdist, self.args.cargo * (i-1))
+              min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.cargo * (i-1))
               if max_tank >= self.ship.tank_size:
                 max_tank = None
               total_fuel_cost += fuel_cost
