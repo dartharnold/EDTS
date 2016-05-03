@@ -149,10 +149,10 @@ cx_prefix_length_overrides = {
    'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
    'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
   'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
-  'Fly': 20,  'Pry':  3, 'Hyph': 13,   'Py': 13,
+  'Fly': 20,  'Pry':  3, 'Hyph': 14,   'Py': 12,
  'Phyl':  8,  'Tyr': 25,  'Cry':  5,  'Aae':  5,
-  'Myc':  2,  'Gyr': 10,  'Myl': 13, 'Lych':  1, # Myc + Gyr = 12
-  'Myn': 11,  'Myr':  4,   'Rh': 15,   'Wr': 31, # Myl + Lych + Myn = 25
+  'Myc':  2,  'Gyr': 10,  'Myl': 12, 'Lych':  3, # Myc + Gyr = 12
+  'Myn': 10,  'Myr':  4,   'Rh': 15,   'Wr': 31, # Myl + Lych + Myn = 25
   'Sty':  4,  'Spl': 16,   'Sk': 27,   'Sq':  7,
  'Pyth':  1,  'Lyr': 10,   'Sw': 24,  'Thr': 32,
   'Lys': 10, 'Schr':  3,   'Ee': 34,
@@ -162,6 +162,9 @@ cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_le
 cx_infix_length_overrides = {
     'q': 13,
 }
+
+# Welp
+c1_arbitrary_index_offset = -35
 
 
 # OLD DATA. Currently kept for checks/verification.

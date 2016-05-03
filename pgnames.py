@@ -325,7 +325,37 @@ def c1_get_wtf_run(length = 2048):
     if (cur_prefix_run_idx % get_prefix_run_length(cur_prefix)) == 0:
       cur_prefix = get_next_prefix(cur_prefix)
       cur_prefix_run_idx = 0
+      
 
+def c1_get_offset(input):
+  frags = get_fragments(input) if util.is_str(input) else input
+  if frags is None:
+    return
+  if len(frags) > 3:
+    # TODO: This will need to change if not all infixes are equal...
+    offset = len(c1_get_infixes([frags[0]])) * len(get_suffixes(frags[0:2], True))
+    # TODO: ...
+    offset *= pgdata.cx_prefix_total_run_length // get_prefix_run_length(frags[0])
+    offset += pgdata.cx_prefix_total_run_length %  get_prefix_run_length(frags[0])
+    # TODO: ...
+    offset += pgdata.c1_arbitrary_index_offset
+    offset += _c1_prefix_offsets[frags[0]]
+    return offset
+    
+  else:
+    offset = 0
+    offset += len(get_suffixes(frags[0:2], True)) * c1_get_infixes([frags[0]]).index(frags[1])
+    offset += get_suffixes(frags[0:2], True).index(frags[2])
+    offset_mod = offset % get_prefix_run_length(frags[0])
+    offset //= get_prefix_run_length(frags[0])
+    offset -= 1
+    
+    offset *= pgdata.cx_prefix_total_run_length
+    offset += offset_mod
+    offset += pgdata.c1_arbitrary_index_offset
+    offset += _c1_prefix_offsets[frags[0]]
+    
+    return offset
 
 # Get a full run of class 2 system names
 # The input MUST be the start point (at c2_run_states[0]), or it'll be wrong
@@ -402,7 +432,7 @@ def c2_get_start_points(limit = 1248):
 # Cache to support faster repeat querying
 _c2_candidate_cache = {}
 # Constructs a cache to speed up later searching for YZ candidates
-def construct_c2_candidate_cache():
+def _construct_c2_candidate_cache():
   global _c2_candidate_cache
   # For each Z slice...
   for z in range(len(_c2_start_points)):
@@ -419,12 +449,12 @@ def construct_c2_candidate_cache():
         _c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - sector.base_sector_coords[1], 'z': z - sector.base_sector_coords[2]})
 
 _prefix_runs = []
-def construct_prefix_run_cache():
+def _construct_prefix_run_cache():
   global _prefix_runs
   _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in get_suffixes([p])]
 
 _c2_start_points = [[None for _ in range(pgdata.c2_galaxy_size[1])] for _ in range(pgdata.c2_galaxy_size[2])]
-def construct_c2_start_point_cache():
+def _construct_c2_start_point_cache():
   global _c2_start_points
   y = 0
   z = 0
@@ -435,12 +465,20 @@ def construct_c2_start_point_cache():
       y = 0
       z += 1
 
+_c1_prefix_offsets = {}
+def _construct_c1_prefix_offsets():
+  global _c1_prefix_offsets
+  cnt = 0
+  for p in pgdata.cx_prefixes:
+    _c1_prefix_offsets[p] = cnt
+    cnt += get_prefix_run_length(p)
   
 # Initialisation
 _init_start = time.clock()
-construct_prefix_run_cache()
-construct_c2_start_point_cache()
-construct_c2_candidate_cache()
+_construct_prefix_run_cache()
+_construct_c2_start_point_cache()
+_construct_c2_candidate_cache()
+_construct_c1_prefix_offsets()
 _init_time = time.clock() - _init_start
 
 # Test modes
