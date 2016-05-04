@@ -325,37 +325,42 @@ def c1_get_wtf_run(length = 2048):
     if (cur_prefix_run_idx % get_prefix_run_length(cur_prefix)) == 0:
       cur_prefix = get_next_prefix(cur_prefix)
       cur_prefix_run_idx = 0
-      
+
 
 def c1_get_offset(input):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return
+
+  sufs = get_suffixes(frags[0:-1], True)
+  suf_len = len(sufs)
+
+  offset = 0
+  # Add the total length of all the infixes we've already passed over
+  offset += suf_len * c1_get_infixes(frags[0:-2]).index(frags[-2])
+  # If we're a 4-phoneme name, we have a second "outer" infix, so also add all of _those_ we've passed over
   if len(frags) > 3:
-    # TODO: This will need to change if not all infixes are equal...
-    offset = len(c1_get_infixes([frags[0]])) * len(get_suffixes(frags[0:2], True))
-    # TODO: ...
-    offset *= pgdata.cx_prefix_total_run_length // get_prefix_run_length(frags[0])
-    offset += pgdata.cx_prefix_total_run_length %  get_prefix_run_length(frags[0])
-    # TODO: ...
-    offset += pgdata.c1_arbitrary_index_offset
-    offset += _c1_prefix_offsets[frags[0]]
-    return offset
-    
-  else:
-    offset = 0
-    offset += len(get_suffixes(frags[0:2], True)) * c1_get_infixes([frags[0]]).index(frags[1])
-    offset += get_suffixes(frags[0:2], True).index(frags[2])
-    offset_mod = offset % get_prefix_run_length(frags[0])
-    offset //= get_prefix_run_length(frags[0])
-    offset -= 1
-    
-    offset *= pgdata.cx_prefix_total_run_length
-    offset += offset_mod
-    offset += pgdata.c1_arbitrary_index_offset
-    offset += _c1_prefix_offsets[frags[0]]
-    
-    return offset
+    offset += suf_len * len(c1_get_infixes(frags[0:-2])) * c1_get_infixes(frags[0:-3]).index(frags[-3])
+  # Add the index of the current suffix
+  offset += sufs.index(frags[-1])
+  # Get the modulo of the current offset compared to this prefix's run length, store for later
+  offset_mod = offset % get_prefix_run_length(frags[0])
+  # Divide by the current prefix's run length, this is now how many iterations of the full 3037 we should have passed over
+  offset //= get_prefix_run_length(frags[0])
+  # Subtract one because ... I have no idea right now, because it works, just subtract one
+  offset -= 1
+
+  # Now multiply by the total run length (3037) to get the actual offset of this run
+  offset *= pgdata.cx_prefix_total_run_length
+  # Add where this suffix is within this prefix's part of the run
+  offset += offset_mod
+  # Add another magic number, "Just 'Cause!"
+  offset += pgdata.c1_arbitrary_index_offset
+  # Add the base position of this prefix within the run
+  offset += _c1_prefix_offsets[frags[0]]
+  # Whew!
+  return offset
+
 
 # Get a full run of class 2 system names
 # The input MUST be the start point (at c2_run_states[0]), or it'll be wrong

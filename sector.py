@@ -59,6 +59,10 @@ class Sector(object):
     oy = base_coords.y + (cube_size * self.y)
     oz = base_coords.z + (cube_size * self.z)
     return vector3.Vector3(ox, oy, oz)
+  
+  @property
+  def index(self):
+    return [self.x + base_sector_coords[0], self.y + base_sector_coords[1], self.z + base_sector_coords[2]]
 
   def contains(self, pos):
     o = self.origin
