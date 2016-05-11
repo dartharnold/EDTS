@@ -155,7 +155,7 @@ cx_prefix_length_overrides = {
   'Myn': 10,  'Myr':  4,   'Rh': 15,   'Wr': 31, # Myl + Lych + Myn = 25
   'Sty':  4,  'Spl': 16,   'Sk': 27,   'Sq':  7,
  'Pyth':  1,  'Lyr': 10,   'Sw': 24,  'Thr': 32,
-  'Lys': 10, 'Schr':  3,   'Ee': 34,
+  'Lys': 10, 'Schr':  3,    'Z': 34,
 }
 cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
