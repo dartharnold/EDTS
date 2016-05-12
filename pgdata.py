@@ -170,7 +170,7 @@ c1_f2_length_overrides = {
  'oe':  39,
  
   # Sequence 2
-  'q':  13,
+  'q':  16,
 }
 c1_s1_f2_total_run_length = sum([c1_f2_length_overrides.get(p, c1_s1_f2_length_default) for p in c1_infixes_s1])
 c1_s2_f2_total_run_length = sum([c1_f2_length_overrides.get(p, c1_s2_f2_length_default) for p in c1_infixes_s1])
