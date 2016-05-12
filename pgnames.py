@@ -349,8 +349,8 @@ def c1_get_offset(input):
   offset += _c1_f2_offsets[frags[-2]]
   # If we're a 4-phoneme name, we have a second "outer" infix, so also add all of _those_ we've passed over
   if len(frags) > 3:
-    # TODO: This may be wrong (does f3 behave the same as f2?)
-    offset += _c1_f2_offsets[frags[-2]] * _c1_f2_offsets[frags[-3]]
+    # TODO: This was completely wrong and needs more thought
+    pass
   # Add the index of the current suffix
   offset += sufs.index(frags[-1])
   # Get the modulo of the current offset compared to this prefix's run length, store for later
