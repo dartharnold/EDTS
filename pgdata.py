@@ -159,9 +159,21 @@ cx_prefix_length_overrides = {
 }
 cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
-cx_infix_length_overrides = {
-    'q': 13,
+c1_s1_f2_length_default = len(c1_suffixes_s2)
+c1_s2_f2_length_default = len(cx_suffixes_s1) # TODO: Check if this is right
+# ALL SPECULATIVE
+c1_f2_length_overrides = {
+  # Sequence 1
+ 'oi':  88, 'ue': 147,
+ 'oa':  57,
+ 'au': 100, 'ae':  31,
+ 'oe':  39,
+ 
+  # Sequence 2
+  'q':  13,
 }
+c1_s1_f2_total_run_length = sum([c1_f2_length_overrides.get(p, c1_s1_f2_length_default) for p in c1_infixes_s1])
+c1_s2_f2_total_run_length = sum([c1_f2_length_overrides.get(p, c1_s2_f2_length_default) for p in c1_infixes_s1])
 
 # Welp
 c1_arbitrary_index_offset = -35

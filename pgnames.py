@@ -198,11 +198,19 @@ def get_prefix_run_length(frag):
   return pgdata.cx_prefix_length_overrides.get(frag, pgdata.cx_prefix_length_default)
 
 
+def c1_get_infix_run_length(frag):
+  if frag in pgdata.c1_infixes_s1:
+    def_len = pgdata.c1_s1_f2_length_default
+  else:
+    def_len = pgdata.c1_s2_f2_length_default
+  return pgdata.c1_f2_length_overrides.get(frag, def_len)
+
+
 # Given a full system name, get its approximate coordinates
 def get_coords_from_name(system_name):
   m = pgdata.pg_system_regex.match(system_name)
   if m is None:
-    return None
+    return (None, None)
   sector_name = m.group("sector")
   # Get the absolute position of the sector
   sect = get_sector_from_name(sector_name)
@@ -310,8 +318,8 @@ def c1_get_wtf_run(length = 2048):
     # TODO: Check if we're out of infixes
     infix = infixes[infix_idx]
     suffixes = get_suffixes([cur_prefix, infix], True)
-    if infix in pgdata.cx_infix_length_overrides:
-      suffixes = suffixes[0:pgdata.cx_infix_length_overrides[infix]]
+    if infix in pgdata.c1_f2_length_overrides:
+      suffixes = suffixes[0:pgdata.c1_f2_length_overrides[infix]]
     if suffix_idx >= len(suffixes):
       infix_idx = (infix_idx + 1) % len(infixes)
       infix = infixes[infix_idx]
@@ -334,13 +342,15 @@ def c1_get_offset(input):
 
   sufs = get_suffixes(frags[0:-1], True)
   suf_len = len(sufs)
-
+  
   offset = 0
   # Add the total length of all the infixes we've already passed over
-  offset += suf_len * c1_get_infixes(frags[0:-2]).index(frags[-2])
+  # TODO: This may be wrong for 4-phoneme names (does f3 behave the same as f2?)
+  offset += _c1_f2_offsets[frags[-2]]
   # If we're a 4-phoneme name, we have a second "outer" infix, so also add all of _those_ we've passed over
   if len(frags) > 3:
-    offset += suf_len * len(c1_get_infixes(frags[0:-2])) * c1_get_infixes(frags[0:-3]).index(frags[-3])
+    # TODO: This may be wrong (does f3 behave the same as f2?)
+    offset += _c1_f2_offsets[frags[-2]] * _c1_f2_offsets[frags[-3]]
   # Add the index of the current suffix
   offset += sufs.index(frags[-1])
   # Get the modulo of the current offset compared to this prefix's run length, store for later
@@ -471,19 +481,28 @@ def _construct_c2_start_point_cache():
       z += 1
 
 _c1_prefix_offsets = {}
-def _construct_c1_prefix_offsets():
-  global _c1_prefix_offsets
+_c1_f2_offsets = {}
+def _construct_c1_offsets():
+  global _c1_prefix_offsets, _c1_f2_offsets
   cnt = 0
   for p in pgdata.cx_prefixes:
     _c1_prefix_offsets[p] = cnt
     cnt += get_prefix_run_length(p)
+  cnt = 0
+  for i in pgdata.c1_infixes_s1:
+    _c1_f2_offsets[i] = cnt
+    cnt += c1_get_infix_run_length(i)
+  cnt = 0
+  for i in pgdata.c1_infixes_s2:
+    _c1_f2_offsets[i] = cnt
+    cnt += c1_get_infix_run_length(i)
   
 # Initialisation
 _init_start = time.clock()
 _construct_prefix_run_cache()
 _construct_c2_start_point_cache()
 _construct_c2_candidate_cache()
-_construct_c1_prefix_offsets()
+_construct_c1_offsets()
 _init_time = time.clock() - _init_start
 
 # Test modes
@@ -491,6 +510,27 @@ if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "debug":
       c1_get_wtf_run(204800)
+    
+    elif sys.argv[1] == "c1ot":
+      test_data = {
+        'Mycapp': 623548, 'Lychoitl': 541608, 'Isheau': 99239, 'Shruery': 410512,
+        'Aowheou': 574476, 'Aochou': 492476, 'Phrauph': 574396, 'Myreasp': 459657,
+        'Pythaics': 557994, 'Pythaipr': 803991, 'Styaill': 214060, 'Styefs': 836644,
+        'Leeh': 99373, 'Keet': 99364, 'Schreang': 607155, 'Sqeass': 263332,
+        'Squer': 639916, 'Aaeyoe': 623543, 'Aaeshoa': 705543, 'Cryaths': 246810,
+        'Phylur': 328741, 'Eaezi': 820396, 'Slyeax': 443539, 'Mynoaw': 541610,
+        'Gyruenz': 459554, 'Sphuezz': 132132, 'Spliech': 132135, 'Groec': 164896,
+        'Vigs': 148514, 'Tzorbs': 115616, 'Phloiws': 115617, 'Tyrootz': 164768,
+        'Sigy': 148381, 'Soac': 148389, 'Pyoer': 492698,
+      }
+      badcnt = 0
+      for name in test_data:
+        actual = test_data[name]
+        predicted = c1_get_offset(name)
+        if actual != predicted:
+          print("BAD [{0}]: predicted = {1}, actual = {2}".format(name, predicted, actual))
+          badcnt += 1
+      print("Total: OK = {0}, bad = {1}".format(len(test_data)-badcnt, badcnt))
     
     elif sys.argv[1] == "pdiff":
       for x in range(2, len(sys.argv)-1):
@@ -611,7 +651,14 @@ if __name__ == '__main__':
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
       coords, relpos_confidence = get_coords_from_name(input)
-      print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
+      if coords is not None:
+        print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
+      else:
+        sector = get_sector_from_name(input)
+        if sector is not None:
+          print("{0} is {1}, has origin {2}".format(input, str(sector), sector.origin))
+        else:
+          print("Could not find sector or system")
 
     elif sys.argv[1] == "eddbtest":
       import env
