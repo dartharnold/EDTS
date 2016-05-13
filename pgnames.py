@@ -347,6 +347,8 @@ def c1_get_offset(input):
   # Add the total length of all the infixes we've already passed over
   # TODO: This may be wrong for 4-phoneme names (does f3 behave the same as f2?)
   offset += _c1_f2_offsets[frags[-2]]
+  # If this is a non-full-length infix, check if we're on a later infix run
+  offset += (sufs.index(frags[-1]) // c1_get_infix_run_length(frags[-2])) * pgdata.c1_s1_f2_total_run_length
   # If we're a 4-phoneme name, we have a second "outer" infix, so also add all of _those_ we've passed over
   if len(frags) > 3:
     # TODO: This was completely wrong and needs more thought
@@ -522,13 +524,16 @@ if __name__ == '__main__':
         'Gyruenz': 459554, 'Sphuezz': 132132, 'Spliech': 132135, 'Groec': 164896,
         'Vigs': 148514, 'Tzorbs': 115616, 'Phloiws': 115617, 'Tyrootz': 164768,
         'Sigy': 148381, 'Soac': 148389, 'Pyoer': 492698,
+        # Nasty ones
+        'Chroabs': 492710, 'Kyloalz': 574382, 'Flyaulz': 574516, 'Froaphs': 492589,
+        'Swoiphs': 312233, 'Cyoilz': 213923,
       }
       badcnt = 0
       for name in test_data:
         actual = test_data[name]
         predicted = c1_get_offset(name)
         if actual != predicted:
-          print("BAD [{0}]: predicted = {1}, actual = {2}".format(name, predicted, actual))
+          print("BAD [{0}]: predicted = {1}, actual = {2}, diff = {3}".format(name, predicted, actual, round(abs(predicted-actual)/pgdata.cx_prefix_total_run_length)))
           badcnt += 1
       print("Total: OK = {0}, bad = {1}".format(len(test_data)-badcnt, badcnt))
     

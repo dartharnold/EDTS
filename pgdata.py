@@ -166,7 +166,7 @@ c1_f2_length_overrides = {
   # Sequence 1
  'oi':  88, 'ue': 147,
  'oa':  57,
- 'au': 100, 'ae':  31,
+ 'au': 106, 'ae':  25,
  'oe':  39,
  
   # Sequence 2
