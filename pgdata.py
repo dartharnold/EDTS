@@ -170,7 +170,8 @@ c1_infix_length_overrides = {
  'oe':  39,
  
   # Sequence 2
-  'q':  31, 'tch': 20  # tch could be anything between 'ch' and 'wh', temporarily chosen as tribute
+  'q':  31, 'gn': 24,
+ 'wr':  31, 'dg': 31,
 }
 c1_infix_s1_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s1_length_default) for p in c1_infixes_s1])
 c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2_length_default) for p in c1_infixes_s2])
