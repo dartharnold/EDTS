@@ -160,18 +160,13 @@ cx_prefix_length_overrides = {
 cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
 c1_infix_s1_length_default = len(c1_suffixes_s2)
-c1_infix_s2_length_default = len(cx_suffixes_s1) # TODO: Check if this is right
-# ALL SPECULATIVE
+c1_infix_s2_length_default = len(cx_suffixes_s1)
 c1_infix_length_overrides = {
   # Sequence 1
- 'oi':  88, 'ue': 147,
- 'oa':  57,
- 'au': 119, 'ae':  12,
- 'oe':  39,
- 
+ 'oi':  88,  'ue': 147,  'oa':  57,
+ 'au': 119,  'ae':  12,  'oe':  39,
   # Sequence 2
-  'q':  31, 'gn': 24,
- 'wr':  31, 'dg': 31,
+ 'dg':  31, 'tch':  20,  'wr':  31,
 }
 c1_infix_s1_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s1_length_default) for p in c1_infixes_s1])
 c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2_length_default) for p in c1_infixes_s2])
