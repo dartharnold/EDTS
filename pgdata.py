@@ -159,6 +159,7 @@ cx_prefix_length_overrides = {
 }
 cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
+
 c1_infix_s1_length_default = len(c1_suffixes_s2)
 c1_infix_s2_length_default = len(cx_suffixes_s1)
 c1_infix_length_overrides = {
@@ -173,77 +174,6 @@ c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2
 
 # Welp
 c1_arbitrary_index_offset = -35
-
-
-# OLD DATA. Currently kept for checks/verification.
-# Phonemes 1 and 3, from the "near" side of the galaxy to the far side
-c2_positions_y0z_offset = 19
-c2_positions_y0z = [
-  (("Eo",  "Dry"), ("Th",  "Eu")), # Speculation
-  (("Hyp", "Ph" ), ("Th",  "Eu")),
-  (("Eo",  "Dry"), ("Ae",  "Ai")),
-  (("Hyp", "Ph" ), ("Ae",  "Ai")),
-  (("Pl",  "Pr" ), ("Th",  "Eu")),
-  (("Bl",  "By" ), ("Th",  "Eu")),
-  (("Pl",  "Pr" ), ("Ae",  "Ai")),
-  (("Bl",  "By" ), ("Ae",  "Ai")),
-  (("Eo",  "Dry"), ("Ao",  "Au")),
-  (("Hyp", "Ph" ), ("Ao",  "Au")),
-  (("Eo",  "Dry"), ("Chr", "Br")),
-  (("Hyp", "Ph" ), ("Chr", "Br")),
-  (("Pl",  "Pr" ), ("Ao",  "Au")),
-  (("Bl",  "By" ), ("Ao",  "Au")),
-  (("Pl",  "Pr" ), ("Chr", "Br")),
-  (("Bl",  "By" ), ("Chr", "Br")),
-  (("Ch",  "Pyr"), ("Th",  "Eu")),
-  (("Syr", "My" ), ("Th",  "Eu")),
-  (("Ch",  "Pyr"), ("Ae",  "Ai")), # Speculation
-  (("Syr", "My" ), ("Ae",  None))  # Speculation
-]
-
-# OLD DATA. Currently kept for checks/verification.
-# Generator to return the C2 positions in order
-def get_c2_positions():
-  for idx, pair in enumerate(c2_positions_y0z):
-    yield ((pair[0][0], pair[1][0]), (idx*4)+0-c2_positions_y0z_offset)
-    yield ((pair[0][1], pair[1][0]), (idx*4)+1-c2_positions_y0z_offset)
-    if pair[1][1] is not None:
-      yield ((pair[0][0], pair[1][1]), (idx*4)+2-c2_positions_y0z_offset)
-      yield ((pair[0][1], pair[1][1]), (idx*4)+3-c2_positions_y0z_offset)
-
-
-# OLD DATA. Currently kept for checks/verification.
-# This is the index which Y=0 is at
-c2_y_mapping_offset = 3
-# OLD DATA. Currently kept for checks/verification.
-# Mapping of word 1 prefixes to start points at different Y levels
-c2_word1_y_mapping = {
-   "Eo": [("Th","aae"), ("Eo","ch"), ("Eo","ch"), ("Eo","rl"), ("Eo","rl"), ("Oo","rb")],
-  "Dry": [("Tr","aea"), ("Dry","io"), ("Dry","io"), ("Dry","uae"), ("Dry","uae"), ("Dry","eau")],
-  "Hyp": [("Sch","uae"), ("Sch","eau"), ("Sch","eau"), ("Hyp","iae"), ("Hyp","iae"), ("Syst","ua")], # Sch --> Hyp
-   "Ph": [("Kyl","oae"), ("Phr","io"), ("Phr","io"), ("Ph","oi"), ("Ph","oi"), ("Ph","ao")],
-   "Pl": [(None,None), ("Fly","ua"), ("Fly","ua"), ("Pl","io"), ("Pl","io"), (None,None)],
-   "Pr": [("Au","rk"), ("Pr","ua"), ("Pr","ua"), ("Pr","o"), ("Pr","o"), ("Hyph","oea")],
-   "Bl": [("Tyr","e"), ("Bl","aa"), ("Bl","aa"), ("Bl","au"), ("Bl","au"), ("Cry","io")],
-   "By": [("Gr","eia"), ("Gr","eae"), ("Gr","eae"), ("By","oi"), ("By","oi"), ("By","ao")],
-   "Ch": [(None,None), ("Ch","oi"), ("Ch","oi"), ("Ch","ao"), ("Ch","ao"), (None,None)], # [4] is speculative
-  "Pyr": [(None,None), ("Pyr","ae"), ("Pyr","ae"), ("Pyr","u"), ("Pyr","u"), (None,None)], # [1] and [4] are speculative
-  "Syr": [(None,None), ("Str","uia"), ("Str","uia"), ("Syr","ue"), ("Syr","ue"), (None,None)], # [1] and [4] are speculative
-   "My": [(None,None), ("Hy","eae"), ("Hy","eae"), ("My","oi"), ("My","oi"), (None,None)] # [1] and [4] are speculative
-}
-
-# OLD DATA. Currently kept for checks/verification.
-# Mapping of word 2 prefixes to start points at different Y levels
-c2_word2_y_mapping = {
-  "Th": [("Eo","rg"), ("Eo","ch"), ("Eo","rg"), ("Th","oe"), ("Th","ooe"), ("Th","oe")], # [0] and [5] are speculative
-  "Eu": [("Dry","oo"), ("Dry","io"), ("Dry","oo"), ("Eu","n"), ("Tr","oe"), ("Eu","n")], # [0] and [5] are speculative
-  "Ae": [("Hyp","eia"), ("Sch","eau"), ("Hyp","eia"), ("Phl","a"), ("Ae","vsky"), ("Phl","a")],
-  "Ai": [("Phr","oo"), ("Phr","io"), ("Phr","oo"), ("Ai","ck"), ("Ai","hn"), ("Ai","ck")],
-  "Ao": [("Fly","e"), ("Fly","ua"), ("Fly","e"), ("Fl","aae"), ("Scr","oe"), ("Fl","aae")], # Fl --> Ao
-  "Au": [("Pr","e"), ("Pr","ua"), ("Pr","e"), ("Fr","uia"), ("Au","c"), ("Fr","uia")],
- "Chr": [("Bl","ai"), ("Bl","aa"), ("Bl","ai"), ("Chr","aea"), ("Chr","aae"), ("Chr","aea")],
-  "Br": [("Gr","uia"), ("Gr","eae"), ("Gr","uia"), ("Br","oo"), ("Br","uae"), ("Br","oo")]
-}
 
 
 # Index modifiers for outer states
