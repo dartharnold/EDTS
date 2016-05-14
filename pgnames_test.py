@@ -178,6 +178,9 @@ if __name__ == '__main__':
       get_sector_cnt = 0
       get_coords_avg = 0.0
       get_coords_cnt = 0
+      
+      good_sects = {}
+      bad_sects = {}
 
       for system in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(system.name)
@@ -210,18 +213,26 @@ if __name__ == '__main__':
                   ok2 += 1
                 else:
                   ok1 += 1
+                  nm = format_name(sect.name)
+                  if nm not in good_sects:
+                    good_sects[nm] = 0
+                  good_sects[nm] += 1
               else:
                 if cls == 2:
                   bad2 += 1
                 else:
                   bad1 += 1
-                print("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
+                # print("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
             else:
               if cls == 2:
                 bad2 += 1
               else:
                 bad1 += 1
-              print("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, format_name(sect.name), sect))
+                nm = format_name(sect.name)
+                if nm not in bad_sects:
+                  bad_sects[nm] = 0
+                bad_sects[nm] += 1
+              # print("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, format_name(sect.name), sect))
           else:
             if cls == 2:
               none2 += 1
@@ -235,6 +246,34 @@ if __name__ == '__main__':
 
       print("Totals: OK1 = {0}, OK2 = {1}, Bad1 = {2}, Bad2 = {3}, None1 = {4}, None2 = {5}, notPG = {6}".format(ok1, ok2, bad1, bad2, none1, none2, notpg))
       print("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
+      
+      f0s = {}
+      f1s = {}
+      f2s = {}
+      threes = []
+      n = 0
+      for sf in sorted(bad_sects.keys(), key=c1_get_offset):
+        if n > 20:
+          break
+        print("[{3}] {0} - {1}/{2}".format(sf, bad_sects[sf], bad_sects[sf] + good_sects.get(sf, 0), c1_get_offset(sf)))
+        n += 1
+        # s = get_fragments(sf)
+        # if s[0] not in f0s:
+          # f0s[s[0]] = 0
+        # f0s[s[0]] += 1
+        # if s[1] not in f1s:
+          # f1s[s[1]] = 0
+        # f1s[s[1]] += 1
+        # if len(s) > 3:
+          # if s[2] not in f2s:
+            # f2s[s[2]] = 0
+          # f2s[s[2]] += 1
+        # else:
+          # threes.append(s)
+      # print("Prefixes: {0}".format(f0s))
+      # print("Infixes: {0}".format(f1s))
+      # print("Suffixes: {0}".format(f2s))
+      # print("Wrong 1b: {0}".format([format_name(t) for t in threes]))
 
     elif sys.argv[1] == "eddbspaff":
       import env
