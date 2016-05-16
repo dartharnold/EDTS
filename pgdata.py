@@ -173,7 +173,7 @@ c1_infix_s1_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s1
 c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2_length_default) for p in c1_infixes_s2])
 
 # Welp
-c1_arbitrary_index_offset = -35
+c1_arbitrary_index_offset = 35
 
 
 # Index modifiers for outer states

@@ -299,28 +299,26 @@ def c1_get_offset(input):
     suf_offset += (sufs.index(frags[-1]) // c1_get_infix_run_length(frags[2])) * c1_get_infix_total_run_length(frags[2])
     
     # STEP 2: Take our current offset from "suffix space" to "fragment3 space"
-    # Remember the offset that we're at on the current suffix-run
-    f3_offset_mod = suf_offset % c1_get_infix_run_length(frags[2])
     # Divide by the current fragment3's run length
-    f3_offset = suf_offset // c1_get_infix_run_length(frags[2])
+    # Remember the offset that we're at on the current suffix-run
+    f3_offset, f3_offset_mod = divmod(suf_offset, c1_get_infix_run_length(frags[2]))
     # Multiply by the total run length for this series of fragment3s
     f3_offset *= c1_get_infix_total_run_length(frags[2])
     # Reapply the f3 offset from earlier
     f3_offset += f3_offset_mod
     # Add the offset of the current fragment3, to give us our overall position in the f3-sequence
-    f3_offset += _c1_infix_offsets[frags[2]]
+    f3_offset += _c1_infix_offsets[frags[2]][0]
    
     # STEP 3: Take our current offset from "fragment3 space" to "fragment2 space"
-    # Remember the offset that we're at on the current f3-run
-    f2_offset_mod = f3_offset % c1_get_infix_run_length(frags[1])
     # Divide by the current fragment2's run length
-    f2_offset = f3_offset // c1_get_infix_run_length(frags[1])
+    # Remember the offset that we're at on the current f3-run
+    f2_offset, f2_offset_mod = divmod(f3_offset, c1_get_infix_run_length(frags[1]))
     # Multiply by the total run length for this series of fragment2s
     f2_offset *= c1_get_infix_total_run_length(frags[1])
     # Reapply the f2 offset from earlier
     f2_offset += f2_offset_mod
     # Add the offset of the current fragment2, to give us our overall position in the f2-sequence
-    f2_offset += _c1_infix_offsets[frags[1]]
+    f2_offset += _c1_infix_offsets[frags[1]][0]
     
     # Set this as the global offset to be manipulated by the prefix step
     offset = f2_offset
@@ -332,25 +330,22 @@ def c1_get_offset(input):
     suf_offset = sufs.index(frags[-1])
     
     # STEP 2: Take our current offset from "suffix space" to "fragment2 space"
-    # Remember the offset we're at on the current suffix-run
-    f2_offset_mod = suf_offset % c1_get_infix_run_length(frags[1])
     # Divide by the current fragment2's run length
-    f2_offset = suf_offset // c1_get_infix_run_length(frags[1])
+    # Remember the offset we're at on the current suffix-run
+    f2_offset, f2_offset_mod = divmod(suf_offset, c1_get_infix_run_length(frags[1]))
     # Multiply by the total run length for this series of fragment2s
     f2_offset *= c1_get_infix_total_run_length(frags[1])
     # Reapply the f2 offset from earlier
     f2_offset += f2_offset_mod
     # Add the offset of the current fragment2, to give us our overall position in the f2-sequence
-    f2_offset += _c1_infix_offsets[frags[1]]
+    f2_offset += _c1_infix_offsets[frags[1]][0]
     
     # Set this as the global offset to be manipulated by the prefix step
     offset = f2_offset
-    
-  # Remember the current offset's position within a prefix run
-  offset_mod = offset % get_prefix_run_length(frags[0])
-  
+
   # Divide by the current prefix's run length, this is now how many iterations of the full 3037 we should have passed over
-  offset //= get_prefix_run_length(frags[0])
+  # Also remember the current offset's position within a prefix run
+  offset, offset_mod = divmod(offset, get_prefix_run_length(frags[0]))
   # Subtract one because ... I have no idea right now, because it works, just subtract one
   offset -= 1
 
@@ -358,10 +353,10 @@ def c1_get_offset(input):
   offset *= pgdata.cx_prefix_total_run_length
   # Add the infixes/suffix's position within this prefix's part of the overall prefix run
   offset += offset_mod
-  # Add another magic number, "Just 'Cause!"
-  offset += pgdata.c1_arbitrary_index_offset
+  # Subtract a magic number, "Just 'Cause!"
+  offset -= pgdata.c1_arbitrary_index_offset
   # Add the base position of this prefix within the run
-  offset += _c1_prefix_offsets[frags[0]]
+  offset += _c1_prefix_offsets[frags[0]][0]
   # Whew!
   return offset
 
@@ -385,6 +380,47 @@ def c1_get_sector(input):
   z -= sector.base_sector_coords[2]
   return sector.Sector(x, y, z, input)
 
+
+def c1_get_name(sector):
+  if sector is None:
+    return None
+  offset  = sector.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
+  offset += sector.index[1] * pgdata.c1_galaxy_size[0]
+  offset += sector.index[0]
+  
+  prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
+  prefix = [c for c in _c1_prefix_offsets if cur_offset >= _c1_prefix_offsets[c][0] and cur_offset < (_c1_prefix_offsets[c][0] + _c1_prefix_offsets[c][1])][0]
+  cur_offset -= _c1_prefix_offsets[prefix][0]
+  
+  infix1s = c1_get_infixes([prefix])
+  infix1_total_len = c1_get_infix_total_run_length(infix1s[0])
+  infix1_cnt, cur_offset = divmod(prefix_cnt * get_prefix_run_length(prefix) + cur_offset + pgdata.c1_arbitrary_index_offset, infix1_total_len)
+  infix1 = [c for c in _c1_infix_offsets if c in infix1s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
+  cur_offset -= _c1_infix_offsets[infix1][0]
+  
+  infix1_run_len = c1_get_infix_run_length(infix1)
+  sufs = get_suffixes([prefix, infix1], True)
+  next_idx = (infix1_run_len * infix1_cnt) + cur_offset
+  
+  frags = [prefix, infix1]
+  
+  if next_idx >= len(sufs):
+    # 4-phoneme
+    infix2s = c1_get_infixes(frags)
+    infix2_total_len = c1_get_infix_total_run_length(infix2s[0])
+    infix2_cnt, cur_offset = divmod(infix1_cnt * c1_get_infix_run_length(infix1) + cur_offset, infix2_total_len)
+    infix2 = [c for c in _c1_infix_offsets if c in infix2s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
+    cur_offset -= _c1_infix_offsets[infix2][0]
+    
+    infix2_run_len = c1_get_infix_run_length(infix2)
+    sufs = get_suffixes([prefix, infix1, infix2], True)
+    next_idx = (infix2_run_len * infix2_cnt) + cur_offset
+    
+    frags.append(infix2)
+
+  frags.append(sufs[next_idx])
+  return frags
+  
 
 # Get a full run of class 2 system names
 # The input MUST be the start point (at c2_run_states[0]), or it'll be wrong
@@ -503,16 +539,19 @@ def _construct_c1_offsets():
   global _c1_prefix_offsets, _c1_infix_offsets
   cnt = 0
   for p in pgdata.cx_prefixes:
-    _c1_prefix_offsets[p] = cnt
-    cnt += get_prefix_run_length(p)
+    plen = get_prefix_run_length(p)
+    _c1_prefix_offsets[p] = (cnt, plen)
+    cnt += plen
   cnt = 0
   for i in pgdata.c1_infixes_s1:
-    _c1_infix_offsets[i] = cnt
-    cnt += c1_get_infix_run_length(i)
+    ilen = c1_get_infix_run_length(i)
+    _c1_infix_offsets[i] = (cnt, ilen)
+    cnt += ilen
   cnt = 0
   for i in pgdata.c1_infixes_s2:
-    _c1_infix_offsets[i] = cnt
-    cnt += c1_get_infix_run_length(i)
+    ilen = c1_get_infix_run_length(i)
+    _c1_infix_offsets[i] = (cnt, ilen)
+    cnt += ilen
   
 # Initialisation
 _init_start = time.clock()
