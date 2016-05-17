@@ -127,6 +127,9 @@ def is_valid_name(input):
 
 # Format a given set of fragments into a full name
 def format_name(frags):
+  frags = get_fragments(input) if util.is_str(input) else frags
+  if frags is None:
+    return None
   if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
     return "{0}{1} {2}{3}".format(*frags)
   else:
@@ -265,17 +268,12 @@ def c2_get_yz_candidates(frag0, frag2):
 
 # Get the name of a class 2 sector based on its position
 def c2_get_name(sector):
-  # For each set of prefix combinations going upwards in Z...
-  for (pre0y0, pre1y0), idx in pgdata.get_c2_positions():
-    if idx == sector.z:
-      # If the Z value is correct, find the appropriate starting prefix/suffix at that Y level
-      pre0, suf0 = pgdata.c2_word1_y_mapping[pre0y0][sector.y + pgdata.c2_y_mapping_offset]
-      pre1, suf1 = pgdata.c2_word2_y_mapping[pre1y0][sector.y + pgdata.c2_y_mapping_offset]
-      if None not in [pre0, suf0, pre1, suf1]:
-        # Now do a full run across it until we reach the right x position
-        for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
-          if xpos == sector.x:
-            return frags
+  # Get run start from YZ
+  (pre0, suf0), (pre1, suf1) = _c2_start_points[sector.index[2]][sector.index[1]]
+  # Now do a full run across it until we reach the right x position
+  for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
+    if xpos == sector.x:
+      return frags
   return None
 
 
@@ -436,7 +434,7 @@ def c2_get_run(input, length = None):
   suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
 
   if length is None:
-    length = sector.base_sector_coords[0] * 2
+    length = pgdata.c2_galaxy_size[0]
   
   for i in range(0, length):
     # Calculate the run state indexes for phonemes 1 and 3
