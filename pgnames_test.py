@@ -183,12 +183,12 @@ if __name__ == '__main__':
 
       for system in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(system.name)
-        if m is not None and m.group("sector") not in ["Hypiae","ICZ"]:
+        if m is not None and m.group("sector") not in ["Hypiae"]:
           if m.group("sector") in pgdata.ha_sectors:
             sector = pgdata.ha_sectors[m.group("sector")]
             if sector.contains(system.position):
-              rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
-              so = sector.origin(rpe * 2)
+              rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+              so = sector.get_origin(rpe * 2)
               limit = math.sqrt(rpe * rpe * 3)
               realdist = ((so + rp) - system.position).length
               if realdist <= limit:

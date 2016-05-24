@@ -11,8 +11,15 @@ class Sector(object):
   def __init__(self, name):
     self.name = name
 
+  @property
+  def centre(self):
+    raise NotImplementedException("Invalid call to base Sector centre property")
+
   def contains(self, other):
     raise NotImplementedError("Invalid call to base Sector contains method")
+
+  def get_origin(self, cube_width):
+    raise NotImplementedError("Invalid call to base Sector get_origin method")
 
 
 class HASector(Sector):
@@ -20,8 +27,9 @@ class HASector(Sector):
     super(HASector, self).__init__(name)
     self._centre = centre
     self._radius = radius
+    self._size = radius
 
-  def origin(self, cube_width):
+  def get_origin(self, cube_width):
     sector_origin = self.centre - vector3.Vector3(self.radius, self.radius, self.radius)
     sox = math.floor(sector_origin.x)
     soy = math.floor(sector_origin.y)
@@ -39,6 +47,10 @@ class HASector(Sector):
   def radius(self):
     return self._radius
 
+  @property
+  def size(self):
+    return self._size
+
   def contains(self, pos):
     return ((self.centre - pos).length <= self.radius)
   
@@ -53,6 +65,22 @@ class HASector(Sector):
 
   def __ne__(self, rhs):
     return not self.__eq__(rhs)
+
+
+class HASectorCluster(HASector):
+  def __init__(self, centre, radius, size, name, sectors):
+    super(HASectorCluster, self).__init__(centre, radius, name)
+    self._size = size
+    self.sectors = sectors
+
+  def contains(self, pos):
+    return any([s.contains(pos) for s in self.sectors])
+
+  def __str__(self):
+    return "HASectorCluster({})".format(self.name)
+
+  def __repr__(self):
+    return self.__str__()
 
 
 class PGSector(Sector):
@@ -106,11 +134,18 @@ class PGSector(Sector):
 
   @property
   def origin(self):
+    return self.get_origin()
+
+  def get_origin(self, cube_width = None):
     ox = base_coords.x + (cube_size * self.x)
     oy = base_coords.y + (cube_size * self.y)
     oz = base_coords.z + (cube_size * self.z)
     return vector3.Vector3(ox, oy, oz)
   
+  @property
+  def centre(self):
+    return self.origin + vector3.Vector3(cube_size / 2, cube_size / 2, cube_size / 2)
+
   @property
   def index(self):
     return [self.x + base_sector_coords[0], self.y + base_sector_coords[1], self.z + base_sector_coords[2]]

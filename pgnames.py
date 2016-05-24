@@ -22,10 +22,15 @@ _srp_sidelength = _srp_rowlength**2
 
 _expected_fragment_limit = 4
 
+
+def get_mcode_cube_width(mcode):
+  return sector.cube_size / pow(2, ord('h') - ord(mcode.lower()))
+
+
 # Get a star's relative position within a sector
 # Original version by Kay Johnston (CMDR Jackie Silver)
 # Note that in the form "Sector AB-C d3", the "3" is number2, NOT 1
-def get_star_relpos(prefix, centre, suffix, lcode, number1, number2):
+def get_star_relpos(prefix, centre, suffix, mcode, number1, number2):
   if number1 is None:
     number1 = 0
 
@@ -42,7 +47,7 @@ def get_star_relpos(prefix, centre, suffix, lcode, number1, number2):
 
   column = position
 
-  cubeside = sector.cube_size / pow(2, ord('h') - ord(lcode.lower()))
+  cubeside = get_mcode_cube_width(mcode.lower())
   halfwidth = cubeside / 2
 
   approx_x = (column * cubeside) + halfwidth
@@ -53,7 +58,7 @@ def get_star_relpos(prefix, centre, suffix, lcode, number1, number2):
    or approx_y < 0 or approx_y > sector.cube_size
    or approx_z < 0 or approx_z > sector.cube_size):
     input_star = "{0}{1}-{2} {3}{4}".format(
-      prefix, centre, suffix, lcode, "{0}-{1}".format(number1, number2) if int(number1) > 0 else number2)
+      prefix, centre, suffix, mcode, "{0}-{1}".format(number1, number2) if int(number1) > 0 else number2)
     log.error("Relative star position calculation produced invalid result [{0},{1},{2}] for input {3}. "
       "Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
@@ -61,7 +66,7 @@ def get_star_relpos(prefix, centre, suffix, lcode, number1, number2):
 
   
 def get_ha_sector_origin(centre, radius, modulo):
-  return sector.HASector(centre, radius).origin(modulo)
+  return sector.HASector(centre, radius).get_origin(modulo)
 
 
 # Get a sector, either from its position or from its name
@@ -231,10 +236,10 @@ def get_coords_from_name(system_name):
   sector_name = m.group("sector")
   # Get the absolute position of the sector
   sect = get_sector_from_name(sector_name)
-  abs_pos = sect.origin
+  abs_pos = sect.get_origin(get_mcode_cube_width(m.group("mcode")))
   # Get the relative position of the star within the sector
   # Also get the +/- error bounds
-  rel_pos, rel_pos_error = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
+  rel_pos, rel_pos_error = get_star_relpos(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
 
   if abs_pos is not None and rel_pos is not None:
     return (abs_pos + rel_pos, rel_pos_error)
@@ -282,6 +287,13 @@ def c2_get_name(sector):
   for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
     if xpos == sector.x:
       return frags
+  return None
+
+
+def ha_get_name(pos):
+  for (sname, s) in pgdata.ha_sectors.items():
+    if s.contains(pos):
+      return sname
   return None
 
 

@@ -1,4 +1,5 @@
 from __future__ import division
+import collections
 import re
 import sector
 import vector3
@@ -9,7 +10,7 @@ import vector3
 #   - CMDR Jackie Silver
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
-pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>[A-Za-z])(?P<centre>[A-Za-z])-(?P<suffix>[A-Za-z]) (?P<lcode>[A-Za-z])(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
+pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>[A-Za-z])(?P<centre>[A-Za-z])-(?P<suffix>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
 
 
 # Hopefully-complete list of valid name fragments / phonemes
@@ -320,22 +321,24 @@ ha_sectors = {
   "Hyades Sector": sector.HASector(vector3.Vector3(0, -56.67578, -138.88086), 144, "Hyades Sector"),
   "Hydrae Sector": sector.HASector(vector3.Vector3(77.57031, 84.07031, 69.4707), 60, "Hydrae Sector"),
   "h Persei Sector": sector.HASector(vector3.Vector3(-4817.47266, -437.52734, -4750.67383), 355, "h Persei Sector"),
-#  "ICZ": sector.HASector(vector3.Vector3(11, -118, 56), 40, "ICZ"),
-#          (vector3.Vector3(17, -122, 32), 40),
-#          (vector3.Vector3(32, -170, 13), 40),
-#          (vector3.Vector3(34, -115, 100), 40),
-#          (vector3.Vector3(45, -118, 85), 40),
-#          (vector3.Vector3(53, -130, 14), 40),
-#          (vector3.Vector3(62, -105, 22), 40),
-#          (vector3.Vector3(65, -117, 47), 40),
-#          (vector3.Vector3(67, -119, 24), 40),
-#          (vector3.Vector3(75, -135, 19), 40),
-#          (vector3.Vector3(78, -100, 16), 40),
-#          (vector3.Vector3(79, -167, 25), 40),
-#          (vector3.Vector3(81, -150, 96), 40),
-#          (vector3.Vector3(82, -131, 0), 40),
-#          (vector3.Vector3(92, -95, 11), 40),
-#          (vector3.Vector3(106, -95, 0), 40),
+  "ICZ": sector.HASectorCluster(vector3.Vector3(60, -120, 55), 100, 40, "ICZ", [
+    sector.HASector(vector3.Vector3(11, -118, 56), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(17, -122, 32), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(32, -170, 13), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(34, -115, 100), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(45, -118, 85), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(53, -130, 14), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(62, -105, 22), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(65, -117, 47), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(67, -119, 24), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(75, -135, 19), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(78, -100, 16), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(79, -167, 25), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(81, -150, 96), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(82, -131, 0), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(92, -95, 11), 40, "ICZ"),
+    sector.HASector(vector3.Vector3(106, -95, 0), 40, "ICZ"),
+  ]),
   "IC 289 Sector": sector.HASector(vector3.Vector3(-1118.43359, 83.04297, -1277.57812), 100, "IC 289 Sector"),
   "IC 348 Sector": sector.HASector(vector3.Vector3(-402.66016, -383.08203, -1130.80273), 26, "IC 348 Sector"),
   "IC 351 Sector": sector.HASector(vector3.Vector3(-10947.40625, -8337.61523, -28668.42285), 100, "IC 351 Sector"),
@@ -651,8 +654,8 @@ ha_sectors = {
   "Pencil Sector": sector.HASector(vector3.Vector3(813.80078, 2.84375, -44.07422), 100, "Pencil Sector"),
   "Perseus Dark Region": sector.HASector(vector3.Vector3(-359.89844, -316.98438, -1045.22461), 100, "Perseus Dark Region"),
   "Phantom Streak Sector": sector.HASector(vector3.Vector3(-3611.90625, -306.19141, 5395.40234), 100, "Phantom Streak Sector"),
-  "Pipe (bowl) Sector": (vector3.Vector3(-11.3125, 36.61719, 498.5293), 100),
-  "Pipe (stem) Sector": (vector3.Vector3(12.15234, 51.39453, 497.20312), 100),
+  "Pipe (bowl) Sector": sector.HASector(vector3.Vector3(-11.3125, 36.61719, 498.5293), 100, "Pipe (bowl) Sector"),
+  "Pipe (stem) Sector": sector.HASector(vector3.Vector3(12.15234, 51.39453, 497.20312), 100, "Pipe (stem) Sector"),
   "Piscium Sector": sector.HASector(vector3.Vector3(-44.83984, -54.75, -29.10938), 60, "Piscium Sector"),
   "Pismis 4 Sector": sector.HASector(vector3.Vector3(1912.67578, -80.82031, -245.01953), 102, "Pismis 4 Sector"),
   "Pleiades Sector": sector.HASector(vector3.Vector3(-81.75391, -149.41406, -343.34766), 100, "Pleiades Sector"),
@@ -715,6 +718,10 @@ ha_sectors = {
   "Witch Head Sector": sector.HASector(vector3.Vector3(369.41406, -401.57812, -715.72852), 100, "Witch Head Sector"),
   "Yin Sector": sector.HASector(vector3.Vector3(6.42969, 20.21094, -46.98047), 50, "Yin Sector"),
 }
+# Sort by increasing size for checks
+ha_sectors = collections.OrderedDict(sorted(ha_sectors.items(), key=lambda t: t[1].size))
+
+
 
 ha_permit_regions = {
   "BLEIA1": (vector3.Vector3(-43, 155, 37500), 512),
@@ -735,3 +742,4 @@ ha_permit_regions = {
   "SCHEE": (vector3.Vector3(-6507, -1394, -35624), 100),
   "SIDGOI": (vector3.Vector3(-24120, 10, -1220), 100),
 }
+
