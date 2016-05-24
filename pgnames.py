@@ -12,7 +12,6 @@ import vector3
 
 app_name = "pgnames"
 
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger(app_name)
 
 _srp_divisor1 = len(string.ascii_uppercase)
@@ -151,10 +150,12 @@ def get_sector_class(sect):
   frags = get_fragments(sect) if util.is_str(sect) else sect
   if frags is None:
     return None
-  if frags[2] in pgdata.cx_prefixes:
+  if len(frags) == 4 and frags[0] in pgdata.cx_prefixes and frags[2] in pgdata.cx_prefixes:
     return 2
-  else:
+  elif len(frags) in [3,4] and frags[0] in pgdata.cx_prefixes:
     return 1
+  else:
+    return None
 
 
 # Return the next prefix in the list, wrapping if necessary
@@ -265,6 +266,8 @@ def get_sector_from_name(sector_name):
   elif sc is not None:
     # Class 1: calculate and return
     return c1_get_sector(frags)
+  else:
+    return None
 
 
 # Get all YZ-constrained lines which could possibly contain the prefixes specified

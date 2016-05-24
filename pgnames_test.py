@@ -1,3 +1,4 @@
+import logging
 import pgdata
 from pgnames import *
 
@@ -162,16 +163,17 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "eddbtest":
       import env
-      
-      with open("edsm_data.txt") as f:
-        edsm_sectors = [s.strip() for s in f.readlines() if len(s) > 1]
-
+      env.set_verbosity(2)     
+ 
       ok1 = 0
       ok2 = 0
+      okha = 0
       bad1 = 0
       bad2 = 0
+      badha = 0
       none1 = 0
       none2 = 0
+      noneha = 0
       notpg = 0
       
       get_sector_avg = 0.0
@@ -181,60 +183,81 @@ if __name__ == '__main__':
       
       for system in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(system.name)
-        if m is not None and m.group("sector") in edsm_sectors:
-          start = time.clock()
-          sect = get_sector(m.group("sector"))
-          tm = time.clock() - start
-          cls = get_sector_class(m.group("sector"))
-          if sect is not None:
-            get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
-            get_sector_cnt += 1
-            pos_sect = get_sector(system.position)
-            if sect == pos_sect:
-              start = time.clock()
-              coords, dist = get_coords_from_name(system.name)
-              tm = time.clock() - start
-              if coords is None or dist is None:
-                print("Could not parse system name {0}".format(system.name))
-                if cls == 2:
-                  bad2 += 1
+        if m is not None and m.group("sector") != "Hypiae":
+          if m.group("sector") in pgdata.ha_sectors:
+            sdata = pgdata.ha_sectors[m.group("sector")]
+            found = False
+            for sphere in sdata:
+              if (system.position - sphere[0]).length <= sphere[1]:
+                found = True
+                rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
+                so = get_ha_sector_origin(sphere[0], sphere[1], rpe * 2)
+                limit = math.sqrt(rpe * rpe * 3)
+                realdist = ((so + rp) - system.position).length
+                if realdist <= limit:
+                  okha += 1
                 else:
-                  bad1 += 1
-                continue
-              get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
-              get_coords_cnt += 1
-              realdist = (coords - system.position).length
-              limit = math.sqrt(dist*dist*3)
-              if realdist <= limit:
-                if cls == 2:
-                  ok2 += 1
+                  badha += 1
+                  log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
+                break
+            if not found:
+              noneha += 1
+              log.info("NoneHA: {0} @ {1} not in any of {2} known sphere(s)".format(system.name, system.position, len(sdata)))
+          else:
+            start = time.clock()
+            sect = get_sector(m.group("sector"))
+            tm = time.clock() - start
+            cls = get_sector_class(m.group("sector"))
+            if sect is not None and cls is not None:
+              get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
+              get_sector_cnt += 1
+              pos_sect = get_sector(system.position)
+              if sect == pos_sect:
+                start = time.clock()
+                coords, dist = get_coords_from_name(system.name)
+                tm = time.clock() - start
+                if coords is None or dist is None:
+                  log.warning("Could not parse system name {0}".format(system.name))
+                  if cls == 2:
+                    bad2 += 1
+                  elif cls == 1:
+                    bad1 += 1
+                  continue
+                get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
+                get_coords_cnt += 1
+                realdist = (coords - system.position).length
+                limit = math.sqrt(dist*dist*3)
+                if realdist <= limit:
+                  if cls == 2:
+                    ok2 += 1
+                  elif cls == 1:
+                    ok1 += 1
                 else:
-                  ok1 += 1
+                  if cls == 2:
+                    bad2 += 1
+                  elif cls == 1:
+                    bad1 += 1
+                  log.info("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
               else:
                 if cls == 2:
                   bad2 += 1
-                else:
+                elif cls == 1:
                   bad1 += 1
-                print("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
+                log.info("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, format_name(sect.name), sect))
             else:
               if cls == 2:
-                bad2 += 1
+                none2 += 1
+                log.info("None2: {0} @ {1}".format(system.name, system.position))
+              elif cls == 1:
+                none1 += 1
+                log.info("None1: {0} @ {1}".format(system.name, system.position))
               else:
-                bad1 += 1
-              print("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, format_name(sect.name), sect))
-          else:
-            if cls == 2:
-              none2 += 1
-              print("None2: {0} @ {1}".format(system.name, system.position))
-            else:
-              none1 += 1
-              if not is_valid_name(m.group("sector")):
-                print("Invalid1: {0} @ {1}".format(system.name, system.position))
+                log.info("InvalidName: {0} @ {1}".format(system.name, system.position))
         else:
           notpg += 1
 
-      print("Totals: OK1 = {0}, OK2 = {1}, Bad1 = {2}, Bad2 = {3}, None1 = {4}, None2 = {5}, notPG = {6}".format(ok1, ok2, bad1, bad2, none1, none2, notpg))
-      print("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
+      log.info("Totals: OK1 = {}, OK2 = {}, OKHA = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(ok1, ok2, okha, bad1, bad2, badha, none1, none2, noneha, notpg))
+      log.info("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
 
     elif sys.argv[1] == "eddbspaff":
       import env
