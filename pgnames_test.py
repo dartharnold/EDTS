@@ -168,9 +168,11 @@ if __name__ == '__main__':
       ok1 = 0
       ok2 = 0
       okha = 0
+      okhaname = 0
       bad1 = 0
       bad2 = 0
       badha = 0
+      badhaname = 0
       none1 = 0
       none2 = 0
       noneha = 0
@@ -199,6 +201,15 @@ if __name__ == '__main__':
             else:
               noneha += 1
               log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sector))
+            ha_name = ha_get_name(system.position)
+            if ha_name == m.group("sector"):
+              okhaname += 1
+            else:
+              badhaname += 1
+              if ha_name is not None:
+                log.info("Bad HA name: {} ({}Ly, {}, {} from Sol) was predicted to be in {} ({}Ly, {}, {} from Sol)".format(system.name, sector.size, sector.centre, sector.centre.length, ha_name, pgdata.ha_sectors[ha_name].size, pgdata.ha_sectors[ha_name].centre, pgdata.ha_sectors[ha_name].centre.length))
+              else:
+                log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
           else:
             start = time.clock()
             sect = get_sector(m.group("sector"))
@@ -252,7 +263,7 @@ if __name__ == '__main__':
         else:
           notpg += 1
 
-      log.info("Totals: OK1 = {}, OK2 = {}, OKHA = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(ok1, ok2, okha, bad1, bad2, badha, none1, none2, noneha, notpg))
+      log.info("Totals: OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg))
       log.info("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
 
     elif sys.argv[1] == "eddbspaff":
