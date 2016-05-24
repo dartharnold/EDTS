@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from __future__ import print_function, division
 import logging
 import math
@@ -28,7 +26,7 @@ _expected_fragment_limit = 4
 # Get a star's relative position within a sector
 # Original version by Kay Johnston (CMDR Jackie Silver)
 # Note that in the form "Sector AB-C d3", the "3" is number2, NOT 1
-def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
+def get_star_relpos(prefix, centre, suffix, lcode, number1, number2):
   if number1 is None:
     number1 = 0
 
@@ -61,6 +59,17 @@ def get_star_relative_position(prefix, centre, suffix, lcode, number1, number2):
       "Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
   return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
+
+  
+def get_ha_sector_origin(centre, radius, modulo):
+  sector_origin = centre - vector3.Vector3(radius, radius, radius)
+  sox = math.floor(sector_origin.x)
+  soy = math.floor(sector_origin.y)
+  soz = math.floor(sector_origin.z)
+  sox -= (sox - int(sector.base_coords.x)) % modulo
+  soy -= (soy - int(sector.base_coords.y)) % modulo
+  soz -= (soz - int(sector.base_coords.z)) % modulo 
+  return vector3.Vector3(float(sox), float(soy), float(soz))
 
 
 # Get a sector, either from its position or from its name
@@ -231,7 +240,7 @@ def get_coords_from_name(system_name):
   abs_pos = sect.origin
   # Get the relative position of the star within the sector
   # Also get the +/- error bounds
-  rel_pos, rel_pos_error = get_star_relative_position(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
+  rel_pos, rel_pos_error = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
 
   if abs_pos is not None and rel_pos is not None:
     return (abs_pos + rel_pos, rel_pos_error)
