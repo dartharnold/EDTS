@@ -1,3 +1,4 @@
+import math
 import vector3
 
 cube_size = 1280.0
@@ -7,11 +8,59 @@ base_sector_coords = [39, 8, 18]
 # Galaxy actually goes from [-49985, -40985, -24105] = [-39, -32, -18]
 
 class Sector(object):
+  def __init__(self, name):
+    self.name = name
+
+  def contains(self, other):
+    raise NotImplementedError("Invalid call to base Sector contains method")
+
+
+class HASector(Sector):
+  def __init__(self, centre, radius, name = None):
+    super(HASector, self).__init__(name)
+    self._centre = centre
+    self._radius = radius
+
+  def origin(self, cube_width):
+    sector_origin = self.centre - vector3.Vector3(self.radius, self.radius, self.radius)
+    sox = math.floor(sector_origin.x)
+    soy = math.floor(sector_origin.y)
+    soz = math.floor(sector_origin.z)
+    sox -= (sox - int(base_coords.x)) % cube_width
+    soy -= (soy - int(base_coords.y)) % cube_width
+    soz -= (soz - int(base_coords.z)) % cube_width
+    return vector3.Vector3(float(sox), float(soy), float(soz))
+
+  @property
+  def centre(self):
+    return self._centre
+
+  @property
+  def radius(self):
+    return self._radius
+
+  def contains(self, pos):
+    return ((self.centre - pos).length <= self.radius)
+  
+  def __str__(self):
+    return "HASector({})".format(self.name)
+
+  def __repr__(self):
+    return self.__str__()
+
+  def __eq__(self, rhs):
+    return (self.centre == rhs.centre and self.radius == other.radius)
+
+  def __ne__(self, rhs):
+    return not self.__eq__(rhs)
+
+
+class PGSector(Sector):
   __slots__ = ('_v','name')
 
   def __init__(self, x, y, z, name = None):
+    super(PGSector, self).__init__(name)
     self._v = [int(x), int(y), int(z)]
-    self.name = name
 
   @property
   def x(self):
@@ -27,11 +76,13 @@ class Sector(object):
 
   def __str__(self):
     x, y, z = self._v
-    return "Sector({0}, {1}, {2})".format(x, y, z)
+    if self.name is not None:
+      return "PGSector({} @ {}, {}, {})".format(self.name, x, y, z)
+    else:
+      return "PGSector({}, {}, {})".format(x, y, z)
 
   def __repr__(self):
-    x, y, z = self._v
-    return "Sector({0}, {1}, {2})".format(x, y, z)
+    return self.__str__()
 
   def __len__(self):
     return 3
@@ -51,8 +102,7 @@ class Sector(object):
     return (x == xx and y == yy and z == zz)
 
   def __ne__(self, rhs):
-    x, y, z = self._v
-    xx, yy, zz = rhs
+    return not self.__eq__(rhs)
 
   @property
   def origin(self):

@@ -61,14 +61,7 @@ def get_star_relpos(prefix, centre, suffix, lcode, number1, number2):
 
   
 def get_ha_sector_origin(centre, radius, modulo):
-  sector_origin = centre - vector3.Vector3(radius, radius, radius)
-  sox = math.floor(sector_origin.x)
-  soy = math.floor(sector_origin.y)
-  soz = math.floor(sector_origin.z)
-  sox -= (sox - int(sector.base_coords.x)) % modulo
-  soy -= (soy - int(sector.base_coords.y)) % modulo
-  soz -= (soz - int(sector.base_coords.z)) % modulo 
-  return vector3.Vector3(float(sox), float(soy), float(soz))
+  return sector.HASector(centre, radius).origin(modulo)
 
 
 # Get a sector, either from its position or from its name
@@ -78,7 +71,7 @@ def get_sector(pos):
     y = (pos.y - sector.base_coords.y) // sector.cube_size
     z = (pos.z - sector.base_coords.z) // sector.cube_size
     # We don't authoritatively know the name, so return it without one
-    return sector.Sector(int(x), int(y), int(z))
+    return sector.PGSector(int(x), int(y), int(z))
   else:
     # Assume we have a string, call down to get it by name
     return get_sector_from_name(pos)
@@ -251,23 +244,43 @@ def get_coords_from_name(system_name):
 
 # Given a sector name, get a sector object representing it
 def get_sector_from_name(sector_name):
-  frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
-  if frags is None:
-    return None
-  
-  sc = get_sector_class(frags)
-  if sc == 2:
-    # Class 2: get matching YZ candidates, do full runs through them to find a match
-    for candidate in c2_get_yz_candidates(frags[0], frags[2]):
-      for idx, testfrags in c2_get_run(candidate['frags']):
-        if testfrags == frags:
-          return sector.Sector(idx, candidate['y'], candidate['z'], format_name(frags))
-    return None
-  elif sc is not None:
-    # Class 1: calculate and return
-    return c1_get_sector(frags)
+  if util.is_str(sector_name) and sector_name in pgdata.ha_sectors: 
+    sdata = pgdata.ha_sectors[sector_name]
+    found = False
+    for sphere in sdata:
+      if (system.position - sphere[0]).length <= sphere[1]:
+        found = True
+        rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
+        so = get_ha_sector_origin(sphere[0], sphere[1], rpe * 2)
+        limit = math.sqrt(rpe * rpe * 3)
+        realdist = ((so + rp) - system.position).length
+        if realdist <= limit:
+          okha += 1
+        else:
+          badha += 1
+          log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
+        break
+    if not found:
+      noneha += 1
+      log.info("NoneHA: {0} @ {1} not in any of {2} known sphere(s)".format(system.name, system.position, len(sdata)))
   else:
-    return None
+    frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
+    if frags is None:
+      return None
+    
+    sc = get_sector_class(frags)
+    if sc == 2:
+      # Class 2: get matching YZ candidates, do full runs through them to find a match
+      for candidate in c2_get_yz_candidates(frags[0], frags[2]):
+        for idx, testfrags in c2_get_run(candidate['frags']):
+          if testfrags == frags:
+            return sector.PGSector(idx, candidate['y'], candidate['z'], format_name(frags))
+      return None
+    elif sc is not None:
+      # Class 1: calculate and return
+      return c1_get_sector(frags)
+    else:
+      return None
 
 
 # Get all YZ-constrained lines which could possibly contain the prefixes specified
@@ -388,7 +401,7 @@ def c1_get_sector(input):
   x -= sector.base_sector_coords[0]
   y -= sector.base_sector_coords[1]
   z -= sector.base_sector_coords[2]
-  return sector.Sector(x, y, z, input)
+  return sector.PGSector(x, y, z, input)
 
 
 def c1_get_name(sector):

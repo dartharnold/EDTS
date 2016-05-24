@@ -126,7 +126,7 @@ if __name__ == '__main__':
       for ((f0, f1), (f2, f3)) in c2_get_start_points():
         extra = ""
         if y >= -3 and y <= 2:
-          sect = c2_get_name(sector.Sector(x,y,z))
+          sect = c2_get_name(sector.PGSector(x,y,z))
           if sect == [f0, f1, f2, f3]:
             ok += 1
             # print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
