@@ -207,7 +207,7 @@ if __name__ == '__main__':
             else:
               badhaname += 1
               if ha_name is not None:
-                log.info("Bad HA name: {} ({}Ly, {}, {} from Sol) was predicted to be in {} ({}Ly, {}, {} from Sol)".format(system.name, sector.size, sector.centre, sector.centre.length, ha_name, pgdata.ha_sectors[ha_name].size, pgdata.ha_sectors[ha_name].centre, pgdata.ha_sectors[ha_name].centre.length))
+                log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name].size))
               else:
                 log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
           else:
