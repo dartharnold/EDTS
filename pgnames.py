@@ -245,25 +245,7 @@ def get_coords_from_name(system_name):
 # Given a sector name, get a sector object representing it
 def get_sector_from_name(sector_name):
   if util.is_str(sector_name) and sector_name in pgdata.ha_sectors: 
-    sdata = pgdata.ha_sectors[sector_name]
-#    found = False
-#    for sphere in sdata:
-#      if (system.position - sphere[0]).length <= sphere[1]:
-#        found = True
-#        rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
-#        so = get_ha_sector_origin(sphere[0], sphere[1], rpe * 2)
-#        limit = math.sqrt(rpe * rpe * 3)
-#        realdist = ((so + rp) - system.position).length
-#        if realdist <= limit:
-#          okha += 1
-#        else:
-#          badha += 1
-#          log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
-#        break
-#    if not found:
-#      noneha += 1
-#      log.info("NoneHA: {0} @ {1} not in any of {2} known sphere(s)".format(system.name, system.position, len(sdata))
-    return None
+    return pgdata.ha_sectors[sector_name]
   else:
     frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
     if frags is None:
@@ -402,7 +384,7 @@ def c1_get_sector(input):
   x -= sector.base_sector_coords[0]
   y -= sector.base_sector_coords[1]
   z -= sector.base_sector_coords[2]
-  return sector.PGSector(x, y, z, input)
+  return sector.PGSector(x, y, z, format_name(frags))
 
 
 def c1_get_name(sector):

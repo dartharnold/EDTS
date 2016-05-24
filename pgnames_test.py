@@ -180,29 +180,25 @@ if __name__ == '__main__':
       get_sector_cnt = 0
       get_coords_avg = 0.0
       get_coords_cnt = 0
-      
+
       for system in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(system.name)
-        if m is not None and m.group("sector") != "Hypiae":
+        if m is not None and m.group("sector") not in ["Hypiae","ICZ"]:
           if m.group("sector") in pgdata.ha_sectors:
-            sdata = pgdata.ha_sectors[m.group("sector")]
-            found = False
-            for sphere in sdata:
-              if (system.position - sphere[0]).length <= sphere[1]:
-                found = True
-                rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
-                so = get_ha_sector_origin(sphere[0], sphere[1], rpe * 2)
-                limit = math.sqrt(rpe * rpe * 3)
-                realdist = ((so + rp) - system.position).length
-                if realdist <= limit:
-                  okha += 1
-                else:
-                  badha += 1
-                  log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
-                break
-            if not found:
+            sector = pgdata.ha_sectors[m.group("sector")]
+            if sector.contains(system.position):
+              rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "lcode", "number1", "number2"))
+              so = sector.origin(rpe * 2)
+              limit = math.sqrt(rpe * rpe * 3)
+              realdist = ((so + rp) - system.position).length
+              if realdist <= limit:
+                okha += 1
+              else:
+                badha += 1
+                log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
+            else:
               noneha += 1
-              log.info("NoneHA: {0} @ {1} not in any of {2} known sphere(s)".format(system.name, system.position, len(sdata)))
+              log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sector))
           else:
             start = time.clock()
             sect = get_sector(m.group("sector"))
@@ -243,7 +239,7 @@ if __name__ == '__main__':
                   bad2 += 1
                 elif cls == 1:
                   bad1 += 1
-                log.info("Bad sector: {0} @ {1} is not in {2} @ {3}".format(system.name, system.position, format_name(sect.name), sect))
+                log.info("Bad sector: {0} @ {1} is not in {2}".format(system.name, system.position, sect))
             else:
               if cls == 2:
                 none2 += 1
