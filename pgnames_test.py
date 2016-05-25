@@ -209,7 +209,7 @@ if __name__ == '__main__':
               if ha_name is not None:
                 log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name].size))
               else:
-                log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
+                log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector".format(system.name, sector.size))
           else:
             start = time.clock()
             sect = get_sector(m.group("sector"))
