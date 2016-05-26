@@ -280,7 +280,8 @@ def c2_get_yz_candidates(frag0, frag2):
 
 
 # Get the name of a class 2 sector based on its position
-def c2_get_name(sector):
+def c2_get_name(pos):
+  sector = get_sector(pos) if not isinstance(pos, Sector) else pos
   # Get run start from YZ
   (pre0, suf0), (pre1, suf1) = _c2_start_points[sector.index[2]][sector.index[1]]
   # Now do a full run across it until we reach the right x position
@@ -402,6 +403,8 @@ def c1_get_sector(input):
 def c1_get_name(sector):
   if sector is None:
     return None
+  sector = get_sector(pos) if not isinstance(pos, Sector) else pos
+
   offset  = sector.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
   offset += sector.index[1] * pgdata.c1_galaxy_size[0]
   offset += sector.index[0]
