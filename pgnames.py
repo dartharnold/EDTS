@@ -281,12 +281,12 @@ def c2_get_yz_candidates(frag0, frag2):
 
 # Get the name of a class 2 sector based on its position
 def c2_get_name(pos):
-  sector = get_sector(pos) if not isinstance(pos, Sector) else pos
+  sect = get_sector(pos) if not isinstance(pos, sector.Sector) else pos
   # Get run start from YZ
-  (pre0, suf0), (pre1, suf1) = _c2_start_points[sector.index[2]][sector.index[1]]
+  (pre0, suf0), (pre1, suf1) = _c2_start_points[sect.index[2]][sect.index[1]]
   # Now do a full run across it until we reach the right x position
   for (xpos, frags) in c2_get_run([pre0, suf0, pre1, suf1]):
-    if xpos == sector.x:
+    if xpos == sect.x:
       return frags
   return None
 
@@ -400,14 +400,14 @@ def c1_get_sector(input):
   return sector.PGSector(x, y, z, format_name(frags))
 
 
-def c1_get_name(sector):
-  if sector is None:
+def c1_get_name(pos):
+  if pos is None:
     return None
-  sector = get_sector(pos) if not isinstance(pos, Sector) else pos
+  sect = get_sector(pos) if not isinstance(pos, sector.Sector) else pos
 
-  offset  = sector.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
-  offset += sector.index[1] * pgdata.c1_galaxy_size[0]
-  offset += sector.index[0]
+  offset  = sect.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
+  offset += sect.index[1] * pgdata.c1_galaxy_size[0]
+  offset += sect.index[0]
   
   prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
   prefix = [c for c in _c1_prefix_offsets if cur_offset >= _c1_prefix_offsets[c][0] and cur_offset < (_c1_prefix_offsets[c][0] + _c1_prefix_offsets[c][1])][0]
