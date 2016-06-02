@@ -51,8 +51,8 @@ def get_star_relpos(prefix, centre, suffix, mcode, number1, number2):
   halfwidth = cubeside / 2
 
   approx_x = (column * cubeside) + halfwidth
-  approx_y = (stack * cubeside) + halfwidth
-  approx_z = (row * cubeside) + halfwidth
+  approx_y = (stack  * cubeside) + halfwidth
+  approx_z = (row    * cubeside) + halfwidth
   
   if (approx_x < 0 or approx_x > sector.cube_size
    or approx_y < 0 or approx_y > sector.cube_size
@@ -63,6 +63,26 @@ def get_star_relpos(prefix, centre, suffix, mcode, number1, number2):
       "Please report this error.".format(approx_x, approx_y, approx_z, input_star))
 
   return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
+
+
+def get_sysid_from_relpos(pos, mcode):
+  cubeside = get_mcode_cube_width(mcode.lower())
+  column = int(pos.x // cubeside)
+  stack  = int(pos.y // cubeside)
+  row    = int(pos.z // cubeside)
+
+  position = column + (_srp_rowlength * stack) + (_srp_sidelength * row)
+
+  prefixn = int((position)                  % len(string.ascii_uppercase))
+  centren = int((position // _srp_divisor1) % len(string.ascii_uppercase))
+  suffixn = int((position // _srp_divisor2) % len(string.ascii_uppercase))
+  number1 = int((position // _srp_divisor3))
+
+  prefix = string.ascii_uppercase[prefixn]
+  centre = string.ascii_uppercase[centren]
+  suffix = string.ascii_uppercase[suffixn]
+
+  return [prefix, centre, suffix, mcode, number1]
 
   
 def get_ha_sector_origin(centre, radius, modulo):
