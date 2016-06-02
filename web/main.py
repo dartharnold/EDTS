@@ -12,24 +12,27 @@ import sector
 import vector3
 del sys.path[0]
 
-app = bottle.Bottle()
-
 
 def vec3_to_dict(v):
   return collections.OrderedDict([('x', v.x), ('y', v.y), ('z', v.z)])
 
 
-@app.route('/')
+@bottle.hook('before_request')
+def strip_path():
+  bottle.request.environ['PATH_INFO'] = bottle.request.environ['PATH_INFO'].rstrip('/')
+
+
+@bottle.route('/')
 def index():
-  return 'HA sectors: {0}'.format(len(pgdata.ha_sectors))
+  return '<html><head><title>EDTSweb</title></head><body><a href="/api">API docs</a></body></html>'
 
 
-@app.route('/api/')
+@bottle.route('/api')
 def api_index():
   return bottle.template('api_index')
 
 
-@app.route('/api/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
+@bottle.route('/api/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
 def api_system_name(x, y, z, mcode):
   sect = api_sector_name(x, y, z)
   pos = vector3.Vector3(x, y, z)
@@ -50,7 +53,7 @@ def api_system_name(x, y, z, mcode):
   return {'result': result}
 
 
-@app.route('/api/sector_name/<x:float>,<y:float>,<z:float>')
+@bottle.route('/api/sector_name/<x:float>,<y:float>,<z:float>')
 def api_sector_name(x, y, z):
   v = vector3.Vector3(x, y, z)
   result = None
@@ -69,7 +72,7 @@ def api_sector_name(x, y, z):
   return {'result': result}
 
 
-@app.route('/api/system_position/<name>')
+@bottle.route('/api/system_position/<name>')
 def api_system_position(name):
   pos, err = pgnames.get_coords_from_name(name)
   if pos is not None and err is not None:
@@ -81,7 +84,7 @@ def api_system_position(name):
   return {'result': result}
 
 
-@app.route('/api/sector_position/<name>')
+@bottle.route('/api/sector_position/<name>')
 def api_sector_position(name):
   sect = pgnames.get_sector_from_name(name)
   if sect is not None:
@@ -97,4 +100,4 @@ def api_sector_position(name):
 
 
 if __name__ == '__main__':
-  app.run(host='localhost', port=8080)
+  bottle.run(host='localhost', port=8080)
