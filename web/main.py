@@ -24,7 +24,7 @@ def strip_path():
 
 @bottle.route('/')
 def index():
-  return '<html><head><title>EDTSweb</title></head><body><a href="/api">API docs</a></body></html>'
+  return bottle.template('index')
 
 
 @bottle.route('/api')
