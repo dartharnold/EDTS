@@ -65,7 +65,7 @@ def get_star_relpos(prefix, centre, suffix, mcode, number1, number2):
   return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
 
 
-def get_sysid_from_relpos(pos, mcode):
+def get_sysid_from_relpos(pos, mcode, format_output=False):
   cubeside = get_mcode_cube_width(mcode.lower())
   column = int(pos.x // cubeside)
   stack  = int(pos.y // cubeside)
@@ -82,16 +82,27 @@ def get_sysid_from_relpos(pos, mcode):
   centre = string.ascii_uppercase[centren]
   suffix = string.ascii_uppercase[suffixn]
 
-  return [prefix, centre, suffix, mcode, number1]
+  if format_output:
+    output = '{}{}-{} {}'.format(prefix, centre, suffix, mcode)
+    if number1 != 0:
+      output += '{}-'.format(number1)
+    return output
+  else:
+    return [prefix, centre, suffix, mcode, number1]
 
-  
+
 def get_ha_sector_origin(centre, radius, modulo):
   return sector.HASector(centre, radius).get_origin(modulo)
 
 
 # Get a sector, either from its position or from its name
-def get_sector(pos):
+def get_sector(pos, allow_ha = True):
   if isinstance(pos, vector3.Vector3):
+    if allow_ha:
+      ha_name = ha_get_name(pos)
+      if ha_name is not None:
+        return pgdata.ha_sectors[ha_name]
+    # If we're not checking HA or it's not in such a sector, do PG
     x = (pos.x - sector.base_coords.x) // sector.cube_size
     y = (pos.y - sector.base_coords.y) // sector.cube_size
     z = (pos.z - sector.base_coords.z) // sector.cube_size
@@ -99,7 +110,7 @@ def get_sector(pos):
     return sector.PGSector(int(x), int(y), int(z))
   else:
     # Assume we have a string, call down to get it by name
-    return get_sector_from_name(pos)
+    return get_sector_from_name(pos, allow_ha=allow_ha)
 
 
 # Get a list of fragments from an input sector name
@@ -268,8 +279,8 @@ def get_coords_from_name(system_name):
 
 
 # Given a sector name, get a sector object representing it
-def get_sector_from_name(sector_name):
-  if util.is_str(sector_name) and sector_name in pgdata.ha_sectors: 
+def get_sector_from_name(sector_name, allow_ha = True):
+  if allow_ha and util.is_str(sector_name) and sector_name in pgdata.ha_sectors:
     return pgdata.ha_sectors[sector_name]
   else:
     frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
@@ -301,7 +312,7 @@ def c2_get_yz_candidates(frag0, frag2):
 
 # Get the name of a class 2 sector based on its position
 def c2_get_name(pos):
-  sect = get_sector(pos) if not isinstance(pos, sector.Sector) else pos
+  sect = get_sector(pos, allow_ha=False) if not isinstance(pos, sector.Sector) else pos
   # Get run start from YZ
   (pre0, suf0), (pre1, suf1) = _c2_start_points[sect.index[2]][sect.index[1]]
   # Now do a full run across it until we reach the right x position
@@ -423,7 +434,7 @@ def c1_get_sector(input):
 def c1_get_name(pos):
   if pos is None:
     return None
-  sect = get_sector(pos) if not isinstance(pos, sector.Sector) else pos
+  sect = get_sector(pos, allow_ha=False) if not isinstance(pos, sector.Sector) else pos
 
   offset  = sect.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
   offset += sect.index[1] * pgdata.c1_galaxy_size[0]

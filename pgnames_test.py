@@ -185,7 +185,7 @@ if __name__ == '__main__':
 
       for system in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(system.name)
-        if m is not None and m.group("sector") not in ["Hypiae"]:
+        if m is not None and m.group("sector") not in ["Hypiae"]: # TODO: Remove when bad EDDB data is gone
           if m.group("sector") in pgdata.ha_sectors:
             sector = pgdata.ha_sectors[m.group("sector")]
             if sector.contains(system.position):
@@ -209,7 +209,7 @@ if __name__ == '__main__':
               if ha_name is not None:
                 log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name].size))
               else:
-                log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector".format(system.name, sector.size))
+                log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
           else:
             start = time.clock()
             sect = get_sector(m.group("sector"))
@@ -218,7 +218,7 @@ if __name__ == '__main__':
             if sect is not None and cls is not None:
               get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
               get_sector_cnt += 1
-              pos_sect = get_sector(system.position)
+              pos_sect = get_sector(system.position, allow_ha=False)
               if sect == pos_sect:
                 start = time.clock()
                 coords, dist = get_coords_from_name(system.name)
@@ -280,7 +280,7 @@ if __name__ == '__main__':
           sname = m.group("sector")
           cls = get_sector_class(m.group("sector"))
           if cls != "2":
-            sect = get_sector(system.position)
+            sect = get_sector(system.position, allow_ha=False)
             if sect.y not in y_levels:
               y_levels[sect.y] = {}
             if sect.z not in y_levels[sect.y]:

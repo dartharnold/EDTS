@@ -13,7 +13,11 @@ class Sector(object):
 
   @property
   def centre(self):
-    raise NotImplementedException("Invalid call to base Sector centre property")
+    raise NotImplementedError("Invalid call to base Sector centre property")
+
+  @property
+  def size(self):
+    raise NotImplementedError("Invalid call to base Sector size property")
 
   def contains(self, other):
     raise NotImplementedError("Invalid call to base Sector contains method")
@@ -145,6 +149,10 @@ class PGSector(Sector):
   @property
   def centre(self):
     return self.origin + vector3.Vector3(cube_size / 2, cube_size / 2, cube_size / 2)
+
+  @property
+  def size(self):
+    return cube_size
 
   @property
   def index(self):
