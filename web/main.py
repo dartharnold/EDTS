@@ -27,12 +27,12 @@ def index():
   return bottle.template('index')
 
 
-@bottle.route('/api')
+@bottle.route('/api/v1')
 def api_index():
-  return bottle.template('api_index')
+  return bottle.template('api_v1_index')
 
 
-@bottle.route('/api/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
+@bottle.route('/api/v1/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
 def api_system_name(x, y, z, mcode):
   sect = api_sector_name(x, y, z)
   pos = vector3.Vector3(x, y, z)
@@ -53,7 +53,7 @@ def api_system_name(x, y, z, mcode):
   return {'result': result}
 
 
-@bottle.route('/api/sector_name/<x:float>,<y:float>,<z:float>')
+@bottle.route('/api/v1/sector_name/<x:float>,<y:float>,<z:float>')
 def api_sector_name(x, y, z):
   v = vector3.Vector3(x, y, z)
   result = None
@@ -72,7 +72,7 @@ def api_sector_name(x, y, z):
   return {'result': result}
 
 
-@bottle.route('/api/system_position/<name>')
+@bottle.route('/api/v1/system_position/<name>')
 def api_system_position(name):
   pos, err = pgnames.get_coords_from_name(name)
   if pos is not None and err is not None:
@@ -84,7 +84,7 @@ def api_system_position(name):
   return {'result': result}
 
 
-@bottle.route('/api/sector_position/<name>')
+@bottle.route('/api/v1/sector_position/<name>')
 def api_sector_position(name):
   sect = pgnames.get_sector_from_name(name)
   if sect is not None:
