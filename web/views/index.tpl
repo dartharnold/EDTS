@@ -66,12 +66,12 @@
       var z = document.getElementById('input-systemname-z').value;
       var mcode = document.getElementById('input-systemname-m').value;
       console.log("x = " + typeof(x) + ", y = " + typeof(y) + ", z = " + typeof(z) + ", m = " + typeof(mcode));
-      if (isNaN(x) || isNaN(y) || isNaN(z) || x.length === 0 || y.length === 0 || z.length === 0 || !mcode.match(/[a-h]/i))
+      if (isNaN(x) || isNaN(y) || isNaN(z) || x.length === 0 || y.length === 0 || z.length === 0 || !mcode.match(/^[a-h]$/i))
       {
         alert("You must fill in all fields with appropriate values (numeric for X,Y,Z; a-h for mcode) before submitting!");
         return;
       }
-      var query = sprintf("%.6f,%.6f,%.6f/%s", x, y, z, mcode);
+      var query = sprintf("%.6f,%.6f,%.6f/%s", x, y, z, mcode.toLowerCase());
       doXHR('system_name', query, setSystemName, failSystemName);
     }
 
@@ -180,7 +180,7 @@ Please don't spam this site too much, it's only a little babby server. :)<br/>
 <table class="widget">
 <tr>
   <td class="wname">Sector Position:</td>
-  <form onsubmit="doSectorPosition(); return false;"><td class="winput"><input type="text" id="input-sectorpos" placeholder="Sector Name" /></td>
+  <form onsubmit="doSectorPosition(); return false;"><td class="winput"><input type="text" id="input-sectorpos" placeholder="Sector Name, e.g. Dryau Aowsy" /></td>
   <td><input type="submit" value="→" /></td></form>
 </tr>
 <tr><td class="woutput" id="output-sectorpos" colspan="3">
@@ -191,7 +191,7 @@ Please don't spam this site too much, it's only a little babby server. :)<br/>
 <table class="widget">
 <tr>
   <td class="wname">System Position:</td>
-  <form onsubmit="doSystemPosition(); return false;"><td class="winput"><input type="text" id="input-systempos" placeholder="System Name" /></td>
+  <form onsubmit="doSystemPosition(); return false;"><td class="winput"><input type="text" id="input-systempos" placeholder="System Name, e.g. Lysoorb AA-A b0" /></td>
   <td><input type="submit" value="→" /></td></form>
 </tr>
 <tr><td class="woutput" id="output-systempos" colspan="3">
