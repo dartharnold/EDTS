@@ -1,0 +1,17 @@
+/* Fonts */
+@import url(https://fonts.googleapis.com/css?family=Oxygen);
+@import url(https://fonts.googleapis.com/css?family=Oxygen+Mono);
+
+/* Global */
+html, body { margin = 0; padding: 0; background-color: #445; color: #ccd; font-family: 'Oxygen', sans-serif; }
+pre { font-family: 'Oxygen Mono', monospace; color: #dde; }
+
+/* Input boxes */
+input[type="text"], input[type="submit"] { padding: 10px; border: solid 1px #aaa; transition: box-shadow 0.3s, border 0.3s; background-color: #667; font-size: 1.0em; color: #ccd; width: 100%; box-sizing: border-box; }
+input[type="text"]:focus, input[type="text"].focus, input[type="submit"]:focus, input[type="submit"].focus { border: solid 1px #ddd; box-shadow: 0 0 5px 1px #999; }
+input[type="submit"] { padding-left: 0px; padding-right: 0px; width: 2em; }
+
+/* Links */
+a { color: #eef; }
+a:visited { color: #eef; }
+

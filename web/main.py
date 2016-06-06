@@ -32,9 +32,14 @@ def api_index():
   return bottle.template('api_v1_index')
 
 
+@bottle.route('/static/<path:path>')
+def static(path):
+  return bottle.static_file(path, root='static')
+
+
 @bottle.route('/api/v1/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
 def api_system_name(x, y, z, mcode):
-  sect = api_sector_name(x, y, z)
+  sect = api_sector_name(x, y, z)['result']
   pos = vector3.Vector3(x, y, z)
 
   psect = pgnames.get_sector(pos, allow_ha=True)
@@ -42,8 +47,8 @@ def api_system_name(x, y, z, mcode):
   relpos = vector3.Vector3(x - psorig.x, y - psorig.y, z - psorig.z)
   sysid = pgnames.get_sysid_from_relpos(relpos, mcode, format_output=True)
 
-  if sect['result'] is not None and any(sect['result']['names']):
-    for n in sect['result']['names']:
+  if sect is not None and any(sect['names']):
+    for n in sect['names']:
       n['name'] = '{} {}'.format(n['name'], sysid)
     result = sect
   else:
@@ -56,18 +61,17 @@ def api_system_name(x, y, z, mcode):
 @bottle.route('/api/v1/sector_name/<x:float>,<y:float>,<z:float>')
 def api_sector_name(x, y, z):
   v = vector3.Vector3(x, y, z)
-  result = None
+  result = {'names': [], 'position': vec3_to_dict(v)}
   ha_name = pgnames.ha_get_name(v)
   if ha_name is not None:
-    result = {'names': [{'name': ha_name, 'type': 'ha'}], 'position': vec3_to_dict(vector3.Vector3(x, y, z))}
-  else:
-    c1_name = pgnames.format_name(pgnames.c1_get_name(v))
-    c2_name = pgnames.format_name(pgnames.c2_get_name(v))
-    if c1_name is not None and c2_name is not None:
-      result = {'names': [{'name': c1_name, 'type': 'c1'}, {'name': c2_name, 'type': 'c2'}], 'position': vec3_to_dict(vector3.Vector3(x, y, z))}
-    else:
-      bottle.response.status = 400
-      result = None
+    result['names'].append({'name': ha_name, 'type': 'ha'})
+  c1_name = pgnames.format_name(pgnames.c1_get_name(v))
+  c2_name = pgnames.format_name(pgnames.c2_get_name(v))
+  if c1_name is not None and c2_name is not None:
+    result['names'] += [{'name': c1_name, 'type': 'c1'}, {'name': c2_name, 'type': 'c2'}]
+  if not any(result['names']):
+    bottle.response.status = 400
+    result = None
   bottle.response.content_type = 'application/json'
   return {'result': result}
 
