@@ -9,6 +9,7 @@ import vector3
 #  of carrot cake pushed into it all over the place..."
 #   - CMDR Jackie Silver
 
+
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
 pg_system_regex = re.compile('^(?P<sector>[\\w\\s]+) (?P<prefix>[A-Za-z])(?P<centre>[A-Za-z])-(?P<suffix>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<number1>\\d+)-)?(?P<number2>\\d+)$')
 
@@ -58,13 +59,13 @@ cx_prefixes = cx_raw_fragments[0:111]
 # Sequences used in runs
 #
 
-# Vowel-ish infixes (SPECULATIVE)
+# Vowel-ish infixes
 c1_infixes_s1 = [
   "o", "ai", "a", "oi", "ea", "ie", "u", "e",
   "ee", "oo", "ue", "i", "oa", "au", "ae", "oe"
 ]
 
-# Consonant-ish infixes (SPECULATIVE)
+# Consonant-ish infixes
 c1_infixes_s2 = [
   "ll", "ss", "b", "c", "d", "f", "dg", "g",
   "ng", "h", "j", "k", "l", "m", "n", "mb",
@@ -147,24 +148,28 @@ c1_prefix_infix_override_map = {
 }
 
 
+# The default run length for most prefixes
 cx_prefix_length_default = 35
+# Some prefixes use short run lengths; specify them here
 cx_prefix_length_overrides = {
    'Eu': 31,  'Sly':  4,   'Tz':  1,  'Phl': 13,
    'Ae': 12,  'Hyp': 25,  'Kyl': 30,  'Phr': 10,
   'Eae':  4,   'Ao':  5,  'Scr': 24,  'Shr': 11,
   'Fly': 20,  'Pry':  3, 'Hyph': 14,   'Py': 12,
  'Phyl':  8,  'Tyr': 25,  'Cry':  5,  'Aae':  5,
-  'Myc':  2,  'Gyr': 10,  'Myl': 12, 'Lych':  3, # Myc + Gyr = 12
-  'Myn': 10,  'Myr':  4,   'Rh': 15,   'Wr': 31, # Myl + Lych + Myn = 25
+  'Myc':  2,  'Gyr': 10,  'Myl': 12, 'Lych':  3,
+  'Myn': 10,  'Myr':  4,   'Rh': 15,   'Wr': 31,
   'Sty':  4,  'Spl': 16,   'Sk': 27,   'Sq':  7,
  'Pyth':  1,  'Lyr': 10,   'Sw': 24,  'Thr': 32,
   'Lys': 10, 'Schr':  3,    'Z': 34,
 }
+# Get the total length of one run over all prefixes
 cx_prefix_total_run_length = sum([cx_prefix_length_overrides.get(p, cx_prefix_length_default) for p in cx_prefixes])
 
-
+# Default infix run lengths
 c1_infix_s1_length_default = len(c1_suffixes_s2)
 c1_infix_s2_length_default = len(cx_suffixes_s1)
+# Some infixes use short runs too
 c1_infix_length_overrides = {
   # Sequence 1
  'oi':  88,  'ue': 147,  'oa':  57,
@@ -172,6 +177,7 @@ c1_infix_length_overrides = {
   # Sequence 2
  'dg':  31, 'tch':  20,  'wr':  31,
 }
+# Total lengths of runs over all infixes, for each sequence
 c1_infix_s1_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s1_length_default) for p in c1_infixes_s1])
 c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2_length_default) for p in c1_infixes_s2])
 
@@ -236,6 +242,9 @@ c2_vouter_diff = c2_full_vouter_step // 2
 c1_galaxy_size = [128, 128,  78]
 c2_galaxy_size = [128,  16,  78]
 
+
+# Hand-authored sectors
+# Data of unknown origin from an mysterious benefactor
 ha_sectors = collections.OrderedDict([
   ("Trianguli Sector", sector.HASector(vector3.Vector3(60.85156, -47.94922, -81.32031), 50.0, "Trianguli Sector")),
   ("Crucis Sector", sector.HASector(vector3.Vector3(75.91016, 8.32812, 44.83984), 60.0, "Crucis Sector")),
