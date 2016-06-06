@@ -265,8 +265,10 @@ def get_coords_from_name(system_name):
   if m is None:
     return (None, None)
   sector_name = m.group("sector")
-  # Get the absolute position of the sector
   sect = get_sector_from_name(sector_name)
+  if sect is None:
+    return (None, None)
+  # Get the absolute position of the sector
   abs_pos = sect.get_origin(get_mcode_cube_width(m.group("mcode")))
   # Get the relative position of the star within the sector
   # Also get the +/- error bounds
