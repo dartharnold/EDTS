@@ -188,8 +188,8 @@ if __name__ == '__main__':
         if sysname is not None:
           m = pgdata.pg_system_regex.match(sysname)
           if m is not None and m.group("sector") not in ["Hypiae"]: # TODO: Remove when bad EDDB data is gone
-            if m.group("sector") in pgdata.ha_sectors:
-              sector = pgdata.ha_sectors[m.group("sector")]
+            if m.group("sector").lower() in pgdata.ha_sectors:
+              sector = pgdata.ha_sectors[m.group("sector").lower()]
               if sector.contains(system.position):
                 rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
                 so = sector.get_origin(rpe * 2)
@@ -209,7 +209,7 @@ if __name__ == '__main__':
               else:
                 badhaname += 1
                 if ha_name is not None:
-                  log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name].size))
+                  log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name.lower()].size))
                 else:
                   log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
             else:

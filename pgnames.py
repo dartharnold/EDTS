@@ -101,7 +101,7 @@ def get_sector(pos, allow_ha = True):
     if allow_ha:
       ha_name = ha_get_name(pos)
       if ha_name is not None:
-        return pgdata.ha_sectors[ha_name]
+        return pgdata.ha_sectors[ha_name.lower()]
     # If we're not checking HA or it's not in such a sector, do PG
     x = (pos.x - sector.base_coords.x) // sector.cube_size
     y = (pos.y - sector.base_coords.y) // sector.cube_size
@@ -179,7 +179,7 @@ def format_name(frags):
 def get_sector_class(sect):
   frags = get_fragments(sect) if util.is_str(sect) else sect
   if frags is None:
-    if sect in pgdata.ha_sectors:
+    if sect.lower() in pgdata.ha_sectors:
       return "ha"
     else:
       return None
@@ -293,8 +293,8 @@ def get_sector_from_name(raw_sector_name, allow_ha = True):
   sector_name = get_canonical_name(raw_sector_name)
   if sector_name is None:
     return None
-  if allow_ha and util.is_str(sector_name) and sector_name in pgdata.ha_sectors:
-    return pgdata.ha_sectors[sector_name]
+  if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_sectors:
+    return pgdata.ha_sectors[sector_name.lower()]
   else:
     frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
     if frags is None:
@@ -327,10 +327,8 @@ def get_canonical_name(name):
     sectname_raw = name
 
   # Check if this sector name appears in ha_sectors, pass it through the fragment process if not
-  sectname_low = sectname_raw.lower()
-  results = [k for k in pgdata.ha_sectors.keys() if k.lower() == sectname_low]
-  if any(results):
-    sectname = results[0]
+  if sectname_raw.lower() in pgdata.ha_sectors:
+    sectname = pgdata.ha_sectors[sectname_raw.lower()].name
   else:
     frags = get_fragments(sectname_raw)
     if frags is not None:
@@ -371,7 +369,7 @@ def c2_get_name(pos):
 def ha_get_name(pos):
   for (sname, s) in pgdata.ha_sectors.items():
     if s.contains(pos):
-      return sname
+      return s.name
   return None
 
 
