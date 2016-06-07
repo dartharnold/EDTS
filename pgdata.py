@@ -715,6 +715,22 @@ ha_sectors = collections.OrderedDict([
     sector.HASector(vector3.Vector3(92, -95, 11), 40, "ICZ"),
     sector.HASector(vector3.Vector3(106, -95, 0), 40, "ICZ"),
   ])),
+  ("Bleia1", sector.HASector(vector3.Vector3(-43, 155, 37500), 512, "Bleia1")),
+  ("Bleia2", sector.HASector(vector3.Vector3(-43, 155, 37000), 512, "Bleia2")),
+  ("Bleia3", sector.HASector(vector3.Vector3(-43, 155, 36500), 512, "Bleia3")),
+  ("Bleia4", sector.HASector(vector3.Vector3(450, 155, 37000), 512, "Bleia4")),
+  ("Bleia5", sector.HASector(vector3.Vector3(-450, 155, 37000), 512, "Bleia5")),
+  ("Bovomit", sector.HASector(vector3.Vector3(-20070, 90, -6930), 512, "Bovomit")),
+  ("Dryman", sector.HASector(vector3.Vector3(19100, 20, 21160), 512, "Dryman")),
+  ("Froadik", sector.HASector(vector3.Vector3(-18860, -200, 14300), 512, "Froadik")),
+  ("Hyponia", sector.HASector(vector3.Vector3(-23020, -10, 24080), 512, "Hyponia")),
+  ("Praei1", sector.HASector(vector3.Vector3(-1000, -155, 54000), 512, "Praei1")),
+  ("Praei2", sector.HASector(vector3.Vector3(-1000, -155, 54400), 512, "Praei2")),
+  ("Praei3", sector.HASector(vector3.Vector3(-1000, -155, 53600), 512, "Praei3")),
+  ("Praei4", sector.HASector(vector3.Vector3(-1000, -555, 54000), 512, "Praei4")),
+  ("Praei5", sector.HASector(vector3.Vector3(-1000, 455, 54000), 512, "Praei5")),
+  ("Praei6", sector.HASector(vector3.Vector3(-500, -100, 53500), 512, "Praei6")),
+  ("Sidgoir", sector.HASector(vector3.Vector3(-24120, 10, -1220), 100, "Sidgoir")),
 ])
 # Sort by increasing size for checks
 ha_sectors = collections.OrderedDict(sorted(ha_sectors.items(), key=lambda t: t[1].size))

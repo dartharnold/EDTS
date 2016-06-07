@@ -179,7 +179,10 @@ def format_name(frags):
 def get_sector_class(sect):
   frags = get_fragments(sect) if util.is_str(sect) else sect
   if frags is None:
-    return None
+    if sect in pgdata.ha_sectors:
+      return "ha"
+    else:
+      return None
   if len(frags) == 4 and frags[0] in pgdata.cx_prefixes and frags[2] in pgdata.cx_prefixes:
     return 2
   elif len(frags) in [3,4] and frags[0] in pgdata.cx_prefixes:
@@ -261,7 +264,11 @@ def c1_get_infix_total_run_length(frag):
 
 
 # Given a full system name, get its approximate coordinates
-def get_coords_from_name(system_name):
+def get_coords_from_name(raw_system_name):
+  system_name = get_canonical_name(raw_system_name)
+  if system_name is None:
+    return (None, None)
+  # Reparse it now it's (hopefully) right
   m = pgdata.pg_system_regex.match(system_name)
   if m is None:
     return (None, None)
@@ -282,7 +289,10 @@ def get_coords_from_name(system_name):
 
 
 # Given a sector name, get a sector object representing it
-def get_sector_from_name(sector_name, allow_ha = True):
+def get_sector_from_name(raw_sector_name, allow_ha = True):
+  sector_name = get_canonical_name(raw_sector_name)
+  if sector_name is None:
+    return None
   if allow_ha and util.is_str(sector_name) and sector_name in pgdata.ha_sectors:
     return pgdata.ha_sectors[sector_name]
   else:
@@ -298,11 +308,44 @@ def get_sector_from_name(sector_name, allow_ha = True):
           if testfrags == frags:
             return sector.PGSector(idx, candidate['y'], candidate['z'], format_name(frags))
       return None
-    elif sc is not None:
+    elif sc == 1:
       # Class 1: calculate and return
       return c1_get_sector(frags)
     else:
       return None
+
+
+def get_canonical_name(name):
+  sectname = None
+  sysid = None
+
+  # See if we have a full system name
+  m = pgdata.pg_system_regex.match(name)
+  if m is not None:
+    sectname_raw = m.group("sector")
+  else:
+    sectname_raw = name
+
+  # Check if this sector name appears in ha_sectors, pass it through the fragment process if not
+  sectname_low = sectname_raw.lower()
+  results = [k for k in pgdata.ha_sectors.keys() if k.lower() == sectname_low]
+  if any(results):
+    sectname = results[0]
+  else:
+    frags = get_fragments(sectname_raw)
+    if frags is not None:
+      sectname = format_name(frags)
+
+  # Work out what we should be returning, and do it
+  if m is not None and sectname is not None:
+    if m.group("number1") is not None and int(m.group("number1")) != 0:
+      sysid = "{}{}-{} {}{}-{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number1"), m.group("number2"))
+    else:
+      sysid = "{}{}-{} {}{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number2"))
+    return "{} {}".format(sectname, sysid)
+  else:
+    # This may be none if get_fragments/format_name failed
+    return sectname
 
 
 # Get all YZ-constrained lines which could possibly contain the prefixes specified

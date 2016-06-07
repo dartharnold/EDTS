@@ -80,7 +80,7 @@ def api_sector_name(x, y, z):
 def api_system_position(name):
   pos, err = pgnames.get_coords_from_name(name)
   if pos is not None and err is not None:
-    result = {'name': name, 'position': vec3_to_dict(pos), 'uncertainty': err}
+    result = {'name': pgnames.get_canonical_name(name), 'position': vec3_to_dict(pos), 'uncertainty': err}
   else:
     bottle.response.status = 400
     result = None
@@ -93,9 +93,9 @@ def api_sector_position(name):
   sect = pgnames.get_sector_from_name(name)
   if sect is not None:
     if isinstance(sect, sector.HASector):
-      result = {'name': name, 'type': 'ha', 'centre': vec3_to_dict(sect.centre), 'radius': sect.radius}
+      result = {'name': pgnames.get_canonical_name(name), 'type': 'ha', 'centre': vec3_to_dict(sect.centre), 'radius': sect.radius}
     else:
-      result = {'name': name, 'type': 'pg', 'origin': vec3_to_dict(sect.origin), 'centre': vec3_to_dict(sect.centre), 'size': sect.size}
+      result = {'name': pgnames.get_canonical_name(name), 'type': 'pg', 'origin': vec3_to_dict(sect.origin), 'centre': vec3_to_dict(sect.centre), 'size': sect.size}
   else:
     bottle.response.status = 400
     result = None

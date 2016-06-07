@@ -184,82 +184,86 @@ if __name__ == '__main__':
       get_coords_cnt = 0
 
       for system in env.data.eddb_systems:
-        m = pgdata.pg_system_regex.match(system.name)
-        if m is not None and m.group("sector") not in ["Hypiae"]: # TODO: Remove when bad EDDB data is gone
-          if m.group("sector") in pgdata.ha_sectors:
-            sector = pgdata.ha_sectors[m.group("sector")]
-            if sector.contains(system.position):
-              rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
-              so = sector.get_origin(rpe * 2)
-              limit = math.sqrt(rpe * rpe * 3)
-              realdist = ((so + rp) - system.position).length
-              if realdist <= limit:
-                okha += 1
-              else:
-                badha += 1
-                log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
-            else:
-              noneha += 1
-              log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sector))
-            ha_name = ha_get_name(system.position)
-            if ha_name == m.group("sector"):
-              okhaname += 1
-            else:
-              badhaname += 1
-              if ha_name is not None:
-                log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name].size))
-              else:
-                log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
-          else:
-            start = time.clock()
-            sect = get_sector(m.group("sector"))
-            tm = time.clock() - start
-            cls = get_sector_class(m.group("sector"))
-            if sect is not None and cls is not None:
-              get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
-              get_sector_cnt += 1
-              pos_sect = get_sector(system.position, allow_ha=False)
-              if sect == pos_sect:
-                start = time.clock()
-                coords, dist = get_coords_from_name(system.name)
-                tm = time.clock() - start
-                if coords is None or dist is None:
-                  log.warning("Could not parse system name {0}".format(system.name))
-                  if cls == 2:
-                    bad2 += 1
-                  elif cls == 1:
-                    bad1 += 1
-                  continue
-                get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
-                get_coords_cnt += 1
-                realdist = (coords - system.position).length
-                limit = math.sqrt(dist*dist*3)
+        sysname = get_canonical_name(system.name)
+        if sysname is not None:
+          m = pgdata.pg_system_regex.match(sysname)
+          if m is not None and m.group("sector") not in ["Hypiae"]: # TODO: Remove when bad EDDB data is gone
+            if m.group("sector") in pgdata.ha_sectors:
+              sector = pgdata.ha_sectors[m.group("sector")]
+              if sector.contains(system.position):
+                rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+                so = sector.get_origin(rpe * 2)
+                limit = math.sqrt(rpe * rpe * 3)
+                realdist = ((so + rp) - system.position).length
                 if realdist <= limit:
-                  if cls == 2:
-                    ok2 += 1
-                  elif cls == 1:
-                    ok1 += 1
+                  okha += 1
+                else:
+                  badha += 1
+                  log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
+              else:
+                noneha += 1
+                log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sector))
+              ha_name = ha_get_name(system.position)
+              if ha_name == m.group("sector"):
+                okhaname += 1
+              else:
+                badhaname += 1
+                if ha_name is not None:
+                  log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name].size))
+                else:
+                  log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
+            else:
+              start = time.clock()
+              sect = get_sector(m.group("sector"))
+              tm = time.clock() - start
+              cls = get_sector_class(m.group("sector"))
+              if sect is not None and cls is not None:
+                get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
+                get_sector_cnt += 1
+                pos_sect = get_sector(system.position, allow_ha=False)
+                if sect == pos_sect:
+                  start = time.clock()
+                  coords, dist = get_coords_from_name(system.name)
+                  tm = time.clock() - start
+                  if coords is None or dist is None:
+                    log.warning("Could not parse system name {0}".format(system.name))
+                    if cls == 2:
+                      bad2 += 1
+                    elif cls == 1:
+                      bad1 += 1
+                    continue
+                  get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
+                  get_coords_cnt += 1
+                  realdist = (coords - system.position).length
+                  limit = math.sqrt(dist*dist*3)
+                  if realdist <= limit:
+                    if cls == 2:
+                      ok2 += 1
+                    elif cls == 1:
+                      ok1 += 1
+                  else:
+                    if cls == 2:
+                      bad2 += 1
+                    elif cls == 1:
+                      bad1 += 1
+                    log.info("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
                 else:
                   if cls == 2:
                     bad2 += 1
                   elif cls == 1:
                     bad1 += 1
-                  log.info("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
+                  log.info("Bad sector: {0} @ {1} is not in {2}".format(system.name, system.position, sect))
               else:
                 if cls == 2:
-                  bad2 += 1
+                  none2 += 1
+                  log.info("None2: {0} @ {1}".format(system.name, system.position))
                 elif cls == 1:
-                  bad1 += 1
-                log.info("Bad sector: {0} @ {1} is not in {2}".format(system.name, system.position, sect))
-            else:
-              if cls == 2:
-                none2 += 1
-                log.info("None2: {0} @ {1}".format(system.name, system.position))
-              elif cls == 1:
-                none1 += 1
-                log.info("None1: {0} @ {1}".format(system.name, system.position))
-              else:
-                log.info("InvalidName: {0} @ {1}".format(system.name, system.position))
+                  none1 += 1
+                  log.info("None1: {0} @ {1}".format(system.name, system.position))
+                else:
+                  log.info("InvalidName: {0} @ {1}".format(system.name, system.position))
+          else:
+            notpg += 1
         else:
           notpg += 1
 
