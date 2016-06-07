@@ -737,7 +737,6 @@ ha_permit_regions = {
   "PRAEI4": (vector3.Vector3(-1000, -555, 54000), 512),
   "PRAEI5": (vector3.Vector3(-1000, 455, 54000), 512),
   "PRAEI6": (vector3.Vector3(-500, -100, 53500), 512),
-  "SCHEEK": (vector3.Vector3(-6507, -1394, -35624), 100),
   "SIDGOIR": (vector3.Vector3(-24120, 10, -1220), 100),
 }
 
