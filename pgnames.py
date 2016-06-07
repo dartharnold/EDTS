@@ -116,7 +116,8 @@ def get_sector(pos, allow_ha = True):
 # Get a list of fragments from an input sector name
 # e.g. "Dryau Aowsy" --> ["Dry","au","Ao","wsy"]
 def get_fragments(sector_name, allow_long = False):
-  sector_name = sector_name.replace(' ', '')
+  # Convert the string to Title Case, then remove spaces
+  sector_name = sector_name.title().replace(' ', '')
   segments = []
   current_str = sector_name
   while len(current_str) > 0:
