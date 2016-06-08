@@ -177,15 +177,12 @@ def format_name(frags):
 # Get the class of the sector
 # e.g. Froawns = 1, Froadue = 1, Eos Aowsy = 2
 def get_sector_class(sect):
+  if util.is_str(sect) and sect.lower() in pgdata.ha_sectors:
+    return "ha"
   frags = get_fragments(sect) if util.is_str(sect) else sect
-  if frags is None:
-    if sect.lower() in pgdata.ha_sectors:
-      return "ha"
-    else:
-      return None
-  if len(frags) == 4 and frags[0] in pgdata.cx_prefixes and frags[2] in pgdata.cx_prefixes:
+  if frags is not None and len(frags) == 4 and frags[0] in pgdata.cx_prefixes and frags[2] in pgdata.cx_prefixes:
     return 2
-  elif len(frags) in [3,4] and frags[0] in pgdata.cx_prefixes:
+  elif frags is not None and len(frags) in [3,4] and frags[0] in pgdata.cx_prefixes:
     return 1
   else:
     return None
@@ -441,7 +438,6 @@ def c1_get_offset(input):
   # Also remember the current offset's position within a prefix run
   offset, offset_mod = divmod(offset, get_prefix_run_length(frags[0]))
   # Subtract one because ... I have no idea right now, because it works, just subtract one
-  offset -= 1
 
   # Now multiply by the total run length (3037) to get the actual offset of this run
   offset *= pgdata.cx_prefix_total_run_length
@@ -483,14 +479,14 @@ def c1_get_name(pos):
   offset  = sect.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
   offset += sect.index[1] * pgdata.c1_galaxy_size[0]
   offset += sect.index[0]
-  
+
   prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
   prefix = [c for c in _c1_prefix_offsets if cur_offset >= _c1_prefix_offsets[c][0] and cur_offset < (_c1_prefix_offsets[c][0] + _c1_prefix_offsets[c][1])][0]
   cur_offset -= _c1_prefix_offsets[prefix][0]
   
   infix1s = c1_get_infixes([prefix])
   infix1_total_len = c1_get_infix_total_run_length(infix1s[0])
-  infix1_cnt, cur_offset = divmod(prefix_cnt * get_prefix_run_length(prefix) + cur_offset + pgdata.c1_arbitrary_index_offset, infix1_total_len)
+  infix1_cnt, cur_offset = divmod(prefix_cnt * get_prefix_run_length(prefix) + cur_offset, infix1_total_len)
   infix1 = [c for c in _c1_infix_offsets if c in infix1s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
   cur_offset -= _c1_infix_offsets[infix1][0]
   
