@@ -211,11 +211,11 @@ global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 set_verbosity(global_args.verbose)
 
 if not os.path.isfile(global_args.eddb_systems_file) or not os.path.isfile(global_args.eddb_stations_file):
-  log.error("Error: EDDB system/station files not found. Run the eddb.py script with the --download flag to auto-download these.")
+  log.error("Error: EDDB system/station files not found. Run the update.py script to auto-download these.")
   sys.exit(1)
 
 if not os.path.isfile(global_args.coriolis_fsd_file):
-  log.error("Error: Coriolis FSD file not found. Run the coriolis.py script with the --download flag to auto-download this.")
+  log.error("Error: Coriolis FSD file not found. Run the update.py script to auto-download this.")
   sys.exit(1)
 
 # Create the object
