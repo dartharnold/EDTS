@@ -37,6 +37,28 @@ def parse_filter_string(s):
   return output
 
 
+def generate_filter_sql(filters):
+  filter_str = ""
+  params = []
+  if 'allegiance' in filters:
+    filter_str += "eddb_stations.allegiance = ? AND "
+    params += filters['allegiance']
+  if 'pad' in filters:
+    if filters['pad'] == 'L':
+      filter_str += "eddb_stations.max_pad_size = 'L' AND "
+    else:
+      filter_str += "eddb_stations.max_pad_size IN ('L', 'M') AND "
+  if 'min_sc_distance' in filters:
+    filter_str += "eddb_stations.sc_distance >= ? AND "
+    params += filters['min_sc_distance']
+  if 'max_sc_distance' in filters:
+    filter_str += "eddb_stations.sc_distance < ? AND "
+    params += filters['max_sc_distance']
+  
+  filter_str = filter_str[0:-4]
+  return (filter_str, params)
+
+
 def filter_list(s_list, filters, limit = None, p_src_list = None):
   src_list = None
   if p_src_list is not None:

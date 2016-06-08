@@ -54,4 +54,7 @@ class KnownSystem(System):
       return super(KnownSystem, self).__eq__(other)
     else:
       return NotImplemented
+  
+  def __hash__(self):
+    return u"{0}/{1},{2},{3}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
 
