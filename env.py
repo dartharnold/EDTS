@@ -172,5 +172,5 @@ global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 set_verbosity(global_args.verbose)
 
 if not os.path.isfile(global_args.db_file):
-  log.error("Error: EDDB/Coriolis data not found. Please run update.py to obtain these.")
+  log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
   sys.exit(1)
