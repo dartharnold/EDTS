@@ -24,8 +24,7 @@ The main **edts** script provides a way to determine good routes for visiting a 
 
 On first run, the latest [EDDB](http://eddb.io) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
 
-`python eddb.py --download`  
-`python coriolis.py --download`
+`python update.py`  
 
 Once this is done, the script can be used:
 
