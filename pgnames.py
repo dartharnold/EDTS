@@ -7,6 +7,7 @@ import time
 
 import pgdata
 import sector
+import system
 import util
 import vector3
 
@@ -95,8 +96,19 @@ def get_ha_sector_origin(centre, radius, modulo):
   return sector.HASector(centre, radius).get_origin(modulo)
 
 
+def get_system(pos, mcode):
+  psect = get_sector(pos, allow_ha=True)
+  # Get cube width for this mcode, and the sector origin
+  cwidth = get_mcode_cube_width(mcode)
+  psorig = psect.get_origin(cwidth)
+  # Get the relative position within this sector and the system identifier
+  relpos = vector3.Vector3(pos.x - psorig.x, pos.y - psorig.y, pos.z - psorig.z)
+  sysid = get_sysid_from_relpos(relpos, mcode, format_output=True)
+  return system.System(pos.x, pos.y, pos.z, "{} {}".format(psect.name, sysid))
+
+
 # Get a sector, either from its position or from its name
-def get_sector(pos, allow_ha = True):
+def get_sector(pos, allow_ha = True, get_name = True):
   if isinstance(pos, vector3.Vector3):
     if allow_ha:
       ha_name = ha_get_name(pos)
@@ -106,8 +118,12 @@ def get_sector(pos, allow_ha = True):
     x = (pos.x - sector.base_coords.x) // sector.cube_size
     y = (pos.y - sector.base_coords.y) // sector.cube_size
     z = (pos.z - sector.base_coords.z) // sector.cube_size
+    # Get the name, if we are
+    name = None
+    if get_name:
+      name = format_name(get_sector_name(pos))
     # We don't authoritatively know the name, so return it without one
-    return sector.PGSector(int(x), int(y), int(z))
+    return sector.PGSector(int(x), int(y), int(z), name)
   else:
     # Assume we have a string, call down to get it by name
     return get_sector_from_name(pos, allow_ha=allow_ha)
@@ -343,6 +359,47 @@ def get_canonical_name(name):
     return sectname
 
 
+# Found at http://papa.bretmulvey.com/post/124027987928/hash-functions
+# Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
+def get_c1_or_c2(key):
+  # Add the offset we subtract to make the normal positions make sense
+  key += pgdata.c1_arbitrary_index_offset
+  key += (key << 12)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 22)
+  key += (key << 4)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 9)
+  key += (key << 10)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 2)
+  key += (key << 7)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 12)
+  # Key is now an even/odd number, depending on which scheme we use
+  # Return 1 for a class 1 sector, 2 for a class 2
+  return (key % 2) + 1
+
+
+def get_offset(pos):
+  sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
+  offset  = sect.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
+  offset += sect.index[1] * pgdata.c1_galaxy_size[0]
+  offset += sect.index[0]
+  return offset
+
+
+def get_sector_name(pos):
+  ha_name = ha_get_name(pos)
+  if ha_name is not None:
+    return ha_name
+  offset = get_offset(pos)
+  if get_c1_or_c2(offset) == 1:
+    return c1_get_name(pos)
+  else:
+    return c2_get_name(pos)
+
+
 # Get all YZ-constrained lines which could possibly contain the prefixes specified
 # Note that multiple lines can (and often do) match, this is filtered later
 def c2_get_yz_candidates(frag0, frag2):
@@ -353,7 +410,7 @@ def c2_get_yz_candidates(frag0, frag2):
 
 # Get the name of a class 2 sector based on its position
 def c2_get_name(pos):
-  sect = get_sector(pos, allow_ha=False) if not isinstance(pos, sector.Sector) else pos
+  sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
   # Get run start from YZ
   (pre0, suf0), (pre1, suf1) = _c2_start_points[sect.index[2]][sect.index[1]]
   # Now do a full run across it until we reach the right x position
@@ -474,11 +531,7 @@ def c1_get_sector(input):
 def c1_get_name(pos):
   if pos is None:
     return None
-  sect = get_sector(pos, allow_ha=False) if not isinstance(pos, sector.Sector) else pos
-
-  offset  = sect.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
-  offset += sect.index[1] * pgdata.c1_galaxy_size[0]
-  offset += sect.index[0]
+  offset = get_offset(pos)
 
   prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
   prefix = [c for c in _c1_prefix_offsets if cur_offset >= _c1_prefix_offsets[c][0] and cur_offset < (_c1_prefix_offsets[c][0] + _c1_prefix_offsets[c][1])][0]

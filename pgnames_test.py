@@ -270,6 +270,92 @@ if __name__ == '__main__':
       log.info("Totals: OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg))
       log.info("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
 
+    elif sys.argv[1] == "nametest":
+      import env
+      env.set_verbosity(2)
+
+      ok = 0
+      bad = 0
+
+      for s in env.data.eddb_systems:
+        m = pgdata.pg_system_regex.match(s.name)
+        if m is not None:
+          cls = get_sector_class(m.group("sector"))
+          if cls is not None:
+            predsys = get_system(s.position, m.group("mcode"))
+            if s.name.lower().startswith(predsys.name.lower()):
+              ok += 1
+            else:
+              log.info("Bad: {} @ {} should be {}?".format(s.name, s.position, predsys.name))
+              bad += 1
+
+      log.info("Checked {} systems, OK: {}, bad: {}".format(ok + bad, ok, bad))
+
+    elif sys.argv[1] == "sectortest":
+      import env
+      env.set_verbosity(2)
+
+      ok = 0
+      bad = 0
+
+      sectors = {}
+      for s in env.data.eddb_systems:
+        m = pgdata.pg_system_regex.match(s.name)
+        if m is not None:
+          if m.group("sector") not in sectors:
+            sectors[m.group("sector")] = 0
+          sectors[m.group("sector")] += 1
+
+      for s in [k for (k, v) in sectors.items() if v > 0]:
+        cls = get_sector_class(s)
+        if cls in [1,2]:
+          log.debug("Checking {}".format(s))
+          sec = get_sector_from_name(s)
+          if sec is None:
+            continue
+          c1name = c1_get_name(sec.centre)
+          c1off = c1_get_offset(c1name)
+          pcls = get_c1_or_c2(c1off)
+          if cls != pcls:
+            bad += 1
+            log.info("Wrong class: actual {} ({}, class {}), predicted class {}".format(s, c1off, cls, pcls))
+          else:
+            ok += 1
+
+      log.info("Checked {} sectors, OK: {}, bad: {}".format(len(sectors), ok, bad))
+
+    elif sys.argv[1] == "c1nametest":
+      import env
+      env.set_verbosity(2)
+
+      ok = 0
+      bad = 0
+
+      sectors = {}
+      for s in env.data.eddb_systems:
+        m = pgdata.pg_system_regex.match(s.name)
+        if m is not None:
+          if m.group("sector") not in sectors:
+            sectors[m.group("sector")] = 0
+          sectors[m.group("sector")] += 1
+
+      for s in [k for (k, v) in sectors.items() if v > 0]:
+        cls = get_sector_class(s)
+        if cls == 1:
+          log.debug("Checking {}".format(s))
+          sec = get_sector_from_name(s)
+          if sec is None:
+            continue
+          c1off = c1_get_offset(s)
+          c1name = format_name(c1_get_name(sec))
+          if s != c1name:
+            bad += 1
+            log.info("Wrong name: {} ({}) not {} ({})".format(s, c1off, c1name, c1_get_offset(c1name)))
+          else:
+            ok += 1
+
+      log.info("Checked {} sectors, OK: {}, bad: {}".format(len(sectors), ok, bad))
+
     elif sys.argv[1] == "eddbspaff":
       import env
       
