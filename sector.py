@@ -19,6 +19,10 @@ class Sector(object):
   def size(self):
     raise NotImplementedError("Invalid call to base Sector size property")
 
+  @property
+  def sector_class(self):
+    raise NotImplementedError("Invalid call to base Sector sector_class property")
+
   def contains(self, other):
     raise NotImplementedError("Invalid call to base Sector contains method")
 
@@ -55,6 +59,10 @@ class HASector(Sector):
   def size(self):
     return self._size
 
+  @property
+  def sector_class(self):
+    return 'ha'
+
   def contains(self, pos):
     return ((self.centre - pos).length <= self.radius)
   
@@ -90,9 +98,10 @@ class HASectorCluster(HASector):
 class PGSector(Sector):
   __slots__ = ('_v','name')
 
-  def __init__(self, x, y, z, name = None):
+  def __init__(self, x, y, z, name = None, sc = None):
     super(PGSector, self).__init__(name)
     self._v = [int(x), int(y), int(z)]
+    self._class = 'c{}'.format(sc)
 
   @property
   def x(self):
@@ -157,6 +166,10 @@ class PGSector(Sector):
   @property
   def index(self):
     return [self.x + base_sector_coords[0], self.y + base_sector_coords[1], self.z + base_sector_coords[2]]
+
+  @property
+  def sector_class(self):
+    return self._class
 
   def contains(self, pos):
     o = self.origin

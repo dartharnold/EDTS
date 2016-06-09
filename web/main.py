@@ -39,18 +39,13 @@ def static(path):
 
 @bottle.route('/api/v1/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
 def api_system_name(x, y, z, mcode):
-  sect = api_sector_name(x, y, z)['result']
   pos = vector3.Vector3(x, y, z)
+  sect = pgnames.get_sector(pos)
+  syst = pgnames.get_system(pos, mcode)
+  result = {'position': vec3_to_dict(pos), 'names': []}
 
-  psect = pgnames.get_sector(pos, allow_ha=True)
-  psorig = psect.get_origin(pgnames.get_mcode_cube_width(mcode))
-  relpos = vector3.Vector3(x - psorig.x, y - psorig.y, z - psorig.z)
-  sysid = pgnames.get_sysid_from_relpos(relpos, mcode, format_output=True)
-
-  if sect is not None and any(sect['names']):
-    for n in sect['names']:
-      n['name'] = '{} {}'.format(n['name'], sysid)
-    result = sect
+  if syst is not None:
+    result['names'] += [{'name': syst.name, 'type': sect.sector_class}]
   else:
     bottle.response.status = 400
     result = None
@@ -65,10 +60,9 @@ def api_sector_name(x, y, z):
   ha_name = pgnames.ha_get_name(v)
   if ha_name is not None:
     result['names'].append({'name': ha_name, 'type': 'ha'})
-  c1_name = pgnames.format_name(pgnames.c1_get_name(v))
-  c2_name = pgnames.format_name(pgnames.c2_get_name(v))
-  if c1_name is not None and c2_name is not None:
-    result['names'] += [{'name': c1_name, 'type': 'c1'}, {'name': c2_name, 'type': 'c2'}]
+  cx_sector = pgnames.get_sector(v, allow_ha=False)
+  if cx_sector is not None:
+    result['names'] += [{'name': cx_sector.name, 'type': cx_sector.sector_class}]
   if not any(result['names']):
     bottle.response.status = 400
     result = None

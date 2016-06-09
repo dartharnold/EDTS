@@ -115,7 +115,7 @@
       
       document.getElementById('output-sectorname-pos').innerHTML = pos;
       if (names.length > 1)
-        document.getElementById('output-sectorname-name').innerHTML = "<div style='float:left'>Possible names:&nbsp;</div><div style='float:left'>" + names.join('<br/>') + "</div>";
+        document.getElementById('output-sectorname-name').innerHTML = "<div style='float:left'>Matching sectors:&nbsp;</div><div style='float:left'>" + names.join('<br/>') + "</div>";
       else if (names.length == 1)
         document.getElementById('output-sectorname-name').innerHTML = "Name: " + names[0];
       else

@@ -119,11 +119,11 @@ def get_sector(pos, allow_ha = True, get_name = True):
     y = (pos.y - sector.base_coords.y) // sector.cube_size
     z = (pos.z - sector.base_coords.z) // sector.cube_size
     # Get the name, if we are
-    name = None
+    frags = None
     if get_name:
-      name = format_name(get_sector_name(pos))
+      frags = get_sector_name(pos)
     # We don't authoritatively know the name, so return it without one
-    return sector.PGSector(int(x), int(y), int(z), name)
+    return sector.PGSector(int(x), int(y), int(z), format_name(frags), get_sector_class(frags))
   else:
     # Assume we have a string, call down to get it by name
     return get_sector_from_name(pos, allow_ha=allow_ha)
@@ -319,7 +319,7 @@ def get_sector_from_name(raw_sector_name, allow_ha = True):
       for candidate in c2_get_yz_candidates(frags[0], frags[2]):
         for idx, testfrags in c2_get_run(candidate['frags']):
           if testfrags == frags:
-            return sector.PGSector(idx, candidate['y'], candidate['z'], format_name(frags))
+            return sector.PGSector(idx, candidate['y'], candidate['z'], format_name(frags), 2)
       return None
     elif sc == 1:
       # Class 1: calculate and return
@@ -526,7 +526,8 @@ def c1_get_sector(input):
   x -= sector.base_sector_coords[0]
   y -= sector.base_sector_coords[1]
   z -= sector.base_sector_coords[2]
-  return sector.PGSector(x, y, z, format_name(frags))
+  name = format_name(frags)
+  return sector.PGSector(x, y, z, format_name(frags), get_sector_class(frags))
 
 
 def c1_get_name(pos):
