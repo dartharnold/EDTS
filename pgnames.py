@@ -359,11 +359,12 @@ def get_canonical_name(name):
     return sectname
 
 
-# Found at http://papa.bretmulvey.com/post/124027987928/hash-functions
-# Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
+# Determines whether a given sector should be C1 or C2
 def get_c1_or_c2(key):
   # Add the offset we subtract to make the normal positions make sense
   key += pgdata.c1_arbitrary_index_offset
+  # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
+  # Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
   key += (key << 12)
   key &= 0xFFFFFFFF
   key ^= (key >> 22)
