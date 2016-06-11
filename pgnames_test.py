@@ -1,14 +1,15 @@
 import logging
 import pgdata
-from pgnames import *
+import pgnames
+import math
+import sys
+import time
+from pgnames import log
 
 # Test modes
 if __name__ == '__main__':
   if len(sys.argv) >= 2:
-    if sys.argv[1] == "debug":
-      c1_get_wtf_run(204800)
-    
-    elif sys.argv[1] == "c1ot":
+    if sys.argv[1] == "c1ot":
       test_data = {
         'Mycapp': 623548, 'Lychoitl': 541608, 'Shruery': 410512, 'Phrauph': 574396,
         'Myreasp': 459657, 'Pythaics': 557994, 'Pythaipr': 803991, 'Styaill': 214060,
@@ -27,92 +28,19 @@ if __name__ == '__main__':
       badcnt = 0
       for name in dict(test_data):
         actual = test_data[name]
-        predicted = c1_get_offset(name)
+        predicted = pgnames._c1_get_offset(name)
         if actual != predicted:
           print("BAD [{0}]: predicted = {1}, actual = {2}, diff = {3}".format(name, predicted, actual, round(abs(predicted-actual)/pgdata.cx_prefix_total_run_length)))
           badcnt += 1
       print("Total: OK = {0}, bad = {1}".format(len(test_data)-badcnt, badcnt))
-    
-    elif sys.argv[1] == "pdiff":
-      for x in range(2, len(sys.argv)-1):
-        idx1 = pgdata.cx_prefixes.index(sys.argv[x])
-        idx2 = pgdata.cx_prefixes.index(sys.argv[x+1])
-        roll = False
-        
-        if idx2 < idx1:
-          dif = (len(pgdata.cx_prefixes) - idx1) + idx2
-          roll = True
-        else:
-          dif = idx2 - idx1
-        
-        cnt = 0
-        for i in range(dif):
-          idx = (idx1 + i) % len(pgdata.cx_prefixes)
-          cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
-        
-        print("{0} --> {1}: {2} prefixes (rollover: {3}, predicted len: {4})".format(sys.argv[x], sys.argv[x+1], dif, roll, cnt))
-      
-    elif sys.argv[1] == "pdiff2":
-      idx1 = pgdata.cx_prefixes.index(sys.argv[2])
-      dif = int(sys.argv[3])
-      inc = int(sys.argv[4]) if len(sys.argv) > 4 else 1
-      
-      cnt = 0
-      for i in range(0, dif, inc):
-        idx = (100 * len(pgdata.cx_prefixes) + idx1 + i) % len(pgdata.cx_prefixes)
-        print("[{0}] {1}".format(cnt, pgdata.cx_prefixes[idx]))
-        cnt += get_prefix_run_length(pgdata.cx_prefixes[idx])
-      
-      print("{0} prefixes (predicted len: {1})".format(dif, cnt))
-      
-    elif sys.argv[1] == "run1":
-      input = sys.argv[2] # "Smooreau"
-      frags = get_fragments(input)
-      
-      start_x = sector.base_coords.x - (39 * 1280)
-      
-      cur_idx = pgdata.cx_suffixes_s1.index(frags[-1])
-      
-      for i in range(0, int(sys.argv[3])):
-        frags[-1] = pgdata.cx_suffixes_s1[cur_idx]
-        print ("[{1}] {0}".format("".join(frags), start_x + (i * 1280)))
-        if cur_idx + 1 == len(pgdata.cx_suffixes_s1):
-          cur_idx = 0
-          frags[0] = pgdata.cx_prefixes[pgdata.cx_prefixes.index(frags[0])+1]
-        else:
-          cur_idx += 1
-        
-      
+
     elif sys.argv[1] == "run2":
       input = sys.argv[2] # "Schuae Flye"
       limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
-      for idx, frags in c2_get_run(input, limit):
+      for idx, frags in pgnames._c2_get_run(input, limit):
         x = sector.base_coords.x + (idx * sector.cube_size)
-        print ("[{1}/{2}] {0}".format(format_name(frags), idx, x))
-        
-      
-    elif sys.argv[1] == "fr1":
-      limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
-      
-      x = -sector.base_sector_coords[0]
-      y = -8
-      z = -sector.base_sector_coords[2]
-      count = 0
-      ok = 0
-      bad = 0
-      for (i, j, name) in c1_get_extended_run():
-        print("[{0},{1},{2}] {3}".format(x, y, z, name))
-        x += 1
-        if x >= 89:
-          y += 1
-          if y >= 8:
-            y = -8
-            z += 1
-        if count + 1 > limit:
-          break
-        count += 1
-      # print("Count: {0}, OK: {1}, bad: {2}".format(count, ok, bad))
+        print ("[{1}/{2}] {0}".format(pgnames.format_name(frags), idx, x))
       
     elif sys.argv[1] == "fr2":
       limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
@@ -123,16 +51,16 @@ if __name__ == '__main__':
       count = 0
       ok = 0
       bad = 0
-      for ((f0, f1), (f2, f3)) in c2_get_start_points():
+      for ((f0, f1), (f2, f3)) in pgnames._c2_get_start_points():
         extra = ""
         if y >= -3 and y <= 2:
-          sect = c2_get_name(sector.PGSector(x,y,z))
+          sect = pgnames._c2_get_name(sector.PGSector(x,y,z))
           if sect == [f0, f1, f2, f3]:
             ok += 1
-            # print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
+            # print("[{0},{1},{2}] {3}{4} {5}{6} (OK: {7})".format(x,y,z,f0,f1,f2,f3,pgnames.format_name(sect)))
           elif sect is not None:
             bad += 1
-            print("[{0},{1},{2}] {3}{4} {5}{6} (BAD: {7})".format(x,y,z,f0,f1,f2,f3,format_name(sect)))
+            print("[{0},{1},{2}] {3}{4} {5}{6} (BAD: {7})".format(x,y,z,f0,f1,f2,f3,pgnames.format_name(sect)))
           else:
             # print("[{0},{1},{2}] {3}{4} {5}{6}".format(x,y,z,f0,f1,f2,f3))
             pass
@@ -151,11 +79,11 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
-      coords, relpos_confidence = get_coords_from_name(input)
+      coords, relpos_confidence = pgnames.get_coords_from_name(input)
       if coords is not None:
         print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
       else:
-        sector = get_sector_from_name(input)
+        sector = pgnames.get_sector_from_name(input)
         if sector is not None:
           print("{0} is {1}, has origin {2}".format(input, str(sector), sector.origin))
         else:
@@ -184,14 +112,14 @@ if __name__ == '__main__':
       get_coords_cnt = 0
 
       for system in env.data.eddb_systems:
-        sysname = get_canonical_name(system.name)
+        sysname = pgnames.get_canonical_name(system.name)
         if sysname is not None:
           m = pgdata.pg_system_regex.match(sysname)
           if m is not None and m.group("sector") not in ["Hypiae"]: # TODO: Remove when bad EDDB data is gone
             if m.group("sector").lower() in pgdata.ha_sectors:
               sector = pgdata.ha_sectors[m.group("sector").lower()]
               if sector.contains(system.position):
-                rp, rpe = get_star_relpos(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+                rp, rpe = pgnames._get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
                 so = sector.get_origin(rpe * 2)
                 limit = math.sqrt(rpe * rpe * 3)
                 realdist = ((so + rp) - system.position).length
@@ -203,7 +131,7 @@ if __name__ == '__main__':
               else:
                 noneha += 1
                 log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sector))
-              ha_name = ha_get_name(system.position)
+              ha_name = pgnames._ha_get_name(system.position)
               if ha_name == m.group("sector"):
                 okhaname += 1
               else:
@@ -214,16 +142,16 @@ if __name__ == '__main__':
                   log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
             else:
               start = time.clock()
-              sect = get_sector(m.group("sector"))
+              sect = pgnames.get_sector(m.group("sector"))
               tm = time.clock() - start
-              cls = get_sector_class(m.group("sector"))
+              cls = pgnames._get_sector_class(m.group("sector"))
               if sect is not None and cls is not None:
                 get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
                 get_sector_cnt += 1
-                pos_sect = get_sector(system.position, allow_ha=False)
+                pos_sect = pgnames.get_sector(system.position, allow_ha=False)
                 if sect == pos_sect:
                   start = time.clock()
-                  coords, dist = get_coords_from_name(system.name)
+                  coords, dist = pgnames.get_coords_from_name(system.name)
                   tm = time.clock() - start
                   if coords is None or dist is None:
                     log.warning("Could not parse system name {0}".format(system.name))
@@ -280,9 +208,9 @@ if __name__ == '__main__':
       for s in env.data.eddb_systems:
         m = pgdata.pg_system_regex.match(s.name)
         if m is not None:
-          cls = get_sector_class(m.group("sector"))
+          cls = pgnames._get_sector_class(m.group("sector"))
           if cls is not None:
-            predsys = get_system(s.position, m.group("mcode"))
+            predsys = pgnames.get_system(s.position, m.group("mcode"))
             if s.name.lower().startswith(predsys.name.lower()):
               ok += 1
             else:
@@ -307,50 +235,18 @@ if __name__ == '__main__':
           sectors[m.group("sector")] += 1
 
       for s in [k for (k, v) in sectors.items() if v > 0]:
-        cls = get_sector_class(s)
+        cls = pgnames._get_sector_class(s)
         if cls in [1,2]:
           log.debug("Checking {}".format(s))
-          sec = get_sector_from_name(s)
+          sec = pgnames.get_sector_from_name(s)
           if sec is None:
             continue
-          c1name = c1_get_name(sec.centre)
-          c1off = c1_get_offset(c1name)
-          pcls = get_c1_or_c2(c1off)
+          c1name = pgnames._c1_get_name(sec.centre)
+          c1off = pgnames._c1_get_offset(c1name)
+          pcls = pgnames._get_c1_or_c2(c1off)
           if cls != pcls:
             bad += 1
             log.info("Wrong class: actual {} ({}, class {}), predicted class {}".format(s, c1off, cls, pcls))
-          else:
-            ok += 1
-
-      log.info("Checked {} sectors, OK: {}, bad: {}".format(len(sectors), ok, bad))
-
-    elif sys.argv[1] == "c1nametest":
-      import env
-      env.set_verbosity(2)
-
-      ok = 0
-      bad = 0
-
-      sectors = {}
-      for s in env.data.eddb_systems:
-        m = pgdata.pg_system_regex.match(s.name)
-        if m is not None:
-          if m.group("sector") not in sectors:
-            sectors[m.group("sector")] = 0
-          sectors[m.group("sector")] += 1
-
-      for s in [k for (k, v) in sectors.items() if v > 0]:
-        cls = get_sector_class(s)
-        if cls == 1:
-          log.debug("Checking {}".format(s))
-          sec = get_sector_from_name(s)
-          if sec is None:
-            continue
-          c1off = c1_get_offset(s)
-          c1name = format_name(c1_get_name(sec))
-          if s != c1name:
-            bad += 1
-            log.info("Wrong name: {} ({}) not {} ({})".format(s, c1off, c1name, c1_get_offset(c1name)))
           else:
             ok += 1
 
@@ -368,9 +264,9 @@ if __name__ == '__main__':
         m = pgdata.pg_system_regex.match(system.name)
         if m is not None and m.group("sector") in edsm_sectors:
           sname = m.group("sector")
-          cls = get_sector_class(m.group("sector"))
+          cls = pgnames._get_sector_class(m.group("sector"))
           if cls != "2":
-            sect = get_sector(system.position, allow_ha=False)
+            sect = pgnames.get_sector(system.position, allow_ha=False)
             if sect.y not in y_levels:
               y_levels[sect.y] = {}
             if sect.z not in y_levels[sect.y]:
