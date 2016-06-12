@@ -18,54 +18,111 @@ log = logging.getLogger(app_name)
 # Publicly-useful functions
 ###
 
-# Get the name of a sector based on its position
-def get_sector_name(pos):
-  ha_name = _ha_get_name(pos)
-  if ha_name is not None:
-    return ha_name
+"""
+Get the name of a sector that a position falls within.
+
+Args:
+  pos: A Vector3 position
+  format_output: Whether or not to format the output or return it as fragments
+  
+Returns:
+  The name of the sector which contains the input position, either as a string or as a list of fragments
+"""  
+def get_sector_name(pos, allow_ha=True, format_output=True):
+  if allow_ha:
+    ha_name = _ha_get_name(pos)
+    if ha_name is not None:
+      return ha_name
   offset = _c1_get_offset(pos)
   if _get_c1_or_c2(offset) == 1:
-    return _c1_get_name(pos)
+    output = _c1_get_name(pos)
   else:
-    return _c2_get_name(pos)
+    output = _c2_get_name(pos)
+  
+  if format_output:
+    return format_name(output)
+  else:
+    return output
 
 
-# Get a sector, either from its position or from its name
-def get_sector(pos, allow_ha = True, get_name = True):
-  if isinstance(pos, vector3.Vector3):
+"""
+Get a Sector object represented by a name, or which a position falls within.
+
+Args:
+  input: A sector name, or a Vector3 position
+  allow_ha: Whether to include hand-authored sectors in the search
+  get_name: Whether to look up the name of the sector
+
+Returns:
+  A Sector object, or None if the input could not be looked up
+"""
+def get_sector(input, allow_ha = True, get_name = True):
+  if isinstance(input, vector3.Vector3):
     if allow_ha:
-      ha_name = _ha_get_name(pos)
+      ha_name = _ha_get_name(input)
       if ha_name is not None:
         return pgdata.ha_sectors[ha_name.lower()]
     # If we're not checking HA or it's not in such a sector, do PG
-    x = (pos.x - sector.base_coords.x) // sector.cube_size
-    y = (pos.y - sector.base_coords.y) // sector.cube_size
-    z = (pos.z - sector.base_coords.z) // sector.cube_size
+    x = (input.x - sector.base_coords.x) // sector.cube_size
+    y = (input.y - sector.base_coords.y) // sector.cube_size
+    z = (input.z - sector.base_coords.z) // sector.cube_size
     # Get the name, if we are
     frags = None
     if get_name:
-      frags = get_sector_name(pos)
+      frags = get_sector_name(input, allow_ha=allow_ha, format_output=False)
     # We don't authoritatively know the name, so return it without one
     return sector.PGSector(int(x), int(y), int(z), format_name(frags), _get_sector_class(frags))
   else:
     # Assume we have a string, call down to get it by name
-    return get_sector_from_name(pos, allow_ha=allow_ha)
+    return get_sector_from_name(input, allow_ha=allow_ha)
 
 
-def get_system(pos, mcode):
-  psect = get_sector(pos, allow_ha=True)
+"""
+Get a system's name based on its position
+
+Args:
+  input: The system's Vector3 position
+  mcode: The system's mass code ('a'-'h')
+
+Returns:
+  A system name, missing the final number ("number2")
+"""
+def get_system_name_from_pos(input, mcode):
+  psect = get_sector(input, allow_ha=True)
   # Get cube width for this mcode, and the sector origin
   cwidth = _get_mcode_cube_width(mcode)
   psorig = psect.get_origin(cwidth)
-  # Get the relative position within this sector and the system identifier
-  relpos = vector3.Vector3(pos.x - psorig.x, pos.y - psorig.y, pos.z - psorig.z)
+  # Get the relative inputition within this sector and the system identifier
+  relpos = vector3.Vector3(input.x - psorig.x, input.y - psorig.y, input.z - psorig.z)
   sysid = _get_sysid_from_relpos(relpos, mcode, format_output=True)
-  return system.System(pos.x, pos.y, pos.z, "{} {}".format(psect.name, sysid))
+  return "{} {}".format(psect.name, sysid)
 
 
-# Given a sector name, get a sector object representing it
+"""
+Get a System object based on its name
+
+Args:
+  input: The system's name
+
+Returns:
+  A System object
+"""
+def get_system_from_name(input):
+  coords, uncertainty = get_coords_from_name(input)
+  return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(coords))
+
+
+"""
+Given a sector name, get a sector object representing it
+
+Args:
+  raw_sector_name: The name of the sector
+
+Returns:
+  A Sector object
+"""
 def get_sector_from_name(raw_sector_name, allow_ha = True):
-  sector_name = get_canonical_name(raw_sector_name)
+  sector_name = get_canonical_name(raw_sector_name, sector_only=True)
   if sector_name is None:
     return None
   if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_sectors:
@@ -90,7 +147,15 @@ def get_sector_from_name(raw_sector_name, allow_ha = True):
       return None
 
 
-# Given a full system name, get its approximate coordinates
+"""
+Given a full system name, get its approximate coordinates
+
+Args:
+  raw_system_name: A full system name
+
+Returns:
+  A (Vector3, Number) tuple of the approximate coordinates and the uncertainty per axis
+"""
 def get_coords_from_name(raw_system_name):
   system_name = get_canonical_name(raw_system_name)
   if system_name is None:
@@ -113,10 +178,63 @@ def get_coords_from_name(raw_system_name):
     return (abs_pos + rel_pos, rel_pos_error)
   else:
     return (None, None)
+    
+
+"""
+Get the correctly-cased name for a given sector or system name
+
+Args:
+  name: A system or sector name, in any case
+
+Returns:
+  The input system/sector name with its case corrected
+"""
+def get_canonical_name(name, sector_only = False):
+  sectname = None
+  sysid = None
+
+  # See if we have a full system name
+  m = pgdata.pg_system_regex.match(name)
+  if m is not None:
+    sectname_raw = m.group("sector")
+  else:
+    sectname_raw = name
+
+  # Check if this sector name appears in ha_sectors, pass it through the fragment process if not
+  if sectname_raw.lower() in pgdata.ha_sectors:
+    sectname = pgdata.ha_sectors[sectname_raw.lower()].name
+  else:
+    # get_fragments converts to Title Case, so we don't need to
+    frags = get_fragments(sectname_raw)
+    if frags is not None:
+      sectname = format_name(frags)
+
+  if sector_only:
+    return sectname
+
+  # Work out what we should be returning, and do it
+  if m is not None and sectname is not None:
+    if m.group("number1") is not None and int(m.group("number1")) != 0:
+      sysid = "{}{}-{} {}{}-{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number1"), m.group("number2"))
+    else:
+      sysid = "{}{}-{} {}{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number2"))
+    return "{} {}".format(sectname, sysid)
+  else:
+    # This may be none if get_fragments/format_name failed
+    return sectname
 
 
-# Get a list of fragments from an input sector name
-# e.g. "Dryau Aowsy" --> ["Dry","au","Ao","wsy"]
+"""
+Get a list of fragments from an input sector name
+e.g. "Dryau Aowsy" --> ["Dry","au","Ao","wsy"]
+
+Args:
+  sector_name: The name of the sector
+  allow_long: Whether to allow sector names longer than the usual maximum fragment count (4)
+
+Returns:
+  A list of fragments representing the sector name
+"""
 def get_fragments(sector_name, allow_long = False):
   # Convert the string to Title Case, then remove spaces
   sector_name = sector_name.title().replace(' ', '')
@@ -136,42 +254,21 @@ def get_fragments(sector_name, allow_long = False):
     return segments
   else:
     return None
-    
-
-def get_canonical_name(name):
-  sectname = None
-  sysid = None
-
-  # See if we have a full system name
-  m = pgdata.pg_system_regex.match(name)
-  if m is not None:
-    sectname_raw = m.group("sector")
-  else:
-    sectname_raw = name
-
-  # Check if this sector name appears in ha_sectors, pass it through the fragment process if not
-  if sectname_raw.lower() in pgdata.ha_sectors:
-    sectname = pgdata.ha_sectors[sectname_raw.lower()].name
-  else:
-    frags = get_fragments(sectname_raw)
-    if frags is not None:
-      sectname = format_name(frags)
-
-  # Work out what we should be returning, and do it
-  if m is not None and sectname is not None:
-    if m.group("number1") is not None and int(m.group("number1")) != 0:
-      sysid = "{}{}-{} {}{}-{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number1"), m.group("number2"))
-    else:
-      sysid = "{}{}-{} {}{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number2"))
-    return "{} {}".format(sectname, sysid)
-  else:
-    # This may be none if get_fragments/format_name failed
-    return sectname
 
 
-# Mild weakness: due to the way get_fragments works, this currently ignores all spaces
-# This means that names like "Synoo kio" are considered valid
-def is_valid_name(input):
+"""
+Checks whether or not the provided sector name is a valid PG name
+
+Mild weakness: due to the way get_fragments works, this currently ignores all spaces
+This means that names like "Synoo kio" are considered valid
+
+Args:
+  input: A candidate sector name
+
+Returns:
+  True if the sector name is valid, False if not
+"""
+def is_valid_sector_name(input):
   frags = get_fragments(input) if util.is_str(input) else frags
   if frags is None or len(frags) == 0 or frags[0] not in pgdata.cx_prefixes:
     return False
@@ -196,9 +293,17 @@ def is_valid_name(input):
     return False
 
 
-# Format a given set of fragments into a full name
-def format_name(frags):
-  frags = get_fragments(input) if util.is_str(input) else frags
+"""
+Format a given set of fragments into a full name
+
+Args:
+  frags: A list of sector name fragments
+
+Returns:
+  The sector name as a string
+"""
+def format_name(input):
+  frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
   if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
