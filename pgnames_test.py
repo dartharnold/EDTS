@@ -4,6 +4,7 @@ import pgnames
 import math
 import sys
 import time
+import env
 from pgnames import log
 
 # Test modes
@@ -75,7 +76,6 @@ if __name__ == '__main__':
           break
         count += 1
       print("Count: {0}, OK: {1}, bad: {2}".format(count, ok, bad))
-    
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
@@ -90,8 +90,8 @@ if __name__ == '__main__':
           print("Could not find sector or system")
 
     elif sys.argv[1] == "eddbtest":
-      import env
-      env.set_verbosity(2)     
+      env.set_verbosity(2)
+      env.start()
  
       ok1 = 0
       ok2 = 0
@@ -111,7 +111,7 @@ if __name__ == '__main__':
       get_coords_avg = 0.0
       get_coords_cnt = 0
 
-      for system in env.data.eddb_systems:
+      for system in env.data.get_all_systems():
         sysname = pgnames.get_canonical_name(system.name)
         if sysname is not None:
           m = pgdata.pg_system_regex.match(sysname)
@@ -199,13 +199,13 @@ if __name__ == '__main__':
       log.info("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
 
     elif sys.argv[1] == "nametest":
-      import env
       env.set_verbosity(2)
+      env.start()
 
       ok = 0
       bad = 0
 
-      for s in env.data.eddb_systems:
+      for s in env.data.get_all_systems():
         m = pgdata.pg_system_regex.match(s.name)
         if m is not None:
           cls = pgnames._get_sector_class(m.group("sector"))
@@ -220,14 +220,14 @@ if __name__ == '__main__':
       log.info("Checked {} systems, OK: {}, bad: {}".format(ok + bad, ok, bad))
 
     elif sys.argv[1] == "sectortest":
-      import env
       env.set_verbosity(2)
+      env.start()
 
       ok = 0
       bad = 0
 
       sectors = {}
-      for s in env.data.eddb_systems:
+      for s in env.data.get_all_systems():
         m = pgdata.pg_system_regex.match(s.name)
         if m is not None:
           if m.group("sector") not in sectors:
@@ -253,14 +253,14 @@ if __name__ == '__main__':
       log.info("Checked {} sectors, OK: {}, bad: {}".format(len(sectors), ok, bad))
 
     elif sys.argv[1] == "eddbspaff":
-      import env
+      env.start()
       
       with open("edsm_data.txt") as f:
         edsm_sectors = [s.strip() for s in f.readlines() if len(s) > 1]
 
       y_levels = {}
       
-      for system in env.data.eddb_systems:
+      for system in env.data.get_all_systems():
         m = pgdata.pg_system_regex.match(system.name)
         if m is not None and m.group("sector") in edsm_sectors:
           sname = m.group("sector")

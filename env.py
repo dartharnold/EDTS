@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import re
@@ -6,8 +7,7 @@ import sys
 import threading
 import time
 import util
-import eddb
-import coriolis
+import db
 from system import System, KnownSystem
 from station import Station
 
@@ -17,15 +17,6 @@ log = logging.getLogger("env")
 
 class Env(object):
   def __init__(self):
-    self._coriolis_load_lock = threading.RLock()
-    self._eddb_load_lock = threading.RLock()
-
-    self.is_coriolis_data_loaded = False
-    self.is_eddb_data_loaded = False
-
-    self.load_coriolis_data(False)
-    self.load_eddb_data(True)
-
     # Match a float such as "33", "-33", "-33.1"
     rgx_float = r'[-+]?\d+(?:\.\d+)?'
     # Match a set of coords such as "[33, -45.6, 78.910]"
@@ -33,29 +24,14 @@ class Env(object):
     # Compile the regex for faster execution later
     self._regex_coords = re.compile(rgx_coords)
 
-  def _get_stations_by_system(self, stations):
-    sbs = {}
-    for st in stations:
-      sid = st.system.id
-      if sid not in sbs:
-        sbs[sid] = []
-      sbs[sid].append(st)
-    return sbs
+    self._db_conn = None
 
-  def _get_systems_by_id(self, systems):
-    return {el.id: el for el in systems}
+    self._load_lock = threading.RLock()
+    self.is_data_loaded = False
+    self.load_data(False)
 
-  def _get_systems_by_name(self, systems):
-    return {el.name.lower(): el for el in systems}
-
-  def _get_stations_by_name(self, stations):
-    sbn = {}
-    for st in stations:
-      name = st.name.lower()
-      if name not in sbn:
-        sbn[name] = []
-      sbn[name].append(st)
-    return sbn
+  def close(self):
+    self._db_conn.close()
 
   def parse_station(self, statstr):
     parts = statstr.split("/", 1)
@@ -67,10 +43,10 @@ class Env(object):
     return self.get_system(sysstr)
 
   def get_station(self, sysname, statname = None):
-    if statname is not None and statname.lower() in self.eddb_stations_by_name:
-      for stn in self.eddb_stations_by_name[statname.lower()]:
-        if sysname.lower() == stn.system.name.lower():
-          return stn
+    if statname is not None:
+      (sysdata, stndata) = self._db_conn.get_station_by_names(sysname, statname)
+      if sysdata is not None and stndata is not None:
+        return Station(stndata, KnownSystem(sysdata))
     else:
       sys = self.get_system(sysname)
       if sys is not None:
@@ -78,118 +54,105 @@ class Env(object):
     return None
 
   def get_stations(self, sysobj):
-    if sysobj.id in self.eddb_stations_by_system:
-      return self.eddb_stations_by_system[sysobj.id]
-    else:
-      return []
+    return [Station(stndata, sysobj) for stndata in self._db_conn.get_stations_by_system_id(sysobj.id)]
 
   def get_system(self, sysname):
-    if sysname.lower() in self.eddb_systems_by_name:
-      return self.eddb_systems_by_name[sysname.lower()]
+    # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
+    rx_match = self._regex_coords.match(sysname)
+    if rx_match is not None:
+      # If it matches, make a fake system and station at those coordinates
+      try:
+        cx = float(rx_match.group(1))
+        cy = float(rx_match.group(2))
+        cz = float(rx_match.group(3))
+        return System(cx, cy, cz, sysname)
+      except:
+        pass
     else:
-      # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
-      rx_match = self._regex_coords.match(sysname)
-      if rx_match is not None:
-        # If it matches, make a fake system and station at those coordinates
-        try:
-          cx = float(rx_match.group(1))
-          cy = float(rx_match.group(2))
-          cz = float(rx_match.group(3))
-          return System(cx, cy, cz, sysname)
-        except:
-          return None
+      result = self._db_conn.get_system_by_name(sysname)
+      if result is not None:
+        return KnownSystem(result)
       else:
         return None
 
-  def _load_eddb_data(self):
-    with self._eddb_load_lock:
-      load_start = time.clock()
-      self._eddb_systems = [KnownSystem(s) for s in eddb.load_systems(global_args.eddb_systems_file)]
-      self._eddb_systems_by_id = self._get_systems_by_id(self._eddb_systems)
-      self._eddb_systems_by_name = self._get_systems_by_name(self._eddb_systems)
+  def get_systems_by_aabb(self, vec_from, vec_to, buffer_from, buffer_to):
+    min_x = min(vec_from.x, vec_to.x) - buffer_from
+    min_y = min(vec_from.y, vec_to.y) - buffer_from
+    min_z = min(vec_from.z, vec_to.z) - buffer_from
+    max_x = max(vec_from.x, vec_to.x) + buffer_to
+    max_y = max(vec_from.y, vec_to.y) + buffer_to
+    max_z = max(vec_from.z, vec_to.z) + buffer_to
+    return [KnownSystem(s) for s in self._db_conn.get_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z)]
+  
+  def get_all_systems(self):
+    for s in self._db_conn.get_all_systems():
+      yield KnownSystem(s)
 
-      self._eddb_stations = [Station(t, self._eddb_systems_by_id[t["system_id"]]) for t in eddb.load_stations(global_args.eddb_stations_file)]
-      self._eddb_stations_by_name = self._get_stations_by_name(self._eddb_stations)
-      self._eddb_stations_by_system = self._get_stations_by_system(self._eddb_stations)
+  def find_systems_by_glob(self, name):
+    for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_GLOB):
+      yield KnownSystem(s)
 
-      self.is_eddb_data_loaded = True
-      log.debug("EDDB data loaded after {0:.1f}ms".format((time.clock() - load_start) * 1000.0))
+  def find_systems_by_regex(self, name):
+    for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_REGEX):
+      yield KnownSystem(s)
 
-  def load_eddb_data(self, async):
+  def find_stations_by_glob(self, name):
+    for (sy, st) in self._db_conn.find_stations_by_name(name, mode=db.FIND_GLOB):
+      yield Station(st, KnownSystem(sy))
+
+  def find_stations_by_regex(self, name):
+    for (sy, st) in self._db_conn.find_stations_by_name(name, mode=db.FIND_REGEX):
+      yield Station(st, KnownSystem(sy))
+
+  def _load_data(self):
+    with self._load_lock:
+      self._db_conn = db.open_db()
+      self._load_coriolis_data()
+      self.is_data_loaded = True
+      log.debug("Data loaded")
+
+  def load_data(self, async):
     if async:
-      self._eddb_load_thread = threading.Thread(name = "eddb_load", target = self._load_eddb_data)
-      self._eddb_load_thread.start()
+      self._load_thread = threading.Thread(name = "data_load", target = self._load_data)
+      self._load_thread.start()
     else:
-      self._load_eddb_data()
+      self._load_data()
 
   def _load_coriolis_data(self):
-    with self._coriolis_load_lock:
-      load_start = time.clock()
-      self._coriolis_fsd_list = coriolis.load_frame_shift_drives(global_args.coriolis_fsd_file)
+    with self._load_lock:
+      self._coriolis_fsd_list = self._db_conn.retrieve_fsd_list()
       self.is_coriolis_data_loaded = True
-      log.debug("Coriolis data loaded after {0:.1f}ms".format((time.clock() - load_start) * 1000.0))
+      log.debug("Coriolis data loaded")
 
-  def load_coriolis_data(self, async):
-    if async:
-      self._coriolis_load_thread = threading.Thread(name = "coriolis_load", target = self._load_coriolis_data)
-      self._coriolis_load_thread.start()
-    else:
-      self._load_coriolis_data()
-
-  def _ensure_eddb_data_loaded(self):
-    if not self.is_eddb_data_loaded:
-      log.debug("Waiting for EDDB data to be loaded...")
-      self._eddb_load_lock.acquire()
-      self._eddb_load_lock.release()
+  def _ensure_data_loaded(self):
+    if not self.is_data_loaded:
+      log.debug("Waiting for data to be loaded...")
+      self._load_lock.acquire()
+      self._load_lock.release()
       log.debug("Finished waiting")
-
-  def _ensure_coriolis_data_loaded(self):
-    if not self.is_coriolis_data_loaded:
-      log.debug("Waiting for Coriolis data to be loaded...")
-      self._coriolis_load_lock.acquire()
-      self._coriolis_load_lock.release()
-      log.debug("Finished waiting")
-
-  #
-  # Public EDDB properties
-  #
-  @property
-  def eddb_systems(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_systems
-
-  @property
-  def eddb_stations(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_stations
-
-  @property
-  def eddb_stations_by_system(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_stations_by_system
-
-  @property
-  def eddb_systems_by_id(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_systems_by_id
-
-  @property
-  def eddb_systems_by_name(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_systems_by_name
-
-  @property
-  def eddb_stations_by_name(self):
-    self._ensure_eddb_data_loaded()
-    return self._eddb_stations_by_name
 
   #
   # Public Coriolis properties
   #
   @property
   def coriolis_fsd_list(self):
-    self._ensure_coriolis_data_loaded()
+    self._ensure_data_loaded()
     return self._coriolis_fsd_list
+
+
+data = None
+
+
+def start():
+  global data
+  if data is None:
+    data = Env()
+
+
+def stop():
+  global data
+  data.close()
+  data = None
 
 
 def set_verbosity(level):
@@ -205,24 +168,14 @@ def set_verbosity(level):
 
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Tools", fromfile_prefix_chars="@", add_help=False)
 arg_parser.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
-arg_parser.add_argument("--eddb-systems-file", type=str, default=eddb.default_systems_file, help="Path to EDDB systems.json")
-arg_parser.add_argument("--eddb-stations-file", type=str, default=eddb.default_stations_file, help="Path to EDDB stations.json")
-arg_parser.add_argument("--coriolis-fsd-file", type=str, default=coriolis.default_frame_shift_drive_file, help="Path to Coriolis frame_shift_drive.json")
+arg_parser.add_argument("--db-file", type=str, default=db.default_db_file, help="Specifies the database file to use")
 global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 
 # Only try to parse args/set verbosity in non-interactive mode
 if not util.is_interactive():
   set_verbosity(global_args.verbose)
 
-if not os.path.isfile(global_args.eddb_systems_file) or not os.path.isfile(global_args.eddb_stations_file):
-  log.error("Error: EDDB system/station files not found. Run the eddb.py script with the --download flag to auto-download these.")
+if not os.path.isfile(global_args.db_file):
+  log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
   if not util.is_interactive():
     sys.exit(1)
-
-if not os.path.isfile(global_args.coriolis_fsd_file):
-  log.error("Error: Coriolis FSD file not found. Run the coriolis.py script with the --download flag to auto-download this.")
-  if not util.is_interactive():
-    sys.exit(1)
-
-# Create the object
-data = Env()
