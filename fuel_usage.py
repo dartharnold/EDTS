@@ -115,5 +115,6 @@ def _get_leg_char(leg):
     return '!'
 
 if __name__ == '__main__':
+  env.start()
   a = Application(env.local_args, False)
   a.run()

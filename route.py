@@ -1,3 +1,4 @@
+import env
 import logging
 import math
 import sys
@@ -12,9 +13,9 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, calc, eddb_systems, rbuf_base, hbuf_base, route_strategy):
+  def __init__(self, envdata, calc, rbuf_base, hbuf_base, route_strategy):
+    self._envdata = envdata
     self._calc = calc
-    self._systems = eddb_systems
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
@@ -32,24 +33,6 @@ class Routing(object):
     if in_max == in_min:
       raise Exception("in_min and in_max cannot be the same")
     return out_min + ((out_max - out_min) * (min(in_max, max(0, value - in_min)) / (in_max - in_min)))
-
-  def aabb(self, stars, vec_from, vec_to, buffer_from, buffer_to):
-    min_x = min(vec_from.x, vec_to.x) - buffer_from
-    min_y = min(vec_from.y, vec_to.y) - buffer_from
-    min_z = min(vec_from.z, vec_to.z) - buffer_from
-    max_x = max(vec_from.x, vec_to.x) + buffer_to
-    max_y = max(vec_from.y, vec_to.y) + buffer_to
-    max_z = max(vec_from.z, vec_to.z) + buffer_to
-
-    candidates = []
-    for s in stars:
-      x = s.position.x
-      y = s.position.y
-      z = s.position.z
-      if min_x < x < max_x and min_y < y < max_y and min_z < z < max_z:
-        candidates.append(s)
-
-    return candidates
 
   def cylinder(self, stars, vec_from, vec_to, buffer_both):
     candidates = []
@@ -89,7 +72,8 @@ class Routing(object):
 
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
+    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
       stars.append(sys_to)
@@ -144,7 +128,8 @@ class Routing(object):
   def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
+    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
     best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
 
@@ -240,7 +225,8 @@ class Routing(object):
 
     rbuffer_ly = self._rbuffer_base
     hbuffer_ly = self._hbuffer_base
-    stars = self.cylinder(self._systems, sys_from.position, sys_to.position, rbuffer_ly)
+    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
 
