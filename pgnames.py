@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 import logging
 import math
+import numbers
 import string
 import sys
 import time
@@ -14,21 +15,24 @@ import vector3
 app_name = "pgnames"
 log = logging.getLogger(app_name)
 
-###
+# #
 # Publicly-useful functions
-###
+# #
 
 """
 Get the name of a sector that a position falls within.
 
 Args:
-  pos: A Vector3 position
+  pos: A position
   format_output: Whether or not to format the output or return it as fragments
   
 Returns:
   The name of the sector which contains the input position, either as a string or as a list of fragments
 """  
 def get_sector_name(pos, allow_ha=True, format_output=True):
+  pos = _get_as_position(pos)
+  if pos is None:
+    return None
   if allow_ha:
     ha_name = _ha_get_name(pos)
     if ha_name is not None:
@@ -49,7 +53,7 @@ def get_sector_name(pos, allow_ha=True, format_output=True):
 Get a Sector object represented by a name, or which a position falls within.
 
 Args:
-  input: A sector name, or a Vector3 position
+  input: A sector name, or a position
   allow_ha: Whether to include hand-authored sectors in the search
   get_name: Whether to look up the name of the sector
 
@@ -57,7 +61,9 @@ Returns:
   A Sector object, or None if the input could not be looked up
 """
 def get_sector(input, allow_ha = True, get_name = True):
-  if isinstance(input, vector3.Vector3):
+  pos_input = _get_as_position(input)
+  if pos_input is not None:
+    input = pos_input
     if allow_ha:
       ha_name = _ha_get_name(input)
       if ha_name is not None:
@@ -81,13 +87,16 @@ def get_sector(input, allow_ha = True, get_name = True):
 Get a system's name based on its position
 
 Args:
-  input: The system's Vector3 position
+  input: The system's position
   mcode: The system's mass code ('a'-'h')
 
 Returns:
   A system name, missing the final number ("number2")
 """
 def get_system_name_from_pos(input, mcode):
+  input = _get_as_position(input)
+  if input is None:
+    return None
   psect = get_sector(input, allow_ha=True)
   # Get cube width for this mcode, and the sector origin
   cwidth = _get_mcode_cube_width(mcode)
@@ -312,9 +321,9 @@ def format_name(input):
     return "".join(frags)
 
 
-###
+# #
 # Internal variables
-###
+# #
 
 _srp_divisor1 = len(string.ascii_uppercase)
 _srp_divisor2 = _srp_divisor1**2
@@ -324,9 +333,9 @@ _srp_sidelength = _srp_rowlength**2
 _expected_fragment_limit = 4
 
 
-###
+# #
 # Internal functions: shared/HA
-###
+# #
 
 def _get_mcode_cube_width(mcode):
   return sector.cube_size / pow(2, ord('h') - ord(mcode.lower()))
@@ -471,9 +480,9 @@ def _ha_get_name(pos):
   return None
 
 
-##
+# #
 # Internal functions: c1-specific
-##
+# #
 
 # Get the full list of infixes for a given set of fragments missing an infix
 # e.g. "Ogai", "Wre", "P"
@@ -522,8 +531,9 @@ def _c1_get_offset_from_pos(pos):
 
 # Get the zero-based offset (counting from bottom-left of the galaxy) of the input sector name/position
 def _c1_get_offset(input):
-  if isinstance(input, vector3.Vector3):
-    return _c1_get_offset_from_pos(input)
+  pos_input = _get_as_position(input)
+  if pos_input is not None:
+    return _c1_get_offset_from_pos(pos_input)
   else:
     return _c1_get_offset_from_name(input)
 
@@ -667,9 +677,9 @@ def _c1_get_name(pos):
   return frags
 
 
-##
+# #
 # Internal functions: c2-specific
-##
+# #
 
 # Get all YZ-constrained lines which could possibly contain the prefixes specified
 # Note that multiple lines can (and often do) match, this is filtered later
@@ -763,9 +773,9 @@ def _c2_get_start_points(limit = 1248):
     base_idx1 += pgdata.c2_full_vouter_step * pgdata.c2_vouter_step
 
 
-##
+# #
 # Setup functions
-##
+# #
 
 # Cache to support faster repeat querying
 _c2_candidate_cache = {}
@@ -827,9 +837,26 @@ def _construct_c1_offsets():
     cnt += ilen
 
 
-##
+
+# #
+# Utility functions
+# #
+
+def _get_as_position(v):
+  # If it's already a vector, all is OK
+  if isinstance(v, vector3.Vector3):
+    return v
+  try:
+    if len(v) == 3 and all([isinstance(i, numbers.Number) for i in v]):
+      return vector3.Vector3(v[0], v[1], v[2])
+  except:
+    pass
+  return None
+
+
+# #
 # Initialisation
-##
+# #
 
 _init_start = time.clock()
 _construct_prefix_run_cache()
