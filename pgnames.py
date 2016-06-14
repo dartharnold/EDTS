@@ -643,36 +643,55 @@ def _c1_get_name(pos):
     return None
   offset = _c1_get_offset(pos)
 
+  # Get the current prefix run we're on, and keep the remaining offset
   prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
+  # Work out which prefix we're currently within
   prefix = [c for c in _c1_prefix_offsets if cur_offset >= _c1_prefix_offsets[c][0] and cur_offset < (_c1_prefix_offsets[c][0] + _c1_prefix_offsets[c][1])][0]
+  # Put us in that prefix's space
   cur_offset -= _c1_prefix_offsets[prefix][0]
   
+  # Work out which set of infix1s we should be using, and its total length
   infix1s = _c1_get_infixes([prefix])
   infix1_total_len = _c1_get_infix_total_run_length(infix1s[0])
+  # Work out where we are in infix1 space, keep the remaining offset
   infix1_cnt, cur_offset = divmod(prefix_cnt * _get_prefix_run_length(prefix) + cur_offset, infix1_total_len)
+  # Find which infix1 we're currently in
   infix1 = [c for c in _c1_infix_offsets if c in infix1s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
+  # Put us in that infix1's space
   cur_offset -= _c1_infix_offsets[infix1][0]
   
+  # Work out which set of suffixes we're using
   infix1_run_len = _c1_get_infix_run_length(infix1)
   sufs = _get_suffixes([prefix, infix1], True)
+  # Get the index of the next entry in that list, in infix1 space
   next_idx = (infix1_run_len * infix1_cnt) + cur_offset
-  
+
+  # Start creating our output
   frags = [prefix, infix1]
   
+  # If the index of the next entry is longer than the list of suffixes...
+  # This means we've gone over all the 3-phoneme names and started the 4-phoneme ones
+  # So, we need to calculate our extra phoneme (infix2) before adding a suffix
   if next_idx >= len(sufs):
-    # 4-phoneme
+    # Work out which set of infix2s we should be using
     infix2s = _c1_get_infixes(frags)
     infix2_total_len = _c1_get_infix_total_run_length(infix2s[0])
+    # Work out where we are in infix2 space, still keep the remaining offset
     infix2_cnt, cur_offset = divmod(infix1_cnt * _c1_get_infix_run_length(infix1) + cur_offset, infix2_total_len)
+    # Find which infix2 we're currently in
     infix2 = [c for c in _c1_infix_offsets if c in infix2s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
+    # Put us in this infix2's space
     cur_offset -= _c1_infix_offsets[infix2][0]
     
+    # Recalculate the next system index based on the infix2 data
     infix2_run_len = _c1_get_infix_run_length(infix2)
     sufs = _get_suffixes([prefix, infix1, infix2], True)
     next_idx = (infix2_run_len * infix2_cnt) + cur_offset
     
+    # Add our infix2 to the output
     frags.append(infix2)
 
+  # Add our suffix to the output, and return it
   frags.append(sufs[next_idx])
   return frags
 
