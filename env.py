@@ -147,6 +147,11 @@ def start():
     data = Env()
 
 
+def is_started():
+  global data
+  return (data is not None)
+
+
 def stop():
   global data
   data.close()
