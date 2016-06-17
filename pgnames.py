@@ -101,7 +101,7 @@ def get_system_name_from_pos(input, mcode, allow_ha = True):
   # Get cube width for this mcode, and the sector origin
   cwidth = _get_mcode_cube_width(mcode)
   psorig = psect.get_origin(cwidth)
-  # Get the relative inputition within this sector and the system identifier
+  # Get the relative position within this sector and the system identifier
   relpos = vector3.Vector3(input.x - psorig.x, input.y - psorig.y, input.z - psorig.z)
   sysid = _get_sysid_from_relpos(relpos, mcode, format_output=True)
   return "{} {}".format(psect.name, sysid)
