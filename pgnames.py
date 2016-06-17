@@ -93,11 +93,11 @@ Args:
 Returns:
   A system name, missing the final number ("number2")
 """
-def get_system_name_from_pos(input, mcode):
+def get_system_name_from_pos(input, mcode, allow_ha = True):
   input = _get_as_position(input)
   if input is None:
     return None
-  psect = get_sector(input, allow_ha=True)
+  psect = get_sector(input, allow_ha=allow_ha)
   # Get cube width for this mcode, and the sector origin
   cwidth = _get_mcode_cube_width(mcode)
   psorig = psect.get_origin(cwidth)
@@ -117,8 +117,9 @@ Returns:
   A System object
 """
 def get_system_from_name(input):
+  sector_name = get_canonical_name(input, sector_only=True)
   coords, uncertainty = get_coords_from_name(input)
-  return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(coords))
+  return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(sector_name))
 
 
 """
