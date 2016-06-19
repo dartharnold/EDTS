@@ -143,14 +143,10 @@ def get_sector_from_name(raw_sector_name, allow_ha = True):
     
     sc = _get_sector_class(frags)
     if sc == 2:
-      # Class 2: get matching YZ candidates, do full runs through them to find a match
-      for candidate in _c2_get_yz_candidates(frags[0], frags[2]):
-        for idx, testfrags in _c2_get_run(candidate['frags']):
-          if testfrags == frags:
-            return sector.PGSector(idx, candidate['y'], candidate['z'], format_name(frags), 2)
-      return None
+      # Class 2
+      return _c2_get_sector(frags)
     elif sc == 1:
-      # Class 1: calculate and return
+      # Class 1
       return _c1_get_sector(frags)
     else:
       return None
@@ -449,6 +445,26 @@ def _get_prefix_run_length(frag):
   return pgdata.cx_prefix_length_overrides.get(frag, pgdata.cx_prefix_length_default)
 
 
+# Get the sector offset of a position
+def _get_offset_from_pos(pos, galsize):
+  sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
+  offset  = sect.index[2] * galsize[1] * galsize[0]
+  offset += sect.index[1] * galsize[0]
+  offset += sect.index[0]
+  return offset
+
+
+def _get_sector_pos_from_offset(offset, galsize):
+  x = (offset % galsize[0])
+  y = (offset // galsize[0]) % galsize[1]
+  z = (offset // (galsize[0] * galsize[1])) % galsize[2]
+  # Put it in "our" coordinate space
+  x -= sector.base_sector_coords[0]
+  y -= sector.base_sector_coords[1]
+  z -= sector.base_sector_coords[2]
+  return [x, y, z]
+
+
 # Determines whether a given sector should be C1 or C2
 def _get_c1_or_c2(key):
   # Add the offset we subtract to make the normal positions make sense
@@ -520,20 +536,11 @@ def _c1_get_infix_total_run_length(frag):
     return pgdata.c1_infix_s2_total_run_length
 
 
-# Get the sector offset of a position
-def _c1_get_offset_from_pos(pos):
-  sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
-  offset  = sect.index[2] * pgdata.c1_galaxy_size[1] * pgdata.c1_galaxy_size[0]
-  offset += sect.index[1] * pgdata.c1_galaxy_size[0]
-  offset += sect.index[0]
-  return offset
-
-
 # Get the zero-based offset (counting from bottom-left of the galaxy) of the input sector name/position
 def _c1_get_offset(input):
   pos_input = _get_as_position(input)
   if pos_input is not None:
-    return _c1_get_offset_from_pos(pos_input)
+    return _get_offset_from_pos(pos_input, pgdata.c1_galaxy_size)
   else:
     return _c1_get_offset_from_name(input)
 
@@ -612,7 +619,7 @@ def _c1_get_offset_from_name(input):
   # Subtract a magic number, "Just 'Cause!"
   offset -= pgdata.c1_arbitrary_index_offset
   # Add the base position of this prefix within the run
-  offset += _c1_prefix_offsets[frags[0]][0]
+  offset += _prefix_offsets[frags[0]][0]
   # Whew!
   return offset
 
@@ -627,15 +634,9 @@ def _c1_get_sector(input):
     return None
 
   # Calculate the X/Y/Z positions from the offset
-  x = (offset % pgdata.c1_galaxy_size[0])
-  y = (offset // pgdata.c1_galaxy_size[0]) % pgdata.c1_galaxy_size[1]
-  z = (offset // (pgdata.c1_galaxy_size[0] * pgdata.c1_galaxy_size[1])) % pgdata.c1_galaxy_size[2]
-  # Put it in "our" coordinate space
-  x -= sector.base_sector_coords[0]
-  y -= sector.base_sector_coords[1]
-  z -= sector.base_sector_coords[2]
+  spos = _get_sector_pos_from_offset(offset, pgdata.c1_galaxy_size)
   name = format_name(frags)
-  return sector.PGSector(x, y, z, format_name(frags), _get_sector_class(frags))
+  return sector.PGSector(spos[0], spos[1], spos[2], format_name(frags), _get_sector_class(frags))
 
 
 def _c1_get_name(pos):
@@ -646,9 +647,9 @@ def _c1_get_name(pos):
   # Get the current prefix run we're on, and keep the remaining offset
   prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
   # Work out which prefix we're currently within
-  prefix = [c for c in _c1_prefix_offsets if cur_offset >= _c1_prefix_offsets[c][0] and cur_offset < (_c1_prefix_offsets[c][0] + _c1_prefix_offsets[c][1])][0]
+  prefix = [c for c in _prefix_offsets if cur_offset >= _prefix_offsets[c][0] and cur_offset < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
   # Put us in that prefix's space
-  cur_offset -= _c1_prefix_offsets[prefix][0]
+  cur_offset -= _prefix_offsets[prefix][0]
   
   # Work out which set of infix1s we should be using, and its total length
   infix1s = _c1_get_infixes([prefix])
@@ -700,149 +701,127 @@ def _c1_get_name(pos):
 # Internal functions: c2-specific
 # #
 
-# Get all YZ-constrained lines which could possibly contain the prefixes specified
-# Note that multiple lines can (and often do) match, this is filtered later
-def _c2_get_yz_candidates(frag0, frag2):
-  if (frag0, frag2) in _c2_candidate_cache:
-    for candidate in _c2_candidate_cache[(frag0, frag2)]:
-      yield {'frags': list(candidate['frags']), 'y': candidate['y'], 'z': candidate['z']}
-
-
 # Get the name of a class 2 sector based on its position
 def _c2_get_name(pos):
   sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
-  # Get run start from YZ
-  (pre0, suf0), (pre1, suf1) = _c2_start_points[sect.index[2]][sect.index[1]]
-  # Now do a full run across it until we reach the right x position
-  for (xpos, frags) in _c2_get_run([pre0, suf0, pre1, suf1]):
-    if xpos == sect.x:
-      return frags
-  return None
   
+  offset = _get_offset_from_pos(pos, pgdata.c2_galaxy_size)
+  return _c2_get_name_from_offset(offset)
 
-# Get a full run of class 2 system names
-# The input MUST be the start point (at c2_run_states[0]), or it'll be wrong
-def _c2_get_run(input, length = None):
+
+# Get the sector position of the given input class 2 sector name
+def _c2_get_sector(input):
+  frags = get_fragments(input) if util.is_str(input) else input
+  if frags is None:
+    return None
+  offset = _c2_get_offset_from_name(frags)
+  if offset is None:
+    return None
+
+  # Calculate the X/Y/Z positions from the offset
+  spos = _get_sector_pos_from_offset(offset, pgdata.c2_galaxy_size)
+  name = format_name(frags)
+  return sector.PGSector(spos[0], spos[1], spos[2], format_name(frags), _get_sector_class(frags))
+
+
+def _c2_get_name_from_offset(offset, format_output=False):
+  # Get the line of 128 we're a part of, since we can only work from a start point
+  line, off = divmod(offset, len(pgdata.c2_run_states))
+  
+  # Work out what point along the various state steps we're at
+  vo1, line = divmod(line, len(pgdata.c2_vouter_states) * len(pgdata.c2_outer_states))
+  vo2, oo1  = divmod(line, len(pgdata.c2_outer_states))
+  
+  # Get the (prefix0, prefix1) index pairs at each step
+  ors0, ors1 = pgdata.c2_vouter_states[vo1]
+  oos0, oos1 = pgdata.c2_vouter_states[vo2]
+  os0, os1 = pgdata.c2_outer_states[oo1]
+  
+  # Calculate the current prefix-run (3037) index of this start point for each prefix
+  cur_idx0 = (ors0 * pgdata.c2_vouter_diff) + (oos0 * pgdata.c2_outer_diff) + (os0 * pgdata.c2_run_diff)
+  cur_idx1 = (ors1 * pgdata.c2_vouter_diff) + (oos1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
+  
+  # Add the offset from the start back, so we're at our actual sector not the start point
+  cur_idx0 += pgdata.c2_run_states[off][0]
+  cur_idx1 += pgdata.c2_run_states[off][1]
+  
+  # Retrieve the actual prefix/suffix strings
+  p0 = [c for c in _prefix_offsets if cur_idx0 >= _prefix_offsets[c][0] and cur_idx0 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
+  p1 = [c for c in _prefix_offsets if cur_idx1 >= _prefix_offsets[c][0] and cur_idx1 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
+  s0 = _get_suffixes(p0)[cur_idx0 - _prefix_offsets[p0][0]]
+  s1 = _get_suffixes(p1)[cur_idx1 - _prefix_offsets[p1][0]]
+  
+  # Done!
+  output = [p0, s0, p1, s1]
+  if format_output:
+    output = format_name(output)
+  return output
+
+
+def _c2_get_offset_from_name(input):
   frags = get_fragments(input) if util.is_str(input) else input
   if frags is None:
     return
-
-  # Get the initial suffix list
-  suffixes_0_temp = _get_suffixes(frags[0:1])
-  suffixes_1_temp = _get_suffixes(frags[-2:-1])
-  suffixes_0 = [(frags[0], f1) for f1 in suffixes_0_temp[suffixes_0_temp.index(frags[1]):]]
-  suffixes_1 = [(frags[2], f3) for f3 in suffixes_1_temp[suffixes_1_temp.index(frags[3]):]]
-
-  if length is None:
-    length = pgdata.c2_galaxy_size[0]
   
-  for i in range(0, length):
-    # Calculate the run state indexes for phonemes 1 and 3
-    idx0 = i % len(pgdata.c2_run_states)
-    idx1 = i % len(pgdata.c2_run_states)
-    
-    # Calculate the current base index
-    # (in case we've done a full run and are onto the next set of phonemes)
-    cur_base_0 = int(i // len(pgdata.c2_run_states)) * pgdata.c2_run_step
-    cur_base_1 = 0
-    
-    # Ensure we have all the suffixes we need, and append the next set if not
-    if (cur_base_0 + pgdata.c2_run_states[idx0][0]) >= len(suffixes_0):
-      next_prefix0_idx = pgdata.cx_prefixes.index(suffixes_0[-1][0]) + 1
-      next_prefix0 = pgdata.cx_prefixes[next_prefix0_idx % len(pgdata.cx_prefixes)]
-      suffixes_0 += [(next_prefix0, f1) for f1 in _get_suffixes([next_prefix0])]
-    if (cur_base_1 + pgdata.c2_run_states[idx1][1]) >= len(suffixes_1):
-      next_prefix1_idx = pgdata.cx_prefixes.index(suffixes_1[-1][0]) + 1
-      next_prefix1 = pgdata.cx_prefixes[next_prefix1_idx % len(pgdata.cx_prefixes)]
-      suffixes_1 += [(next_prefix1, f3) for f3 in _get_suffixes([next_prefix1])]
-    
-    # Set current fragments
-    frags[0], frags[1] = suffixes_0[cur_base_0 + pgdata.c2_run_states[idx0][0]]
-    frags[2], frags[3] = suffixes_1[cur_base_1 + pgdata.c2_run_states[idx1][1]]
-    
-    yield (i - sector.base_sector_coords[0], frags)
+  try:
+    # Get the current indexes within prefix runs (3037)
+    cur_idx0 = _prefix_offsets[frags[0]][0] + _get_suffixes(frags[0]).index(frags[1])
+    cur_idx1 = _prefix_offsets[frags[2]][0] + _get_suffixes(frags[2]).index(frags[3])
+  except:
+    # Either the prefix or suffix lookup failed, likely a dodgy name
+    log.error("Failed to look up prefixes/suffixes in _c2_get_offset_from_name")
+    return None
+  
+  # Wind the indexes back to the start point of this run (c2_run_states[0])
+  off0 = (cur_idx0 % pgdata.c2_f0_step)
+  off1 = (cur_idx1 % pgdata.c2_f2_step)
+  cur_idx0 -= off0
+  cur_idx1 -= off1
+  
+  # Find out what states we're at for the various layers
+  ors0, cur_idx0 = divmod(cur_idx0, pgdata.c2_vouter_diff)
+  oos0, cur_idx0 = divmod(cur_idx0, pgdata.c2_outer_diff)
+  os0 , _        = divmod(cur_idx0, pgdata.c2_run_diff)
+  ors1, cur_idx1 = divmod(cur_idx1, pgdata.c2_vouter_diff)
+  oos1, cur_idx1 = divmod(cur_idx1, pgdata.c2_outer_diff)
+  os1 , _        = divmod(cur_idx1, pgdata.c2_run_diff)
+  
+  try:
+    # Get what index these states are
+    vo1 = pgdata.c2_vouter_states.index((ors0, ors1))
+    vo2 = pgdata.c2_vouter_states.index((oos0, oos1))
+    oo1 = pgdata.c2_outer_states.index((os0, os1))
+    off = pgdata.c2_run_states.index((off0, off1))
+  except:
+    # If we failed to get any of these indexes, the entire name likely isn't valid
+    log.error("Failed to get run state indexes in _c2_get_offset_from_name")
+    return None
+  
+  # Calculate the offset from the various layers' state indexes
+  offset  = vo1 * len(pgdata.c2_vouter_states) * len(pgdata.c2_outer_states)
+  offset += vo2 * len(pgdata.c2_outer_states)
+  offset += oo1
+  # Multiply this by the length of a run
+  offset *= len(pgdata.c2_run_states)
+  # Now re-add the offset we removed at the start
+  offset += off
+  
+  return offset
 
-
-# Get all prefix combinations present in a particular run
-def _c2_get_run_prefixes(input):
-  prefixes = []
-  for xpos, frags in _c2_get_run(input):
-    if (frags[0], frags[2]) not in prefixes:
-      prefixes.append((frags[0], frags[2]))
-  return prefixes
-
-
-# Get all the C2 "start points" - sector names at the starts of runs
-def _c2_get_start_points(limit = 1248):
-  base_idx0 = 0
-  base_idx1 = 0
-  count = 0
-  while count < limit:
-    for (ors0, ors1) in pgdata.c2_vouter_states:
-      for (oos0, oos1) in pgdata.c2_vouter_states:
-        for (os0, os1) in pgdata.c2_outer_states:
-          cur_idx0 = base_idx0 + (ors0 * pgdata.c2_vouter_diff) + (oos0 * pgdata.c2_outer_diff) + (os0 * pgdata.c2_run_diff)
-          cur_idx1 = base_idx1 + (ors1 * pgdata.c2_vouter_diff) + (oos1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
-          yield (_prefix_runs[cur_idx0], _prefix_runs[cur_idx1])
-          count += 1
-          if count >= limit:
-            return
-    # One more layer out...
-    base_idx0 += pgdata.c2_full_vouter_step * pgdata.c2_vouter_step
-    base_idx1 += pgdata.c2_full_vouter_step * pgdata.c2_vouter_step
-
-
+  
 # #
 # Setup functions
 # #
 
-# Cache to support faster repeat querying
-_c2_candidate_cache = {}
-# Constructs a cache to speed up later searching for YZ candidates
-def _construct_c2_candidate_cache():
-  global _c2_candidate_cache
-  # For each Z slice...
-  for z in range(len(_c2_start_points)):
-    # For each Y stack...
-    for y in range(len(_c2_start_points[z])):
-      # Get the correct starting fragments, check they aren't blank
-      f0, f1 = _c2_start_points[z][y][0]
-      f2, f3 = _c2_start_points[z][y][1]
-      # Get all run prefixes present, and store that they're in this YZ-constrained line
-      prefixes = _c2_get_run_prefixes([f0, f1, f2, f3])
-      for pf in prefixes:
-        if pf not in _c2_candidate_cache:
-          _c2_candidate_cache[pf] = []
-        _c2_candidate_cache[pf].append({'frags': [f0, f1, f2, f3], 'y': y - sector.base_sector_coords[1], 'z': z - sector.base_sector_coords[2]})
-
-# Cache all valid prefix/suffix combinations for later querying
-_prefix_runs = []
-def _construct_prefix_run_cache():
-  global _prefix_runs
-  _prefix_runs = [(p, suf) for p in pgdata.cx_prefixes for suf in _get_suffixes([p])]
-
-# Cache all starting fragments to support the candidate cache
-_c2_start_points = [[None for _ in range(pgdata.c2_galaxy_size[1])] for _ in range(pgdata.c2_galaxy_size[2])]
-def _construct_c2_start_point_cache():
-  global _c2_start_points
-  y = 0
-  z = 0
-  for w in _c2_get_start_points():
-    _c2_start_points[z][y] = w
-    y += 1
-    if y >= pgdata.c2_galaxy_size[1]:
-      y = 0
-      z += 1
-
 # Cache the run offsets of all prefixes and C1 infixes
-_c1_prefix_offsets = {}
+_prefix_offsets = {}
 _c1_infix_offsets = {}
-def _construct_c1_offsets():
-  global _c1_prefix_offsets, _c1_infix_offsets
+def _construct_offsets():
+  global _prefix_offsets, _c1_infix_offsets
   cnt = 0
   for p in pgdata.cx_prefixes:
     plen = _get_prefix_run_length(p)
-    _c1_prefix_offsets[p] = (cnt, plen)
+    _prefix_offsets[p] = (cnt, plen)
     cnt += plen
   cnt = 0
   for i in pgdata.c1_infixes_s1:
@@ -854,7 +833,6 @@ def _construct_c1_offsets():
     ilen = _c1_get_infix_run_length(i)
     _c1_infix_offsets[i] = (cnt, ilen)
     cnt += ilen
-
 
 
 # #
@@ -878,8 +856,5 @@ def _get_as_position(v):
 # #
 
 _init_start = time.clock()
-_construct_prefix_run_cache()
-_construct_c2_start_point_cache()
-_construct_c2_candidate_cache()
-_construct_c1_offsets()
+_construct_offsets()
 _init_time = time.clock() - _init_start

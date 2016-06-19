@@ -209,9 +209,11 @@ c2_outer_states = [
   (12, 4), (12, 5), (14, 4), (14, 5),
 ]
 
+
 # Index modifiers for all states
 # In pairs of (phoneme 1, phoneme 3)
-c2_run_step = 8
+c2_f0_step = 16
+c2_f2_step = 8
 c2_run_states = [
   (0, 0), (1, 0), (0, 1), (1, 1),
   (2, 0), (3, 0), (2, 1), (3, 1),
@@ -228,10 +230,26 @@ c2_run_states = [
   (4, 4), (5, 4), (4, 5), (5, 5),
   (6, 4), (7, 4), (6, 5), (7, 5),
   (4, 6), (5, 6), (4, 7), (5, 7),
-  (6, 6), (7, 6), (6, 7), (7, 7)
+  (6, 6), (7, 6), (6, 7), (7, 7),
+  (8,  0), (9,  0), (8,  1), (9,  1),
+  (10, 0), (11, 0), (10, 1), (11, 1),
+  (8,  2), (9,  2), (8,  3), (9,  3),
+  (10, 2), (11, 2), (10, 3), (11, 3),
+  (12, 0), (13, 0), (12, 1), (13, 1),
+  (14, 0), (15, 0), (14, 1), (15, 1),
+  (12, 2), (13, 2), (12, 3), (13, 3),
+  (14, 2), (15, 2), (14, 3), (15, 3),
+  (8,  4), (9,  4), (8,  5), (9,  5),
+  (10, 4), (11, 4), (10, 5), (11, 5),
+  (8,  6), (9,  6), (8,  7), (9,  7),
+  (10, 6), (11, 6), (10, 7), (11, 7),
+  (12, 4), (13, 4), (12, 5), (13, 5),
+  (14, 4), (15, 4), (14, 5), (15, 5),
+  (12, 6), (13, 6), (12, 7), (13, 7),
+  (14, 6), (15, 6), (14, 7), (15, 7),
 ]
 
-c2_full_run_step = c2_run_step * 2
+c2_full_run_step = 16
 c2_full_outer_step = c2_full_run_step * c2_outer_step
 c2_full_vouter_step = c2_full_outer_step * c2_vouter_step
 
@@ -244,7 +262,7 @@ c2_galaxy_size = [128,  16,  78]
 
 
 # Hand-authored sectors
-# Data of unknown origin from an mysterious benefactor
+# Data of unknown origin from a mysterious benefactor
 ha_sectors = collections.OrderedDict([
   ("trianguli sector", sector.HASector(vector3.Vector3(60.85156, -47.94922, -81.32031), 50.0, "Trianguli Sector")),
   ("crucis sector", sector.HASector(vector3.Vector3(75.91016, 8.32812, 44.83984), 60.0, "Crucis Sector")),
