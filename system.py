@@ -36,9 +36,19 @@ class System(object):
     return u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
 
 
-class PGSystem(System):
+class PGSystemPrototype(System):
   def __init__(self, x, y, z, name, sector, uncertainty):
-    super(PGSystem, self).__init__(x, y, z, name)
+    super(PGSystemPrototype, self).__init__(x, y, z, name)
+    self.uncertainty = uncertainty
+    self.sector = sector
+
+  def __repr__(self):
+    return u"PGSystemPrototype({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
+
+    
+class PGSystem(PGSystemPrototype):
+  def __init__(self, x, y, z, name, sector, uncertainty):
+    super(PGSystem, self).__init__(x, y, z, name, sector, uncertainty)
     self.uncertainty = uncertainty
     self.sector = sector
 

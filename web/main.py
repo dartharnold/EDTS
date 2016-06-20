@@ -40,12 +40,11 @@ def static(path):
 @bottle.route('/api/v1/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
 def api_system_name(x, y, z, mcode):
   pos = vector3.Vector3(x, y, z)
-  sect = pgnames.get_sector(pos)
   syst = pgnames.get_system(pos, mcode)
   result = {'position': vec3_to_dict(pos), 'names': []}
 
   if syst is not None:
-    result['names'] += [{'name': syst.name, 'type': sect.sector_class}]
+    result['names'] += [{'name': syst.name, 'type': syst.sector.sector_class}]
   else:
     bottle.response.status = 400
     result = None
@@ -57,12 +56,12 @@ def api_system_name(x, y, z, mcode):
 def api_sector_name(x, y, z):
   v = vector3.Vector3(x, y, z)
   result = {'names': [], 'position': vec3_to_dict(v)}
-  ha_name = pgnames.ha_get_name(v)
-  if ha_name is not None:
-    result['names'].append({'name': ha_name, 'type': 'ha'})
-  cx_sector = pgnames.get_sector(v, allow_ha=False)
-  if cx_sector is not None:
-    result['names'] += [{'name': cx_sector.name, 'type': cx_sector.sector_class}]
+  sect = pgnames.get_sector(v, allow_ha=True)
+  if sect is not None and isinstance(sect, sector.HASector):
+    result['names'].append({'name': sect.name, 'type': sect.sector_class})
+    sect = pgnames.get_sector(v, allow_ha=False)
+  if sect is not None:
+    result['names'] += [{'name': sect.name, 'type': sect.sector_class}]
   if not any(result['names']):
     bottle.response.status = 400
     result = None
@@ -72,9 +71,9 @@ def api_sector_name(x, y, z):
 
 @bottle.route('/api/v1/system_position/<name>')
 def api_system_position(name):
-  pos, err = pgnames.get_coords_from_name(name)
-  if pos is not None and err is not None:
-    result = {'name': pgnames.get_canonical_name(name), 'position': vec3_to_dict(pos), 'uncertainty': err}
+  syst = pgnames.get_system(name)
+  if syst is not None:
+    result = {'name': pgnames.get_canonical_name(name), 'position': vec3_to_dict(syst.position), 'uncertainty': syst.uncertainty}
   else:
     bottle.response.status = 400
     result = None
@@ -84,7 +83,7 @@ def api_system_position(name):
 
 @bottle.route('/api/v1/sector_position/<name>')
 def api_sector_position(name):
-  sect = pgnames.get_sector_from_name(name)
+  sect = pgnames.get_sector(name)
   if sect is not None:
     if isinstance(sect, sector.HASector):
       result = {'name': pgnames.get_canonical_name(name), 'type': 'ha', 'centre': vec3_to_dict(sect.centre), 'radius': sect.radius}

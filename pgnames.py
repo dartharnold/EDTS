@@ -76,115 +76,32 @@ def get_sector(input, allow_ha = True, get_name = True):
     frags = None
     if get_name:
       frags = get_sector_name(input, allow_ha=allow_ha, format_output=False)
-    # We don't authoritatively know the name, so return it without one
     return sector.PGSector(int(x), int(y), int(z), format_name(frags), _get_sector_class(frags))
   else:
     # Assume we have a string, call down to get it by name
-    return get_sector_from_name(input, allow_ha=allow_ha)
+    return _get_sector_from_name(input, allow_ha=allow_ha)
 
 
 """
-Get a system's name based on its position
+Get a system object based on its name or position
 
 Args:
-  input: The system's position
-  mcode: The system's mass code ('a'-'h')
+  input: The system's name or position
+  mcode: The system's mass code ('a'-'h'); only required when input is a position
 
 Returns:
-  A system name, missing the final number ("number2")
+  A system or system prototype object
 """
-def get_system_name_from_pos(input, mcode, allow_ha = True):
-  input = _get_as_position(input)
-  if input is None:
-    return None
-  psect = get_sector(input, allow_ha=allow_ha)
-  # Get cube width for this mcode, and the sector origin
-  cwidth = _get_mcode_cube_width(mcode)
-  psorig = psect.get_origin(cwidth)
-  # Get the relative position within this sector and the system identifier
-  relpos = vector3.Vector3(input.x - psorig.x, input.y - psorig.y, input.z - psorig.z)
-  sysid = _get_sysid_from_relpos(relpos, mcode, format_output=True)
-  return "{} {}".format(psect.name, sysid)
-
-
-"""
-Get a System object based on its name
-
-Args:
-  input: The system's name
-
-Returns:
-  A System object
-"""
-def get_system_from_name(input):
-  sector_name = get_canonical_name(input, sector_only=True)
-  coords, uncertainty = get_coords_from_name(input)
-  return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(sector_name))
-
-
-"""
-Given a sector name, get a sector object representing it
-
-Args:
-  raw_sector_name: The name of the sector
-
-Returns:
-  A Sector object
-"""
-def get_sector_from_name(raw_sector_name, allow_ha = True):
-  sector_name = get_canonical_name(raw_sector_name, sector_only=True)
-  if sector_name is None:
-    return None
-  if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_sectors:
-    return pgdata.ha_sectors[sector_name.lower()]
-  else:
-    frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
-    if frags is None:
-      return None
-    
-    sc = _get_sector_class(frags)
-    if sc == 2:
-      # Class 2
-      return _c2_get_sector(frags)
-    elif sc == 1:
-      # Class 1
-      return _c1_get_sector(frags)
+def get_system(input, mcode = None):
+  posinput = _get_as_position(input)
+  if posinput is not None:
+    if mcode is not None:
+      return _get_system_from_pos(posinput, mcode)
     else:
-      return None
-
-
-"""
-Given a full system name, get its approximate coordinates
-
-Args:
-  raw_system_name: A full system name
-
-Returns:
-  A (Vector3, Number) tuple of the approximate coordinates and the uncertainty per axis
-"""
-def get_coords_from_name(raw_system_name):
-  system_name = get_canonical_name(raw_system_name)
-  if system_name is None:
-    return (None, None)
-  # Reparse it now it's (hopefully) right
-  m = pgdata.pg_system_regex.match(system_name)
-  if m is None:
-    return (None, None)
-  sector_name = m.group("sector")
-  sect = get_sector_from_name(sector_name)
-  if sect is None:
-    return (None, None)
-  # Get the absolute position of the sector
-  abs_pos = sect.get_origin(_get_mcode_cube_width(m.group("mcode")))
-  # Get the relative position of the star within the sector
-  # Also get the +/- error bounds
-  rel_pos, rel_pos_error = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
-
-  if abs_pos is not None and rel_pos is not None:
-    return (abs_pos + rel_pos, rel_pos_error)
+      raise ValueError("mcode argument must be provided to get_system if input is a position")
   else:
-    return (None, None)
-    
+    return _get_system_from_name(input)
+
 
 """
 Get the correctly-cased name for a given sector or system name
@@ -487,6 +404,72 @@ def _get_c1_or_c2(key):
   # Key is now an even/odd number, depending on which scheme we use
   # Return 1 for a class 1 sector, 2 for a class 2
   return (key % 2) + 1
+
+
+def _get_sector_from_name(sector_name, allow_ha = True):
+  sector_name = get_canonical_name(sector_name, sector_only=True)
+  if sector_name is None:
+    return None
+  if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_sectors:
+    return pgdata.ha_sectors[sector_name.lower()]
+  else:
+    frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
+    if frags is None:
+      return None
+    
+    sc = _get_sector_class(frags)
+    if sc == 2:
+      # Class 2
+      return _c2_get_sector(frags)
+    elif sc == 1:
+      # Class 1
+      return _c1_get_sector(frags)
+    else:
+      return None
+
+
+def _get_coords_from_name(raw_system_name):
+  system_name = get_canonical_name(raw_system_name)
+  if system_name is None:
+    return (None, None)
+  # Reparse it now it's (hopefully) right
+  m = pgdata.pg_system_regex.match(system_name)
+  if m is None:
+    return (None, None)
+  sector_name = m.group("sector")
+  sect = _get_sector_from_name(sector_name)
+  if sect is None:
+    return (None, None)
+  # Get the absolute position of the sector
+  abs_pos = sect.get_origin(_get_mcode_cube_width(m.group("mcode")))
+  # Get the relative position of the star within the sector
+  # Also get the +/- error bounds
+  rel_pos, rel_pos_error = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+
+  if abs_pos is not None and rel_pos is not None:
+    return (abs_pos + rel_pos, rel_pos_error)
+  else:
+    return (None, None)
+
+
+def _get_system_from_pos(input, mcode):
+  input = _get_as_position(input)
+  if input is None:
+    return None
+  psect = get_sector(input, allow_ha=True)
+  # Get cube width for this mcode, and the sector origin
+  cwidth = _get_mcode_cube_width(mcode)
+  psorig = psect.get_origin(cwidth)
+  # Get the relative inputition within this sector and the system identifier
+  relpos = vector3.Vector3(input.x - psorig.x, input.y - psorig.y, input.z - psorig.z)
+  sysid = _get_sysid_from_relpos(relpos, mcode, format_output=True)
+  return system.PGSystemPrototype(input.x, input.y, input.z, "{} {}".format(psect.name, sysid), sector=psect, uncertainty=0)
+
+
+def _get_system_from_name(input):
+  coords, uncertainty = _get_coords_from_name(input)
+  return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(coords))
+
 
 
 # Get which HA sector this position would be part of, if any
