@@ -287,7 +287,7 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
    or approx_z < 0 or approx_z > sector.cube_size):
     input_star = "{0}{1}-{2} {3}{4}".format(
       prefix, centre, suffix, mcode, "{0}-{1}".format(number1, number2) if int(number1) > 0 else number2)
-    log.error("System relpos calculation produced invalid result [{0},{1},{2}] for input '{3}'".format(approx_x, approx_y, approx_z, input_star))
+    log.warning("System relpos calculation produced invalid result [{0},{1},{2}] for input '{3}'".format(approx_x, approx_y, approx_z, input_star))
 
   return (vector3.Vector3(approx_x,approx_y,approx_z), halfwidth)
 
@@ -755,7 +755,7 @@ def _c2_get_offset_from_name(input):
     cur_idx1 = _prefix_offsets[frags[2]][0] + _get_suffixes(frags[2]).index(frags[3])
   except:
     # Either the prefix or suffix lookup failed, likely a dodgy name
-    log.error("Failed to look up prefixes/suffixes in _c2_get_offset_from_name")
+    log.warning("Failed to look up prefixes/suffixes in _c2_get_offset_from_name; bad sector name?")
     return None
   
   # Wind the indexes back to the start point of this run (c2_run_states[0])
@@ -780,7 +780,7 @@ def _c2_get_offset_from_name(input):
     off = pgdata.c2_run_states.index((off0, off1))
   except:
     # If we failed to get any of these indexes, the entire name likely isn't valid
-    log.error("Failed to get run state indexes in _c2_get_offset_from_name")
+    log.warning("Failed to get run state indexes in _c2_get_offset_from_name; bad sector name?")
     return None
   
   # Calculate the offset from the various layers' state indexes
