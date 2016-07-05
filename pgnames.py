@@ -469,7 +469,7 @@ def _get_system_from_pos(input, mcode):
 def _get_system_from_name(input):
   coords, uncertainty = _get_coords_from_name(input)
   if coords is not None and uncertainty is not None:
-    return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(sector_name))
+    return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(input))
   else:
     return None
 
