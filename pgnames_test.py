@@ -79,7 +79,7 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
-      coords, relpos_confidence = pgnames.get_coords_from_name(input)
+      coords, relpos_confidence = pgnames._get_coords_from_name(input)
       if coords is not None:
         print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
       else:
@@ -93,6 +93,7 @@ if __name__ == '__main__':
       env.set_verbosity(2)
       env.start()
  
+      alls = 0
       ok1 = 0
       ok2 = 0
       okha = 0
@@ -112,12 +113,14 @@ if __name__ == '__main__':
       get_coords_cnt = 0
 
       for system in env.data.get_all_systems():
+        alls += 1
         sysname = pgnames.get_canonical_name(system.name)
         if sysname is not None:
           m = pgdata.pg_system_regex.match(sysname)
-          if m is not None and m.group("sector") not in ["Hypiae"]: # TODO: Remove when bad EDDB data is gone
+          if m is not None:
             if m.group("sector").lower() in pgdata.ha_sectors:
               sector = pgdata.ha_sectors[m.group("sector").lower()]
+              is_noneha = False
               if sector.contains(system.position):
                 rp, rpe = pgnames._get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
                 so = sector.get_origin(rpe * 2)
@@ -130,34 +133,36 @@ if __name__ == '__main__':
                   log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
               else:
                 noneha += 1
+                is_noneha = True
                 log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sector))
-              ha_name = pgnames._ha_get_name(system.position)
-              if ha_name == m.group("sector"):
-                okhaname += 1
-              else:
-                badhaname += 1
-                if ha_name is not None:
-                  log.info("Bad HA name: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name.lower()].size))
+              if not is_noneha:
+                ha_name = pgnames._ha_get_name(system.position)
+                if ha_name == m.group("sector"):
+                  okhaname += 1
                 else:
-                  log.info("Bad HA name: {} ({}Ly) was predicted to not be in an HA sector)".format(system.name, sector.size))
+                  badhaname += 1
+                  if ha_name is not None:
+                    log.info("BadHAName: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sector.size, ha_name, pgdata.ha_sectors[ha_name.lower()].size))
+                  else:
+                    log.info("BadHAName: {} ({}Ly) was predicted to not be in an HA sector".format(system.name, sector.size))
             else:
               start = time.clock()
               sect = pgnames.get_sector(m.group("sector"))
               tm = time.clock() - start
-              cls = pgnames._get_sector_class(m.group("sector"))
-              if sect is not None and cls is not None:
+              if sect is not None:
+                cls = sect.sector_class
                 get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
                 get_sector_cnt += 1
                 pos_sect = pgnames.get_sector(system.position, allow_ha=False)
                 if sect == pos_sect:
                   start = time.clock()
-                  coords, dist = pgnames.get_coords_from_name(system.name)
+                  coords, dist = pgnames._get_coords_from_name(system.name)
                   tm = time.clock() - start
                   if coords is None or dist is None:
                     log.warning("Could not parse system name {0}".format(system.name))
-                    if cls == 2:
+                    if cls == 'c2':
                       bad2 += 1
-                    elif cls == 1:
+                    elif cls == 'c1':
                       bad1 += 1
                     continue
                   get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
@@ -165,27 +170,27 @@ if __name__ == '__main__':
                   realdist = (coords - system.position).length
                   limit = math.sqrt(dist*dist*3)
                   if realdist <= limit:
-                    if cls == 2:
+                    if cls == 'c2':
                       ok2 += 1
-                    elif cls == 1:
+                    elif cls == 'c1':
                       ok1 += 1
                   else:
-                    if cls == 2:
+                    if cls == 'c2':
                       bad2 += 1
-                    elif cls == 1:
+                    elif cls == 'c1':
                       bad1 += 1
                     log.info("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
                 else:
-                  if cls == 2:
+                  if cls == 'c2':
                     bad2 += 1
-                  elif cls == 1:
+                  elif cls == 'c1':
                     bad1 += 1
                   log.info("Bad sector: {0} @ {1} is not in {2}".format(system.name, system.position, sect))
               else:
-                if cls == 2:
+                if cls == 'c2':
                   none2 += 1
                   log.info("None2: {0} @ {1}".format(system.name, system.position))
-                elif cls == 1:
+                elif cls == 'c1':
                   none1 += 1
                   log.info("None1: {0} @ {1}".format(system.name, system.position))
                 else:
@@ -195,7 +200,7 @@ if __name__ == '__main__':
         else:
           notpg += 1
 
-      log.info("Totals: OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg))
+      log.info("Totals: All = {}, OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(alls, ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg))
       log.info("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
 
     elif sys.argv[1] == "nametest":
