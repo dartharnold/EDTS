@@ -123,6 +123,10 @@ if __name__ == '__main__':
               is_noneha = False
               if sector.contains(system.position):
                 rp, rpe = pgnames._get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+                if rp is None or rpe is None:
+                  log.info("BadRelPos: could not calculate relative position for {}".format(system.name))
+                  badha += 1
+                  continue
                 so = sector.get_origin(rpe * 2)
                 limit = math.sqrt(rpe * rpe * 3)
                 realdist = ((so + rp) - system.position).length
@@ -159,7 +163,7 @@ if __name__ == '__main__':
                   coords, dist = pgnames._get_coords_from_name(system.name)
                   tm = time.clock() - start
                   if coords is None or dist is None:
-                    log.warning("Could not parse system name {0}".format(system.name))
+                    log.warning("BadName: could not get coords for {0}".format(system.name))
                     if cls == 'c2':
                       bad2 += 1
                     elif cls == 'c1':
