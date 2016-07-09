@@ -1,4 +1,7 @@
+#!/usr/bin/env python
+
 from __future__ import print_function, division
+import gc
 import json
 import logging
 import os
@@ -9,6 +12,7 @@ import util
 log = logging.getLogger("update")
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
+edsm_systems_url = "https://www.edsm.net/dump/systemsWithCoordinates.json"
 eddb_systems_url = "http://eddb.io/archive/v4/systems.json"
 eddb_stations_url = "http://eddb.io/archive/v4/stations.json"
 
@@ -27,7 +31,24 @@ if os.path.isfile(db_tmp_filename):
 dbc = db.initialise_db(db_tmp_filename)
 log.info("Done.")
 
-# Download the systems.json
+log.info("Downloading EDSM Systems list from {0} ... ".format(edsm_systems_url))
+sys.stdout.flush()
+edsm_systems_json = util.read_from_url(edsm_systems_url)
+log.info("Done.")
+log.info("Loading EDSM Systems data...")
+sys.stdout.flush()
+edsm_systems_obj = json.loads(edsm_systems_json)
+log.info("Done.")
+log.info("Adding EDSM Systems data to DB...")
+sys.stdout.flush()
+dbc.populate_table_systems(edsm_systems_obj)
+log.info("Done.")
+
+# Force GC collection to try to avoid memory errors
+edsm_systems_json = None
+edsm_systems_obj = None
+gc.collect()
+
 log.info("Downloading EDDB Systems list from {0} ... ".format(eddb_systems_url))
 sys.stdout.flush()
 eddb_systems_json = util.read_from_url(eddb_systems_url)
@@ -38,7 +59,17 @@ eddb_systems_obj = json.loads(eddb_systems_json)
 log.info("Done.")
 log.info("Adding EDDB Systems data to DB...")
 sys.stdout.flush()
-dbc.populate_table_eddb_systems(eddb_systems_obj)
+dbc.update_table_systems(eddb_systems_obj)
+log.info("Done.")
+
+# Force GC collection to try to avoid memory errors
+eddb_systems_json = None
+eddb_systems_obj = None
+gc.collect()
+
+log.info("Trimming systems with no EDDB data...")
+sys.stdout.flush()
+dbc.trim_table_systems()
 log.info("Done.")
 
 log.info("Downloading EDDB Stations list from {0} ... ".format(eddb_stations_url))
@@ -51,8 +82,13 @@ eddb_stations_obj = json.loads(eddb_stations_json)
 log.info("Done.")
 log.info("Adding EDDB Stations data to DB...")
 sys.stdout.flush()
-dbc.populate_table_eddb_stations(eddb_stations_obj)
+dbc.populate_table_stations(eddb_stations_obj)
 log.info("Done.")
+
+# Force GC collection to try to avoid memory errors
+eddb_stations_json = None
+eddb_stations_obj = None
+gc.collect()
 
 log.info("Downloading Coriolis FSD list from {0} ... ".format(coriolis_fsds_url))
 sys.stdout.flush()
