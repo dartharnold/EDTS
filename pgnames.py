@@ -439,8 +439,9 @@ def _get_coords_from_name(raw_system_name):
   # Also get the +/- error bounds
   rel_pos, rel_pos_error = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
 
-  # Check if our sector is PG and the relpos is invalid
-  if sect.sector_class != 'ha' and any([s > sector.cube_size for s in rel_pos]):
+  # Check if the relpos is invalid
+  leeway = rel_pos_error if (sect.sector_class == 'ha') else 0
+  if any([s > (sector.cube_size + leeway) for s in rel_pos]):
     log.warning("RelPos for input {} was invalid: {}, uncertainty {}".format(system_name, rel_pos, rel_pos_error))
     return (None, None)
 
