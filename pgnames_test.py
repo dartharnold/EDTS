@@ -50,13 +50,16 @@ def run_test(it):
               badha += 1
               continue
             so = sect.get_origin(rpe * 2)
-            limit = math.sqrt(rpe * rpe * 3)
-            realdist = ((so + rp) - system.position).length
-            if realdist <= limit:
+            coords = so + rp
+            dx = abs(coords.x - system.position.x)
+            dy = abs(coords.y - system.position.y)
+            dz = abs(coords.z - system.position.z)
+            realdist = (coords - system.position).length
+            if dx <= rpe and dy <= rpe and dz <= rpe:
               okha += 1
             else:
               badha += 1
-              log.info("BadHA: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format((so + rp), limit, system.position, realdist, system.name))
+              log.info("Bad position: {4}, {0} not close enough to {1} with {2}Ly/axis uncertainty, actually {3:.2f}Ly".format(coords, system.position, rpe, realdist, system.name))
           else:
             noneha += 1
             is_noneha = True
@@ -93,9 +96,11 @@ def run_test(it):
                 continue
               get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
               get_coords_cnt += 1
+              dx = abs(coords.x - system.position.x)
+              dy = abs(coords.y - system.position.y)
+              dz = abs(coords.z - system.position.z)
               realdist = (coords - system.position).length
-              limit = math.sqrt(dist*dist*3)
-              if realdist <= limit:
+              if dx <= dist and dy <= dist and dz <= dist:
                 if cls == 'c2':
                   ok2 += 1
                 elif cls == 'c1':
@@ -105,7 +110,7 @@ def run_test(it):
                   bad2 += 1
                 elif cls == 'c1':
                   bad1 += 1
-                log.info("Bad position: {4}, {0} not within {1:.2f}Ly of {2}, actually {3:.2f}Ly".format(coords, limit, system.position, realdist, system.name))
+                log.info("Bad position: {4}, {0} not close enough to {1} with {2}Ly/axis uncertainty, actually {3:.2f}Ly".format(coords, system.position, dist, realdist, system.name))
             else:
               if cls == 'c2':
                 bad2 += 1
