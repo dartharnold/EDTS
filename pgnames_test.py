@@ -59,7 +59,7 @@ def run_test(it):
               okha += 1
             else:
               badha += 1
-              log.info("Bad position: {4}, {0} not close enough to {1} with {2}Ly/axis uncertainty, actually {3:.2f}Ly".format(coords, system.position, rpe, realdist, system.name))
+              log.info("BadHA: {4}, {0} not close enough to {1} with {2}Ly/axis uncertainty, actually {3:.2f}Ly".format(coords, system.position, rpe, realdist, system.name))
           else:
             noneha += 1
             is_noneha = True
