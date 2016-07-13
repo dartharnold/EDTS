@@ -208,13 +208,14 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "search2":
       input = sys.argv[2]
-      coords, relpos_confidence = pgnames._get_coords_from_name(input)
-      if coords is not None:
+      syst = pgnames.get_system(input)
+      if syst is not None:
+        coords, relpos_confidence = syst.position, syst.uncertainty
         print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
       else:
-        sect = pgnames.get_sector_from_name(input)
+        sect = pgnames.get_sector(input)
         if sect is not None:
-          print("{0} is {1}, has origin {2}".format(input, str(sector), sect.origin))
+          print("{0} is {1}, has origin {2}".format(input, str(sect), sect.origin))
         else:
           print("Could not find sector or system")
 

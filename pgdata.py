@@ -249,13 +249,9 @@ c2_run_states = [
   (14, 6), (15, 6), (14, 7), (15, 7),
 ]
 
-c2_full_run_step = 16
-c2_full_outer_step = c2_full_run_step * c2_outer_step
-c2_full_vouter_step = c2_full_outer_step * c2_vouter_step
-
-c2_run_diff = c2_full_run_step // 2
-c2_outer_diff = c2_full_outer_step // 2
-c2_vouter_diff = c2_full_vouter_step // 2
+c2_run_diff = c2_f2_step
+c2_outer_diff = c2_run_diff * c2_outer_step
+c2_vouter_diff = c2_outer_diff * c2_vouter_step
 
 c1_galaxy_size = [128, 128,  78]
 c2_galaxy_size = [128,  16,  78]
@@ -529,7 +525,6 @@ ha_sectors = collections.OrderedDict([
   ("soul sector", sector.HASector(vector3.Vector3(-5095.17969, 117.80469, -5502.29492), 100.0, "Soul Sector")),
   ("pleiades sector", sector.HASector(vector3.Vector3(-81.75391, -149.41406, -343.34766), 100.0, "Pleiades Sector")),
   ("perseus dark region", sector.HASector(vector3.Vector3(-359.89844, -316.98438, -1045.22461), 100.0, "Perseus Dark Region")),
-  ("ngc 1333 sector", sector.HASector(vector3.Vector3(-381.21094, -383.42969, -957.94531), 100.0, "NGC 1333 Sector")),
   ("california sector", sector.HASector(vector3.Vector3(-332.56641, -213.03125, -918.70508), 100.0, "California Sector")),
   ("ngc 1491 sector", sector.HASector(vector3.Vector3(-4908.28906, -174.52344, -8710.81152), 100.0, "NGC 1491 Sector")),
   ("hind sector", sector.HASector(vector3.Vector3(-32.95312, -206.39062, -557.28516), 100.0, "Hind Sector")),
@@ -572,7 +567,6 @@ ha_sectors = collections.OrderedDict([
   ("sadr region sector", sector.HASector(vector3.Vector3(-1794.68359, 53.71094, 365.84961), 100.0, "Sadr Region Sector")),
   ("veil west sector", sector.HASector(vector3.Vector3(-1395.62891, -194.41797, 418.70898), 100.0, "Veil West Sector")),
   ("north america sector", sector.HASector(vector3.Vector3(-1893.85547, -33.16016, 149.04883), 100.0, "North America Sector")),
-  ("b352 sector", sector.HASector(vector3.Vector3(-1896.42969, 9.94922, 115.99023), 100.0, "B352 Sector")),
   ("pelican sector", sector.HASector(vector3.Vector3(-1891.56641, 3.31641, 178.80469), 100.0, "Pelican Sector")),
   ("veil east sector", sector.HASector(vector3.Vector3(-1914.36328, -305.97266, 491.52539), 100.0, "Veil East Sector")),
   ("iris sector", sector.HASector(vector3.Vector3(-1410.35547, 367.96094, -354.25781), 100.0, "Iris Sector")),
@@ -582,6 +576,7 @@ ha_sectors = collections.OrderedDict([
   ("ngc 7538 sector", sector.HASector(vector3.Vector3(-8372.94141, 125.66016, -3298.18945), 100.0, "NGC 7538 Sector")),
   ("bubble sector", sector.HASector(vector3.Vector3(-6573.64062, 24.78516, -2682.65234), 100.0, "Bubble Sector")),
   ("aries dark region", sector.HASector(vector3.Vector3(-93.57031, -184.53516, -257.08398), 100.0, "Aries Dark Region")),
+  ("ngc 1333 sector", sector.HASector(vector3.Vector3(-381.21094, -383.42969, -957.94531), 100.0, "NGC 1333 Sector")),
   ("taurus dark region", sector.HASector(vector3.Vector3(-62.37891, -103.47656, -443.84766), 100.0, "Taurus Dark Region")),
   ("orion dark region", sector.HASector(vector3.Vector3(596.77344, -311.86719, -1340.37305), 100.0, "Orion Dark Region")),
   ("messier 78 sector", sector.HASector(vector3.Vector3(665.03125, -395.19922, -1400.55469), 100.0, "Messier 78 Sector")),
@@ -615,6 +610,7 @@ ha_sectors = collections.OrderedDict([
   ("parrot's head sector", sector.HASector(vector3.Vector3(19.11719, -90.63281, 995.70117), 100.0, "Parrot's Head Sector")),
   ("struve's lost sector", sector.HASector(vector3.Vector3(-30.95703, -178.36719, -466.07617), 100.0, "Struve's Lost Sector")),
   ("b133 sector", sector.HASector(vector3.Vector3(-474.18359, -111.46875, 873.33984), 100.0, "B133 Sector")),
+  ("b352 sector", sector.HASector(vector3.Vector3(-1896.42969, 9.94922, 115.99023), 100.0, "B352 Sector")),
   ("bow-tie sector", sector.HASector(vector3.Vector3(-2985.95312, 601.75000, -1723.94141), 100.0, "Bow-Tie Sector")),
   ("skull sector", sector.HASector(vector3.Vector3(-369.61719, -1543.29297, -204.04102), 100.0, "Skull Sector")),
   ("little dumbbell sector", sector.HASector(vector3.Vector3(-1560.71484, -382.69531, -1351.93164), 100.0, "Little Dumbbell Sector")),
