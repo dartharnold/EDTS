@@ -20,7 +20,7 @@ class Env(object):
     # Match a float such as "33", "-33", "-33.1"
     rgx_float = r'[-+]?\d+(?:\.\d+)?'
     # Match a set of coords such as "[33, -45.6, 78.910]"
-    rgx_coords = r'\[\s*({0})\s*[,/]\s*({0})\s*[,/]\s*({0})\s*\]'.format(rgx_float)
+    rgx_coords = r'^\[\s*(?P<x>{0})\s*[,/]\s*(?P<y>{0})\s*[,/]\s*(?P<z>{0})\s*\](?:=(?P<name>.+))?$'.format(rgx_float)
     # Compile the regex for faster execution later
     self._regex_coords = re.compile(rgx_coords)
 
@@ -62,11 +62,13 @@ class Env(object):
     if rx_match is not None:
       # If it matches, make a fake system and station at those coordinates
       try:
-        cx = float(rx_match.group(1))
-        cy = float(rx_match.group(2))
-        cz = float(rx_match.group(3))
-        return System(cx, cy, cz, sysname)
-      except:
+        cx = float(rx_match.group('x'))
+        cy = float(rx_match.group('y'))
+        cz = float(rx_match.group('z'))
+        name = rx_match.group('name') if rx_match.group('name') is not None else sysname
+        return System(cx, cy, cz, name)
+      except Exception as ex:
+        log.debug("Failed to parse manual system: {}".format(ex))
         pass
     else:
       result = self._db_conn.get_system_by_name(sysname)
