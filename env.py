@@ -91,19 +91,19 @@ class Env(object):
       yield Station(st, KnownSystem(sy))
 
   def find_systems_by_glob(self, name):
-    for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_GLOB):
+    for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_GLOB):
       yield KnownSystem(s)
 
   def find_systems_by_regex(self, name):
-    for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_REGEX):
+    for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_REGEX):
       yield KnownSystem(s)
 
   def find_stations_by_glob(self, name):
-    for (sy, st) in self._db_conn.find_stations_by_name(name, mode=db.FIND_GLOB):
+    for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_GLOB):
       yield Station(st, KnownSystem(sy))
 
   def find_stations_by_regex(self, name):
-    for (sy, st) in self._db_conn.find_stations_by_name(name, mode=db.FIND_REGEX):
+    for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_REGEX):
       yield Station(st, KnownSystem(sy))
 
   def _load_data(self):
