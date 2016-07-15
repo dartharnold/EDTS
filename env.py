@@ -88,6 +88,10 @@ class Env(object):
     for s in self._db_conn.get_all_systems():
       yield KnownSystem(s)
 
+  def get_all_stations(self):
+    for st,sy in self._db_conn.get_all_stations():
+      yield Station(st, KnownSystem(sy))
+
   def find_systems_by_glob(self, name):
     for s in self._db_conn.find_systems_by_name(name, mode=db.FIND_GLOB):
       yield KnownSystem(s)
