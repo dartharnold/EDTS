@@ -243,3 +243,15 @@ class DBConnection(object):
     while result is not None:
       yield json.loads(result[0])
       result = c.fetchone()
+
+  # Slow as sin; avoid if at all possible
+  def get_all_stations(self):
+    c = self._conn.cursor()
+    cmd = 'SELECT stations.data, systems.data FROM stations, systems WHERE stations.eddb_system_id = systems.eddb_id'
+    log.debug("Executing: {}".format(cmd))
+    c.execute(cmd)
+    result = c.fetchone()
+    log.debug("Done.")
+    while result is not None:
+      yield (json.loads(result[0]), json.loads(result[1]))
+      result = c.fetchone()
