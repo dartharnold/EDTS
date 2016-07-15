@@ -11,6 +11,8 @@ import env
 from pgnames import log
 
 def run_test(it):
+  teststart = time.clock()
+
   alls = 0
   ok1 = 0
   ok2 = 0
@@ -24,11 +26,6 @@ def run_test(it):
   none2 = 0
   noneha = 0
   notpg = 0
-  
-  get_sector_avg = 0.0
-  get_sector_cnt = 0
-  get_coords_avg = 0.0
-  get_coords_cnt = 0
 
   for system in it:
     alls += 1
@@ -80,8 +77,6 @@ def run_test(it):
           tm = time.clock() - start
           if sect is not None:
             cls = sect.sector_class
-            get_sector_avg = (get_sector_avg*get_sector_cnt + tm) / (get_sector_cnt + 1)
-            get_sector_cnt += 1
             pos_sect = pgnames.get_sector(system.position, allow_ha=False)
             if sect == pos_sect:
               start = time.clock()
@@ -94,8 +89,6 @@ def run_test(it):
                 elif cls == 'c1':
                   bad1 += 1
                 continue
-              get_coords_avg = (get_coords_avg*get_coords_cnt + tm) / (get_coords_cnt + 1)
-              get_coords_cnt += 1
               dx = abs(coords.x - system.position.x)
               dy = abs(coords.y - system.position.y)
               dz = abs(coords.z - system.position.z)
@@ -130,9 +123,11 @@ def run_test(it):
         notpg += 1
     else:
       notpg += 1
+  
+  duration = time.clock() - teststart
 
   log.info("Totals: All = {}, OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(alls, ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg))
-  log.info("Time: get_sector = {0:.6f}s, get_coords = {1:.6f}s".format(get_sector_avg, get_coords_avg))
+  log.info("Time: {0:.6f}s, {1:.6f}s per system".format(duration, duration / alls))
 
 
 
