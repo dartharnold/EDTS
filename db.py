@@ -9,7 +9,7 @@ import time
 log = logging.getLogger("db")
 
 default_db_file = 'data/edts.db'
-schema_version = 5
+schema_version = 6
 
 FIND_EXACT = 0
 FIND_GLOB = 1
@@ -70,6 +70,8 @@ class DBConnection(object):
 
     c.execute('CREATE INDEX idx_systems_name ON systems (name COLLATE NOCASE)')
     c.execute('CREATE INDEX idx_systems_pos ON systems (pos_x, pos_y, pos_z)')
+    c.execute('CREATE INDEX idx_systems_edsm_id ON systems (edsm_id)')
+    c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
     c.execute('CREATE INDEX idx_stations_name ON stations (name COLLATE NOCASE)')
     c.execute('CREATE INDEX idx_stations_sysid ON stations (eddb_system_id)')
 
@@ -86,13 +88,13 @@ class DBConnection(object):
     log.debug("Done.")
 
   def update_table_systems(self, eddb_systems):
-    sysdata = [(int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['name']) for s in eddb_systems]
+    sysdata = [(int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id']) for s in eddb_systems]
     c = self._conn.cursor()
     log.debug("Going for UPDATE systems for {} systems".format(len(sysdata)))
-    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE name=? AND eddb_id IS NULL', sysdata)
+    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', sysdata)
     self._conn.commit()
     log.debug("Done.")
-  
+
   def trim_table_systems(self):
     c = self._conn.cursor()
     cmd = 'DELETE FROM systems WHERE eddb_id IS NULL'

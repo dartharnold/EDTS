@@ -249,13 +249,9 @@ c2_run_states = [
   (14, 6), (15, 6), (14, 7), (15, 7),
 ]
 
-c2_full_run_step = 16
-c2_full_outer_step = c2_full_run_step * c2_outer_step
-c2_full_vouter_step = c2_full_outer_step * c2_vouter_step
-
-c2_run_diff = c2_full_run_step // 2
-c2_outer_diff = c2_full_outer_step // 2
-c2_vouter_diff = c2_full_vouter_step // 2
+c2_run_diff = c2_f2_step
+c2_outer_diff = c2_run_diff * c2_outer_step
+c2_vouter_diff = c2_outer_diff * c2_vouter_step
 
 c1_galaxy_size = [128, 128,  78]
 c2_galaxy_size = [128,  16,  78]
