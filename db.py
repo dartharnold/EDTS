@@ -9,7 +9,7 @@ import time
 log = logging.getLogger("db")
 
 default_db_file = 'data/edts.db'
-schema_version = 5
+schema_version = 6
 
 FIND_EXACT = 0
 FIND_GLOB = 1
