@@ -258,7 +258,6 @@ c2_galaxy_size = [128,  16,  78]
 
 
 # Hand-authored sectors
-# Data of unknown origin from a mysterious benefactor
 ha_sectors = collections.OrderedDict([
   ("trianguli sector", sector.HASector(vector3.Vector3(60.85156, -47.94922, -81.32031), 50.0, "Trianguli Sector")),
   ("crucis sector", sector.HASector(vector3.Vector3(75.91016, 8.32812, 44.83984), 60.0, "Crucis Sector")),
@@ -729,6 +728,7 @@ ha_sectors = collections.OrderedDict([
     sector.HASector(vector3.Vector3(92, -95, 11), 40, "ICZ"),
     sector.HASector(vector3.Vector3(106, -95, 0), 40, "ICZ"),
   ])),
+  # Permit regions
   ("bleia1", sector.HASector(vector3.Vector3(-43, 155, 37500), 512, "Bleia1")),
   ("bleia2", sector.HASector(vector3.Vector3(-43, 155, 37000), 512, "Bleia2")),
   ("bleia3", sector.HASector(vector3.Vector3(-43, 155, 36500), 512, "Bleia3")),
@@ -746,27 +746,8 @@ ha_sectors = collections.OrderedDict([
   ("praei6", sector.HASector(vector3.Vector3(-500, -100, 53500), 512, "Praei6")),
   ("sidgoir", sector.HASector(vector3.Vector3(-24120, 10, -1220), 100, "Sidgoir")),
 ])
-# Sort by increasing size for checks
+# Sort by increasing size for checks, so smaller sectors are checked first
+# NOTE: This relies on behaviour of OrderedDict whereby if the sort key is
+# equal (i.e. sectors of identical size) the existing order is retained
 ha_sectors = collections.OrderedDict(sorted(ha_sectors.items(), key=lambda t: t[1].size))
-
-
-
-ha_permit_regions = {
-  "BLEIA1": (vector3.Vector3(-43, 155, 37500), 512),
-  "BLEIA2": (vector3.Vector3(-43, 155, 37000), 512),
-  "BLEIA3": (vector3.Vector3(-43, 155, 36500), 512),
-  "BLEIA4": (vector3.Vector3(450, 155, 37000), 512),
-  "BLEIA5": (vector3.Vector3(-450, 155, 37000), 512),
-  "BOVOMIT": (vector3.Vector3(-20070, 90, -6930), 512),
-  "DRYMAN": (vector3.Vector3(19100, 20, 21160), 512),
-  "FROADIK": (vector3.Vector3(-18860, -200, 14300), 512),
-  "HYPONIA": (vector3.Vector3(-23020, -10, 24080), 512),
-  "PRAEI1": (vector3.Vector3(-1000, -155, 54000), 512),
-  "PRAEI2": (vector3.Vector3(-1000, -155, 54400), 512),
-  "PRAEI3": (vector3.Vector3(-1000, -155, 53600), 512),
-  "PRAEI4": (vector3.Vector3(-1000, -555, 54000), 512),
-  "PRAEI5": (vector3.Vector3(-1000, 455, 54000), 512),
-  "PRAEI6": (vector3.Vector3(-500, -100, 53500), 512),
-  "SIDGOIR": (vector3.Vector3(-24120, 10, -1220), 100),
-}
 
