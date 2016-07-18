@@ -688,8 +688,6 @@ def _c1_get_name(pos):
 
 # Get the name of a class 2 sector based on its position
 def _c2_get_name(pos):
-  sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
-  
   offset = _get_offset_from_pos(pos, pgdata.c2_galaxy_size)
   return _c2_get_name_from_offset(offset)
 
