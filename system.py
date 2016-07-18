@@ -59,7 +59,7 @@ class PGSystem(PGSystemPrototype):
 class KnownSystem(System):
   def __init__(self, obj):
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'])
-    self.id = obj['id']
+    self.id = obj['id'] if 'id' in obj else None
     self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
     self.allegiance = obj['allegiance'] if 'allegiance' in obj else False
     self.uses_sc = False
@@ -69,7 +69,7 @@ class KnownSystem(System):
 
   def __eq__(self, other):
     if isinstance(other, KnownSystem):
-      return (self.id == other.id and self.name == other.name and self.position == other.position)
+      return ((self.id is None or other.id is None or self.id == other.id) and self.name == other.name and self.position == other.position)
     elif isinstance(other, System):
       return super(KnownSystem, self).__eq__(other)
     else:

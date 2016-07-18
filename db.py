@@ -85,7 +85,7 @@ class DBConnection(object):
     log.debug("Going for INSERT INTO systems for {} systems".format(len(sysdata)))
     c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', sysdata)
     self._conn.commit()
-    log.debug("Done.")
+    log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def update_table_systems(self, eddb_systems):
     sysdata = [(int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id']) for s in eddb_systems]
@@ -93,15 +93,19 @@ class DBConnection(object):
     log.debug("Going for UPDATE systems for {} systems".format(len(sysdata)))
     c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', sysdata)
     self._conn.commit()
-    log.debug("Done.")
+    log.debug("Done, {} rows affected.".format(c.rowcount))
 
-  def trim_table_systems(self):
+  def fix_table_systems(self):
     c = self._conn.cursor()
-    cmd = 'DELETE FROM systems WHERE eddb_id IS NULL'
+    # Where we have no EDDB data (unpopulated systems) create a fake skeleton EDDB JSON to read out later
+    # Yes, I'm constructing JSON in SQL; laugh and/or cry accordingly.
+    cmd = ('UPDATE systems SET data=(\'{"name": "\' || replace(name, \'"\', \'\\"\') '
+      + '|| \'", "x": \' || cast(pos_x as text) || \', "y": \' || cast(pos_y as text) '
+      + '|| \', "z": \' || cast(pos_z as text) || \'}\') WHERE eddb_id IS NULL')
     log.debug("Executing: {}".format(cmd))
     c.execute(cmd)
     self._conn.commit()
-    log.debug("Done.")
+    log.debug("Done, {} rows affected.".format(c.rowcount))
 
   def populate_table_stations(self, eddb_stations):
     stndata = [(int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s)) for s in eddb_stations]
@@ -109,7 +113,7 @@ class DBConnection(object):
     log.debug("Going for INSERT INTO stations for {} stations".format(len(stndata)))
     c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', stndata)
     self._conn.commit()
-    log.debug("Done.")
+    log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def populate_table_coriolis_fsds(self, fsds):
     fsddata = [(k, json.dumps(v)) for (k, v) in fsds.items()]
@@ -117,7 +121,7 @@ class DBConnection(object):
     log.debug("Going for INSERT INTO coriolis_fsds for {} entries".format(len(fsddata)))
     c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', fsddata)
     self._conn.commit()
-    log.debug("Done.")
+    log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def retrieve_fsd_list(self):
     c = self._conn.cursor()
