@@ -13,10 +13,11 @@ log = logging.getLogger("update")
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
 edsm_systems_url = "https://www.edsm.net/dump/systemsWithCoordinates.json"
-eddb_systems_url = "http://eddb.io/archive/v4/systems.json"
-eddb_stations_url = "http://eddb.io/archive/v4/stations.json"
+eddb_systems_url = "https://eddb.io/archive/v4/systems_populated.json"
+eddb_stations_url = "https://eddb.io/archive/v4/stations.json"
 
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
+
 
 # If the data directory doesn't exist, make it
 if not os.path.exists(os.path.dirname(db.default_db_file)):
@@ -67,9 +68,9 @@ eddb_systems_json = None
 eddb_systems_obj = None
 gc.collect()
 
-log.info("Trimming systems with no EDDB data...")
+log.info("Fixing up systems with no EDDB data...")
 sys.stdout.flush()
-dbc.trim_table_systems()
+dbc.fix_table_systems()
 log.info("Done.")
 
 log.info("Downloading EDDB Stations list from {0} ... ".format(eddb_stations_url))
