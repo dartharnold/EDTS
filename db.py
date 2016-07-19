@@ -19,9 +19,11 @@ _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
 _bad_char_regex = re.compile("[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -]")
 
+
 def _regexp(expr, item):
   rgx = re.compile(expr)
   return rgx.search(item) is not None
+
 
 def _vec3_len(x1, y1, z1, x2, y2, z2):
   xdiff = (x2-x1)
@@ -32,6 +34,7 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
 
 def open_db(filename = default_db_file, check_version = True):
   conn = sqlite3.connect(filename)
+  conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
   conn.create_function("vec3_len", 6, _vec3_len)
  
@@ -45,10 +48,12 @@ def open_db(filename = default_db_file, check_version = True):
     log.debug("DB connection opened")
   return DBConnection(conn)
 
+
 def initialise_db(filename = default_db_file):
   dbc = open_db(filename, check_version=False)
   dbc._create_tables()
   return dbc
+
 
 class DBConnection(object):
   def __init__(self, conn):
@@ -80,7 +85,6 @@ class DBConnection(object):
 
   def populate_table_systems(self, edsm_systems):
     sysdata = [(int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z'])) for s in edsm_systems]
-    # sysdata = [(int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']), bool(s['needs_permit']), s['allegiance'], json.dumps(s)) for s in systems]
     c = self._conn.cursor()
     log.debug("Going for INSERT INTO systems for {} systems".format(len(sysdata)))
     c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', sysdata)
@@ -92,18 +96,6 @@ class DBConnection(object):
     c = self._conn.cursor()
     log.debug("Going for UPDATE systems for {} systems".format(len(sysdata)))
     c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', sysdata)
-    self._conn.commit()
-    log.debug("Done, {} rows affected.".format(c.rowcount))
-
-  def fix_table_systems(self):
-    c = self._conn.cursor()
-    # Where we have no EDDB data (unpopulated systems) create a fake skeleton EDDB JSON to read out later
-    # Yes, I'm constructing JSON in SQL; laugh and/or cry accordingly.
-    cmd = ('UPDATE systems SET data=(\'{"name": "\' || replace(name, \'"\', \'\\"\') '
-      + '|| \'", "x": \' || cast(pos_x as text) || \', "y": \' || cast(pos_y as text) '
-      + '|| \', "z": \' || cast(pos_z as text) || \'}\') WHERE eddb_id IS NULL')
-    log.debug("Executing: {}".format(cmd))
-    c.execute(cmd)
     self._conn.commit()
     log.debug("Done, {} rows affected.".format(c.rowcount))
 
@@ -134,25 +126,25 @@ class DBConnection(object):
 
   def get_system_by_name(self, name):
     c = self._conn.cursor()
-    cmd = 'SELECT data FROM systems WHERE name = ?'
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name = ?'
     log.debug("Executing: {}; name = {}".format(cmd, name))
     c.execute(cmd, (name, ))
     result = c.fetchone()
     log.debug("Done.")
     if result != None:
-      return json.loads(result[0])
+      return _process_system_result(result)
     else:
       return None
 
   def get_station_by_names(self, sysname, stnname):
     c = self._conn.cursor()
-    cmd = 'SELECT sy.data AS sysdata, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
     log.debug("Executing: {}; sysname = {}, stnname = {}".format(cmd, sysname, stnname))
     c.execute(cmd, (sysname, stnname))
     result = c.fetchone()
     log.debug("Done.")
     if result != None:
-      return (json.loads(result[0]), json.loads(result[1]))
+      return (_process_system_result(result), json.loads(result['stndata']))
     else:
       return (None, None)
 
@@ -167,37 +159,37 @@ class DBConnection(object):
 
   def get_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z):
     c = self._conn.cursor()
-    cmd = 'SELECT data FROM systems WHERE ? <= pos_x AND pos_x < ? AND ? <= pos_y AND pos_y < ? AND ? <= pos_z AND pos_z < ?'
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE ? <= pos_x AND pos_x < ? AND ? <= pos_y AND pos_y < ? AND ? <= pos_z AND pos_z < ?'
     log.debug("Executing: {}; min_x = {}, max_x = {}, min_y = {}, max_y = {}, min_z = {}, max_z = {}".format(cmd, min_x, max_x, min_y, max_y, min_z, max_z))
     c.execute(cmd, (min_x, max_x, min_y, max_y, min_z, max_z))
     results = c.fetchall()
     log.debug("Done.")
-    return [json.loads(r[0]) for r in results]
+    return [_process_system_result(r) for r in results]
     
   def find_systems_by_name(self, name, mode=FIND_EXACT):
     if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
-    cmd = 'SELECT data FROM systems WHERE name {0} ?'.format(_find_operators[mode])
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name {0} ?'.format(_find_operators[mode])
     log.debug("Executing: {}; name = {}".format(cmd, name))
     c.execute(cmd, (name, ))
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
-      yield json.loads(result[0])
+      yield _process_system_result(result)
       result = c.fetchone()
 
   def find_stations_by_name(self, name, mode=FIND_EXACT):
     if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
-    cmd = 'SELECT sy.data AS sysdata, st.data AS stndata FROM systems sy, stations st WHERE st.name {0} ? AND sy.eddb_id = st.eddb_system_id'.format(_find_operators[mode])
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE st.name {0} ? AND sy.eddb_id = st.eddb_system_id'.format(_find_operators[mode])
     log.debug("Executing: {}; name = {}".format(cmd, name))
     c.execute(cmd, (name, ))
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
-      yield (json.loads(result[0]), json.loads(result[1]))
+      yield (_process_system_result(result), json.loads(result['stndata']))
       result = c.fetchone()
   
   # WARNING: VERY UNSAFE, USE WITH CARE
@@ -212,13 +204,13 @@ class DBConnection(object):
     name = _bad_char_regex.sub("", name)
     name = name.replace("'", r"''")
     c = self._conn.cursor()
-    cmd = "SELECT data FROM systems WHERE name {0} '{1}'".format(_find_operators[mode], name)
+    cmd = "SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name {0} '{1}'".format(_find_operators[mode], name)
     log.debug("Executing (U): {}".format(cmd))
     c.execute(cmd)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
-      yield json.loads(result[0])
+      yield _process_system_result(result)
       result = c.fetchone()
 
   def find_stations_by_name_unsafe(self, name, mode=FIND_EXACT):
@@ -227,35 +219,42 @@ class DBConnection(object):
     name = _bad_char_regex.sub("", name)
     name = name.replace("'", r"''")
     c = self._conn.cursor()
-    cmd = "SELECT sy.data AS sysdata, st.data AS stndata FROM systems sy, stations st WHERE st.name {0} '{1}' AND sy.eddb_id = st.eddb_system_id".format(_find_operators[mode], name)
+    cmd = "SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE st.name {0} '{1}' AND sy.eddb_id = st.eddb_system_id".format(_find_operators[mode], name)
     log.debug("Executing (U): {}".format(cmd))
     c.execute(cmd)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
-      yield (json.loads(result[0]), json.loads(result[1]))
+      yield (_process_system_result(result), json.loads(result['stndata']))
       result = c.fetchone()
 
   # Slow as sin; avoid if at all possible
   def get_all_systems(self):
     c = self._conn.cursor()
-    cmd = 'SELECT data FROM systems'
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems'
     log.debug("Executing: {}".format(cmd))
     c.execute(cmd)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
-      yield json.loads(result[0])
+      yield _process_system_result(result)
       result = c.fetchone()
 
   # Slow as sin; avoid if at all possible
   def get_all_stations(self):
     c = self._conn.cursor()
-    cmd = 'SELECT stations.data, systems.data FROM stations, systems WHERE stations.eddb_system_id = systems.eddb_id'
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM stations st, systems sy WHERE st.eddb_system_id = sy.eddb_id'
     log.debug("Executing: {}".format(cmd))
     c.execute(cmd)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
-      yield (json.loads(result[0]), json.loads(result[1]))
+      yield (_process_system_result(result), json.loads(result['stndata']))
       result = c.fetchone()
+
+
+def _process_system_result(result):
+  if result['data'] is not None:
+    return json.loads(result['data'])
+  else:
+    return {'name': result['name'], 'x': result['pos_x'], 'y': result['pos_y'], 'z': result['pos_z']}

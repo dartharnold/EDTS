@@ -68,11 +68,6 @@ eddb_systems_json = None
 eddb_systems_obj = None
 gc.collect()
 
-log.info("Fixing up systems with no EDDB data...")
-sys.stdout.flush()
-dbc.fix_table_systems()
-log.info("Done.")
-
 log.info("Downloading EDDB Stations list from {0} ... ".format(eddb_stations_url))
 sys.stdout.flush()
 eddb_stations_json = util.read_from_url(eddb_stations_url)
