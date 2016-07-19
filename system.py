@@ -61,7 +61,7 @@ class KnownSystem(System):
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'])
     self.id = obj['id'] if 'id' in obj else None
     self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
-    self.allegiance = obj['allegiance'] if 'allegiance' in obj else False
+    self.allegiance = obj['allegiance'] if 'allegiance' in obj else None
     self.uses_sc = False
 
   def __repr__(self):
