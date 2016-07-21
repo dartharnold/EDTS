@@ -46,11 +46,11 @@ class FSD(object):
     self.fuelpower = float(fsdobj['fuelpower'])
 
   def range(self, mass, fuel, cargo = 0):
-    cur_maxfuel = min(self.maxfuel, fuel)
-    return (self.optmass / (mass + fuel + cargo)) * math.pow((cur_maxfuel / self.fuelmul), (1 / self.fuelpower))
+    cur_maxfuel = min(self.maxfuel, float(fuel))
+    return (self.optmass / (float(mass) + float(fuel) + float(cargo))) * math.pow((cur_maxfuel / self.fuelmul), (1.0 / self.fuelpower))
 
   def cost(self, dist, mass, fuel, cargo = 0):
-    return self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
+    return self.fuelmul * math.pow(dist * ((float(mass) + float(fuel) + float(cargo)) / self.optmass), self.fuelpower)
 
   def max_range(self, mass, cargo = 0):
     return self.range(mass, self.maxfuel, cargo)
@@ -63,7 +63,7 @@ class FSD(object):
     # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
-    wmax = (math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist) - (mass + cargo)
+    wmax = (math.pow(self.maxfuel / self.fuelmul, 1.0 / self.fuelpower) * self.optmass / float(dist)) - (float(mass) + float(cargo))
 
     # Iterative check to narrow down the minimum fuel requirement
     clast = self.maxfuel
