@@ -16,7 +16,7 @@ log = logging.getLogger("env")
 
 
 class Env(object):
-  def __init__(self):
+  def __init__(self, path = '.'):
     # Match a float such as "33", "-33", "-33.1"
     rgx_float = r'[-+]?\d+(?:\.\d+)?'
     # Match a set of coords such as "[33, -45.6, 78.910]"
@@ -24,10 +24,15 @@ class Env(object):
     # Compile the regex for faster execution later
     self._regex_coords = re.compile(rgx_coords)
 
+    self.is_data_loaded = False
     self._db_conn = None
+    self._data_path = os.path.normpath(path)
+
+    if not os.path.isfile(os.path.join(self._data_path, os.path.normpath(global_args.db_file))):
+      log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
+      return
 
     self._load_lock = threading.RLock()
-    self.is_data_loaded = False
     self.load_data(False)
 
   def close(self):
@@ -112,10 +117,14 @@ class Env(object):
 
   def _load_data(self):
     with self._load_lock:
-      self._db_conn = db.open_db()
-      self._load_coriolis_data()
-      self.is_data_loaded = True
-      log.debug("Data loaded")
+      try:
+        self._db_conn = db.open_db(os.path.join(self._data_path, os.path.normpath(global_args.db_file)))
+        self._load_coriolis_data()
+        self.is_data_loaded = True
+        log.debug("Data loaded")
+      except Exception as ex:
+        self.is_data_loaded = False
+        log.error("Failed to open database: {}".format(ex))
 
   def load_data(self, async):
     if async:
@@ -149,15 +158,17 @@ class Env(object):
 data = None
 
 
-def start():
+def start(path = '.'):
   global data
-  if data is None:
-    data = Env()
+  if data is None or not data.is_data_loaded:
+    newdata = Env(path)
+    if newdata.is_data_loaded:
+      data = newdata
 
 
 def is_started():
   global data
-  return (data is not None)
+  return (data is not None and data.is_data_loaded)
 
 
 def stop():
@@ -185,8 +196,3 @@ global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])
 # Only try to parse args/set verbosity in non-interactive mode
 if not util.is_interactive():
   set_verbosity(global_args.verbose)
-
-if not os.path.isfile(global_args.db_file):
-  log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
-  if not util.is_interactive():
-    sys.exit(1)
