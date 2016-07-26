@@ -8,6 +8,8 @@ class Station(object):
     self.station_type = obj['type'] if obj is not None else None
     self.has_fuel = bool(obj['has_refuel']) if obj is not None else False
     self.max_pad_size = obj['max_landing_pad_size'] if obj is not None else 'L'
+    self.data = obj.copy()
+    self.data['system'] = sysobj.data.copy()
 
   def __str__(self):
     if self.name is not None:

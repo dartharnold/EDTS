@@ -63,6 +63,7 @@ class KnownSystem(System):
     self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
     self.allegiance = obj['allegiance'] if 'allegiance' in obj else None
     self.uses_sc = False
+    self.data = obj.copy()
 
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
