@@ -106,6 +106,10 @@ class Env(object):
     for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_REGEX):
       yield Station(st, KnownSystem(sy))
 
+  def find_systems_close_to(self, refs):
+    for s in self._db_conn.find_systems_close_to(refs):
+      yield KnownSystem(s)
+
   def _load_data(self):
     with self._load_lock:
       self._db_conn = db.open_db()

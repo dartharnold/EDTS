@@ -87,8 +87,15 @@ class Application(object):
     asys = []
 
     maxdist = 0.0
+    close_to_list = []
+    for s in self.args.system:
+      min_dist = s['min_dist'] if 'min_dist' in s else None
+      max_dist = s['max_dist'] if 'max_dist' in s else None
+      close_to_list.append([s['system'], min_dist, max_dist])
+    if not map(lambda x: x[2] is not None, close_to_list).count(True):
+      log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
-    for s in env.data.get_all_systems():
+    for s in env.data.find_systems_close_to(close_to_list):
       # If we don't care about allegiance, or we do and it matches...
       if s.name.lower() not in start_names and (self.args.allegiance is None or s.allegiance == self.args.allegiance):
         has_stns = (s.allegiance is not None)
@@ -107,14 +114,7 @@ class Application(object):
               is_ok = True
               for d in self.args.system:
                 start = d['sysobj']
-                this_dist = s.distance_to(start)
-                if 'min_dist' in d and this_dist < d['min_dist']:
-                  is_ok = False
-                  break
-                if 'max_dist' in d and this_dist > d['max_dist']:
-                  is_ok = False
-                  break
-                dist += this_dist
+                dist += s.distance_to(start)
 
               if not is_ok:
                 continue

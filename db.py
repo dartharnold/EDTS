@@ -173,6 +173,45 @@ class DBConnection(object):
     results = c.fetchall()
     log.debug("Done.")
     return [_process_system_result(r) for r in results]
+
+  def find_systems_close_to(self, refs):
+    c = self._conn.cursor()
+    params = []
+    select = ["other.name, other.pos_x, other.pos_y, other.pos_z, other.data"]
+    tables = ["systems other"]
+    where = []
+    debug = []
+    debug_params = []
+    idx = 1
+    for ref in refs:
+      name, min_dist, max_dist = ref
+      select.append("(((ref{0}.pos_x - other.pos_x) * (ref{0}.pos_x - other.pos_x)) + ((ref{0}.pos_y - other.pos_y) * (ref{0}.pos_y - other.pos_y)) + ((ref{0}.pos_z - other.pos_z) * (ref{0}.pos_z - other.pos_z))) as diff{0}".format(idx))
+      tables.append("systems ref{0}".format(idx))
+      clause = "ref{0}.name = ? AND other.edsm_id != ref{0}.edsm_id".format(idx)
+      params.append(name)
+      debug_clause = "name{0} = {1}".format(idx, '{}')
+      debug_params.append(name)
+      if min_dist is not None:
+        clause += " AND diff{0} >= ? * ?".format(idx)
+        params += [min_dist, min_dist]
+        debug_clause += ", min_dist{0} = {1}".format(idx, '{}')
+        debug_params.append(min_dist)
+      if max_dist is not None:
+        clause += " AND diff{0} <= ? * ?".format(idx)
+        params += [max_dist, max_dist]
+        debug_clause += ", max_dist{0} = {1}".format(idx, '{}')
+        debug_params.append(max_dist)
+      where.append(clause)
+      debug.append(debug_clause)
+      idx += 1
+    cmd = "SELECT {0} FROM {1} WHERE {2}".format(', '.join(select), ', '.join(tables), ' AND '.join(where))
+    log.debug("Executing: {}; {}".format(cmd, ', '.join(debug).format(*debug_params)))
+
+    c.execute(cmd, params)
+    results = c.fetchall()
+    log.debug("Done")
+    return [_process_system_result(r) for r in results]
+
     
   def find_systems_by_name(self, name, mode=FIND_EXACT):
     if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
