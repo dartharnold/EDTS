@@ -6,11 +6,17 @@ else:
   import urllib2
 
 
+def open_url(url):
+  if sys.version_info >= (3, 0):
+    return urllib.request.urlopen(url)
+  else:
+    return urllib2.urlopen(url)
+
 def read_from_url(url):
   if sys.version_info >= (3, 0):
-    return urllib.request.urlopen(url).read().decode("utf-8")
+    return open_url(url).read().decode("utf-8")
   else:
-    return urllib2.urlopen(url).read()
+    return open_url(url).read()
 
 
 def download_file(url, file):

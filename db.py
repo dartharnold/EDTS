@@ -1,3 +1,4 @@
+import decimal
 import json
 import logging
 import math
@@ -31,6 +32,13 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
   zdiff = (z2-z1)
   return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
 
+
+# Objects from ijson will have Decimal values but json.dumps() can't serialise
+# them so we use a default handler.
+def _json_serialise(obj):
+  if isinstance(obj, decimal.Decimal):
+    return float(obj)
+  raise TypeError
 
 def open_db(filename = default_db_file, check_version = True):
   conn = sqlite3.connect(filename)
@@ -92,7 +100,7 @@ class DBConnection(object):
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def update_table_systems(self, eddb_systems):
-    sysdata = [(int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id']) for s in eddb_systems]
+    sysdata = [(int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s, default=_json_serialise), s['edsm_id']) for s in eddb_systems]
     c = self._conn.cursor()
     log.debug("Going for UPDATE systems for {} systems".format(len(sysdata)))
     c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', sysdata)
@@ -100,7 +108,7 @@ class DBConnection(object):
     log.debug("Done, {} rows affected.".format(c.rowcount))
 
   def populate_table_stations(self, eddb_stations):
-    stndata = [(int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s)) for s in eddb_stations]
+    stndata = [(int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s, default=_json_serialise)) for s in eddb_stations]
     c = self._conn.cursor()
     log.debug("Going for INSERT INTO stations for {} stations".format(len(stndata)))
     c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', stndata)
@@ -108,7 +116,7 @@ class DBConnection(object):
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def populate_table_coriolis_fsds(self, fsds):
-    fsddata = [(k, json.dumps(v)) for (k, v) in fsds.items()]
+    fsddata = [(k, json.dumps(v, default=_json_serialise)) for (k, v) in fsds.items()]
     c = self._conn.cursor()
     log.debug("Going for INSERT INTO coriolis_fsds for {} entries".format(len(fsddata)))
     c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', fsddata)
