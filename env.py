@@ -47,21 +47,34 @@ class Env(object):
   def parse_system(self, sysstr):
     return self.get_system(sysstr)
 
-  def get_station(self, sysname, statname = None):
+  def _make_known_system(self, s, keep_data=False):
+    sysobj = KnownSystem(s)
+    if keep_data:
+      sysobj.data = s.copy()
+    return sysobj
+
+  def _make_station(self, sy, st, keep_data=False):
+    sysobj = self._make_known_system(sy, keep_data) if not isinstance(sy, KnownSystem) else sy
+    stnobj = Station(st, sysobj)
+    if keep_data:
+      stnobj.data = st
+    return stnobj
+
+  def get_station(self, sysname, statname = None, keep_data=False):
     if statname is not None:
       (sysdata, stndata) = self._db_conn.get_station_by_names(sysname, statname)
       if sysdata is not None and stndata is not None:
-        return Station(stndata, KnownSystem(sysdata))
+        return self._make_station(sysdata, stndata, keep_data)
     else:
-      sys = self.get_system(sysname)
+      sys = self.get_system(sysname, keep_data)
       if sys is not None:
         return Station.none(sys)
     return None
 
-  def get_stations(self, sysobj):
-    return [Station(stndata, sysobj) for stndata in self._db_conn.get_stations_by_system_id(sysobj.id)]
+  def get_stations(self, sysobj, keep_station_data=False):
+    return [self._make_station(sysobj, stndata, keep_data=keep_station_data) for stndata in self._db_conn.get_stations_by_system_id(sysobj.id)]
 
-  def get_system(self, sysname):
+  def get_system(self, sysname, keep_data=False):
     # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
     rx_match = self._regex_coords.match(sysname)
     if rx_match is not None:
@@ -78,7 +91,7 @@ class Env(object):
     else:
       result = self._db_conn.get_system_by_name(sysname)
       if result is not None:
-        return KnownSystem(result)
+        return self._make_known_system(result, keep_data)
       else:
         return None
 
@@ -90,34 +103,34 @@ class Env(object):
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
     return [KnownSystem(s) for s in self._db_conn.get_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z)]
-  
-  def get_all_systems(self):
+ 
+  def get_all_systems(self, keep_data=False):
     for s in self._db_conn.get_all_systems():
-      yield KnownSystem(s)
+      yield self._make_known_system(s, keep_data)
 
-  def get_all_stations(self):
+  def get_all_stations(self, keep_data=False):
     for st,sy in self._db_conn.get_all_stations():
-      yield Station(st, KnownSystem(sy))
+      yield self._make_station(sy, st, keep_data)
 
-  def find_systems_by_glob(self, name):
+  def find_systems_by_glob(self, name, keep_data=False):
     for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_GLOB):
-      yield KnownSystem(s)
+      yield self._make_known_system(s, keep_data)
 
-  def find_systems_by_regex(self, name):
+  def find_systems_by_regex(self, name, keep_data=False):
     for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_REGEX):
-      yield KnownSystem(s)
+      yield self._make_known_system(s, keep_data)
 
-  def find_stations_by_glob(self, name):
+  def find_stations_by_glob(self, name, keep_data=False):
     for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_GLOB):
-      yield Station(st, KnownSystem(sy))
+      yield self._make_station(sy, st, keep_data)
 
-  def find_stations_by_regex(self, name):
+  def find_stations_by_regex(self, name, keep_data=False):
     for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_REGEX):
-      yield Station(st, KnownSystem(sy))
+      yield self._make_station(sy, st, keep_data)
 
-  def find_systems_close_to(self, refs):
+  def find_systems_close_to(self, refs, keep_data=False):
     for s in self._db_conn.find_systems_close_to(refs):
-      yield KnownSystem(s)
+      yield self._make_known_system(s, keep_data)
 
   def _load_data(self):
     with self._load_lock:

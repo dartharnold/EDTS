@@ -98,7 +98,7 @@ def api_sector_position(name):
 
 @bottle.route('/api/v1/system/<name>')
 def api_system(name):
-  syst = env.data.get_system(name)
+  syst = env.data.get_system(name, keep_data=True)
   if syst is not None:
     result = syst.data
   bottle.response.content_type = 'application/json'
@@ -107,12 +107,11 @@ def api_system(name):
 @bottle.route('/api/v1/system/<name>/stations')
 def api_system_stations(name):
   result = []
-  syst = env.data.get_system(name)
+  syst = env.data.get_system(name, keep_data=True)
   if syst is not None:
-    for stat in env.data.get_stations(syst):
+    for stat in env.data.get_stations(syst, keep_station_data=True):
       if stat is not None:
-        del stat.data['system']
-        result.append(syst.data)
+        result.append(stat.data)
   if not len(result):
     result = None
   bottle.response.content_type = 'application/json'
@@ -120,9 +119,10 @@ def api_system_stations(name):
 
 @bottle.route('/api/v1/system/<system_name>/station/<station_name>')
 def api_system_station(system_name, station_name):
-  stat = env.data.get_station(system_name, station_name)
+  stat = env.data.get_station(system_name, station_name, keep_data=True)
   if stat is not None:
     result = stat.data
+    result['system'] = stat.system.data
   else:
     result = None
   bottle.response.content_type = 'application/json'
@@ -131,7 +131,7 @@ def api_system_station(system_name, station_name):
 @bottle.route('/api/v1/find_system/<glob>')
 def api_find_system(glob):
   result = []
-  for syst in env.data.find_systems_by_glob(glob):
+  for syst in env.data.find_systems_by_glob(glob, keep_data=True):
     if syst is not None:
       result.append(syst.data)
   if not len(result):
@@ -142,9 +142,11 @@ def api_find_system(glob):
 @bottle.route('/api/v1/find_station/<glob>')
 def api_find_station(glob):
   result = []
-  for stat in env.data.find_stations_by_glob(glob):
+  for stat in env.data.find_stations_by_glob(glob, keep_data=True):
     if stat is not None:
-      result.append(stat.data)
+      stndata = stat.data
+      stndata['system'] = stat.system.data
+      result.append(stndata)
   if not len(result):
     result = None
   bottle.response.content_type = 'application/json'
