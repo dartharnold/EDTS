@@ -9,7 +9,7 @@ import time
 
 log = logging.getLogger("db")
 
-default_db_file = 'data/edts.db'
+default_db_file = os.path.normpath('data/edts.db')
 schema_version = 6
 
 FIND_EXACT = 0

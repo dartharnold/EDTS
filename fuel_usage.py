@@ -7,7 +7,6 @@ import env
 import logging
 from math import log10, floor, fabs
 import sys
-from vector3 import Vector3
 import ship
 
 app_name = "fuel_usage"

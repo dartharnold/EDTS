@@ -4,7 +4,6 @@ from __future__ import print_function
 import argparse
 import env
 import logging
-from vector3 import Vector3
 
 app_name = "coords"
 

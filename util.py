@@ -12,7 +12,7 @@ def open_url(url):
   else:
     return urllib2.urlopen(url)
 
-def read_stream(stream, limit = -1):
+def read_stream(stream, limit = None):
   if sys.version_info >= (3, 0):
     return stream.read(limit).decode("utf-8")
   else:
@@ -20,6 +20,17 @@ def read_stream(stream, limit = -1):
 
 def read_from_url(url):
   return read_stream(open_url(url))
+
+
+def is_interactive():
+  return hasattr(sys, 'ps1')
+
+
+def is_str(s):
+  if sys.version_info >= (3, 0):
+    return isinstance(s, str)
+  else:
+    return isinstance(s, basestring)
 
 
 def download_file(url, file):

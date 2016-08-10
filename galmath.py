@@ -5,7 +5,6 @@ import argparse
 import logging
 import math
 import sys
-from vector3 import Vector3
 
 app_name = "galmath"
 

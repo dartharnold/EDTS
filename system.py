@@ -1,9 +1,9 @@
-from vector3 import Vector3
+import vector3
 
 
 class System(object):
   def __init__(self, x, y, z, name = None):
-    self.position = Vector3(float(x), float(y), float(z))
+    self.position = vector3.Vector3(float(x), float(y), float(z))
     self.name = name
     self.uses_sc = False
 
@@ -21,7 +21,7 @@ class System(object):
     return self.to_string()
 
   def __repr__(self):
-    return u"System({0})".format(self.name)
+    return u"System({})".format(self.name)
 
   def distance_to(self, other):
     return (self.position - other.position).length
@@ -33,7 +33,27 @@ class System(object):
       return NotImplemented
 
   def __hash__(self):
-    return u"{0}/{1},{2},{3}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+    return u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+
+
+class PGSystemPrototype(System):
+  def __init__(self, x, y, z, name, sector, uncertainty):
+    super(PGSystemPrototype, self).__init__(x, y, z, name)
+    self.uncertainty = uncertainty
+    self.sector = sector
+
+  def __repr__(self):
+    return u"PGSystemPrototype({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
+
+    
+class PGSystem(PGSystemPrototype):
+  def __init__(self, x, y, z, name, sector, uncertainty):
+    super(PGSystem, self).__init__(x, y, z, name, sector, uncertainty)
+    self.uncertainty = uncertainty
+    self.sector = sector
+
+  def __repr__(self):
+    return u"PGSystem({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
 
 
 class KnownSystem(System):
