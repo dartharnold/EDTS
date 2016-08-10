@@ -12,11 +12,14 @@ def open_url(url):
   else:
     return urllib2.urlopen(url)
 
-def read_from_url(url):
+def read_stream(stream, limit = -1):
   if sys.version_info >= (3, 0):
-    return open_url(url).read().decode("utf-8")
+    return stream.read(limit).decode("utf-8")
   else:
-    return open_url(url).read()
+    return stream.read(limit)
+
+def read_from_url(url):
+  return read_stream(open_url(url))
 
 
 def download_file(url, file):
