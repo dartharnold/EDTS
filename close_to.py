@@ -91,7 +91,7 @@ class Application(object):
       min_dist = s['min_dist'] if 'min_dist' in s else None
       max_dist = s['max_dist'] if 'max_dist' in s else None
       close_to_list.append([s['system'], min_dist, max_dist])
-    if not map(lambda x: x[2] is not None, close_to_list).count(True):
+    if not any([x[2] for x in close_to_list]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
     for s in env.data.find_systems_close_to(close_to_list):
