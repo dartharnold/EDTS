@@ -6,11 +6,20 @@ else:
   import urllib2
 
 
-def read_from_url(url):
+def open_url(url):
   if sys.version_info >= (3, 0):
-    return urllib.request.urlopen(url).read().decode("utf-8")
+    return urllib.request.urlopen(url)
   else:
-    return urllib2.urlopen(url).read()
+    return urllib2.urlopen(url)
+
+def read_stream(stream, limit = None):
+  if sys.version_info >= (3, 0):
+    return stream.read(limit).decode("utf-8")
+  else:
+    return stream.read(limit)
+
+def read_from_url(url):
+  return read_stream(open_url(url))
 
 
 def is_interactive():
