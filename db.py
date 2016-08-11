@@ -84,35 +84,31 @@ class DBConnection(object):
     self._conn.commit()
     log.debug("Done.")
 
-  def populate_table_systems(self, edsm_systems):
-    sysdata = [(int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z'])) for s in edsm_systems]
+  def populate_table_systems(self, many):
     c = self._conn.cursor()
-    log.debug("Going for INSERT INTO systems for {} systems".format(len(sysdata)))
-    c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', sysdata)
+    log.debug("Going for INSERT INTO systems...")
+    c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', many)
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
-  def update_table_systems(self, eddb_systems):
-    sysdata = [(int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id']) for s in eddb_systems]
+  def update_table_systems(self, many):
     c = self._conn.cursor()
-    log.debug("Going for UPDATE systems for {} systems".format(len(sysdata)))
-    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', sysdata)
+    log.debug("Going for UPDATE systems...")
+    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', many)
     self._conn.commit()
     log.debug("Done, {} rows affected.".format(c.rowcount))
 
-  def populate_table_stations(self, eddb_stations):
-    stndata = [(int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s)) for s in eddb_stations]
+  def populate_table_stations(self, many):
     c = self._conn.cursor()
-    log.debug("Going for INSERT INTO stations for {} stations".format(len(stndata)))
-    c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', stndata)
+    log.debug("Going for INSERT INTO stations...")
+    c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', many)
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
-  def populate_table_coriolis_fsds(self, fsds):
-    fsddata = [(k, json.dumps(v)) for (k, v) in fsds.items()]
+  def populate_table_coriolis_fsds(self, many):
+    log.debug("Going for INSERT INTO coriolis_fsds...")
     c = self._conn.cursor()
-    log.debug("Going for INSERT INTO coriolis_fsds for {} entries".format(len(fsddata)))
-    c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', fsddata)
+    c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', many)
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function, division
+from time import time
 import argparse
 import gc
 import json
@@ -26,20 +27,24 @@ ap.add_argument('-s', '--batch-size', required=False, type=int, help='Batch size
 args = ap.parse_args(sys.argv[1:])
 batch_size = None
 if args.batch or args.batch_size:
-  batch_size = args.batch_size if args.batch_size is not None else 131072
+  batch_size = args.batch_size if args.batch_size is not None else 1024
   if not batch_size > 0:
     log.error("Batch size must be a natural number!")
     sys.exit(1)
 
-def import_json(url, description, fn, batch_size):
+def import_json(url, description, batch_size, key = None):
   try:
     if batch_size is not None:
       log.info("Downloading {0} list from {1} ... ".format(description, url))
       sys.stdout.flush()
 
+      start = int(time())
+      done = 0
+      last_elapsed = 0
+
       batch = []
       encoded = ''
-      bufsize = 256
+      bufsize = 4096
       bytes_read = 0
       stream = util.open_url(url)
       while True:
@@ -71,15 +76,21 @@ def import_json(url, description, fn, batch_size):
               break
             batch.append(obj)
             if len(batch) >= batch_size:
-              log.info("Loading {0} data of size {1} to DB...".format(description, len(batch)))
-              fn(batch)
-              log.info("Resuming parsing...")
+              for obj in batch:
+                yield obj
+              done += len(batch)
+              elapsed = int(time()) - start
+              if elapsed - last_elapsed >= 30:
+                log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
+                last_elapsed = elapsed
               batch = []
           elif i == last:
             encoded = line
-      if len(batch):
-        log.info("Loading {0} data of size {1} to DB...".format(description, len(batch)))
-        fn(batch)
+        if len(batch) >= batch_size:
+          for obj in batch:
+            yield obj
+          done += len(batch)
+          log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
       log.info("Done.")
     else:
       log.info("Downloading {0} list from {1} ... ".format(description, url))
@@ -92,7 +103,10 @@ def import_json(url, description, fn, batch_size):
       log.info("Done.")
       log.info("Adding {0} data to DB...".format(description))
       sys.stdout.flush()
-      fn(obj)
+      if key is not None:
+        obj = obj[key]
+      for o in obj:
+        yield o
       log.info("Done.")
     # Force GC collection to try to avoid memory errors
     encoded = None
@@ -106,13 +120,21 @@ def import_json(url, description, fn, batch_size):
     gc.collect()
     raise
 
-def import_coriolis_data(entries):
-  if 'fsd' in entries:
-    entries = entries['fsd']
-  fsddata = {}
-  for entry in entries:
-    fsddata['{0}{1}'.format(entry['class'], entry['rating'])] = entry
-  dbc.populate_table_coriolis_fsds(fsddata)
+def generate_systems(edsm_systems_url, batch_size):
+  for s in import_json(edsm_systems_url, 'EDSM systems', batch_size):
+    yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
+
+def generate_systems_update(eddb_systems_url, batch_size):
+  for s in import_json(eddb_systems_url, 'EDDB systems', batch_size):
+    yield (int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id'])
+
+def generate_stations(eddb_stations_url, batch_size):
+  for s in import_json(eddb_stations_url, 'EDDB stations', batch_size):
+    yield (int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s))
+
+def generate_coriolis_fsds(coriolis_fsds_url):
+  for fsd in import_json(coriolis_fsds_url, 'Coriolis FSD', None, 'fsd'):
+    yield ('{0}{1}'.format(fsd['class'], fsd['rating']), json.dumps(fsd))
 
 # If the data directory doesn't exist, make it
 if not os.path.exists(os.path.dirname(db.default_db_file)):
@@ -128,15 +150,15 @@ dbc = db.initialise_db(db_tmp_filename)
 log.info("Done.")
 
 try:
-  import_json(edsm_systems_url, 'EDSM Systems', dbc.populate_table_systems, batch_size)
-  import_json(eddb_systems_url, 'EDDB Systems', dbc.update_table_systems, batch_size)
-  import_json(eddb_stations_url, 'EDDB Stations', dbc.populate_table_stations, batch_size)
-  import_json(coriolis_fsds_url, 'Coriolis FSD', import_coriolis_data, batch_size)
+  dbc.populate_table_systems(generate_systems(edsm_systems_url, batch_size))
+  dbc.update_table_systems(generate_systems_update(eddb_systems_url, batch_size))
+  dbc.populate_table_stations(generate_stations(eddb_stations_url, batch_size))
+  dbc.populate_table_coriolis_fsds(generate_coriolis_fsds(coriolis_fsds_url))
 except MemoryError:
   log.error("Out of memory!")
   if batch_size is None:
     log.error("Try the --batch flag for a slower but more memory-efficient method!")
-  elif batch_size > 1:
+  elif batch_size > 64:
     log.error("Try --batch-size %d" % (batch_size / 2))
   dbc.close()
   sys.exit(1)
