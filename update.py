@@ -120,22 +120,6 @@ def import_json(url, description, batch_size, key = None):
     gc.collect()
     raise
 
-def generate_systems(edsm_systems_url, batch_size):
-  for s in import_json(edsm_systems_url, 'EDSM systems', batch_size):
-    yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
-
-def generate_systems_update(eddb_systems_url, batch_size):
-  for s in import_json(eddb_systems_url, 'EDDB systems', batch_size):
-    yield (int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id'])
-
-def generate_stations(eddb_stations_url, batch_size):
-  for s in import_json(eddb_stations_url, 'EDDB stations', batch_size):
-    yield (int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s))
-
-def generate_coriolis_fsds(coriolis_fsds_url):
-  for fsd in import_json(coriolis_fsds_url, 'Coriolis FSD', None, 'fsd'):
-    yield ('{0}{1}'.format(fsd['class'], fsd['rating']), json.dumps(fsd))
-
 # If the data directory doesn't exist, make it
 if not os.path.exists(os.path.dirname(db.default_db_file)):
   os.makedirs(os.path.dirname(db.default_db_file))
@@ -150,10 +134,10 @@ dbc = db.initialise_db(db_tmp_filename)
 log.info("Done.")
 
 try:
-  dbc.populate_table_systems(generate_systems(edsm_systems_url, batch_size))
-  dbc.update_table_systems(generate_systems_update(eddb_systems_url, batch_size))
-  dbc.populate_table_stations(generate_stations(eddb_stations_url, batch_size))
-  dbc.populate_table_coriolis_fsds(generate_coriolis_fsds(coriolis_fsds_url))
+  dbc.populate_table_systems(import_json(edsm_systems_url, 'EDSM systems', batch_size))
+  dbc.update_table_systems(import_json(eddb_systems_url, 'EDDB systems', batch_size))
+  dbc.populate_table_stations(import_json(eddb_stations_url, 'EDDB stations', batch_size))
+  dbc.populate_table_coriolis_fsds(import_json(coriolis_fsds_url, 'Coriolis FSDs', None, 'fsd'))
 except MemoryError:
   log.error("Out of memory!")
   if batch_size is None:

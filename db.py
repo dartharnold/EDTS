@@ -84,31 +84,47 @@ class DBConnection(object):
     self._conn.commit()
     log.debug("Done.")
 
+  def _generate_systems(self, systems):
+    for s in systems:
+      yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
+
+  def _generate_systems_update(self, systems):
+    for s in systems:
+      yield (int(s['id']), bool(s['needs_permit']), s['allegiance'], json.dumps(s), s['edsm_id'])
+
+  def _generate_stations(self, stations):
+    for s in stations:
+      yield (int(s['id']), int(s['system_id']), s['name'], int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], json.dumps(s))
+
+  def _generate_coriolis_fsds(self, fsds):
+    for fsd in fsds:
+      yield ('{0}{1}'.format(fsd['class'], fsd['rating']), json.dumps(fsd))
+
   def populate_table_systems(self, many):
     c = self._conn.cursor()
     log.debug("Going for INSERT INTO systems...")
-    c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', many)
+    c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', self._generate_systems(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def update_table_systems(self, many):
     c = self._conn.cursor()
     log.debug("Going for UPDATE systems...")
-    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', many)
+    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', self._generate_systems_update(many))
     self._conn.commit()
     log.debug("Done, {} rows affected.".format(c.rowcount))
 
   def populate_table_stations(self, many):
     c = self._conn.cursor()
     log.debug("Going for INSERT INTO stations...")
-    c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', many)
+    c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', self._generate_stations(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
   def populate_table_coriolis_fsds(self, many):
     log.debug("Going for INSERT INTO coriolis_fsds...")
     c = self._conn.cursor()
-    c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', many)
+    c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', self._generate_coriolis_fsds(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
 
