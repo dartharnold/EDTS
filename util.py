@@ -16,7 +16,7 @@ def read_stream(stream, limit = None):
   if sys.version_info >= (3, 0):
     return stream.read(limit).decode("utf-8")
   else:
-    return stream.read(limit)
+    return stream.read(-1 if limit is None else limit)
 
 def read_from_url(url):
   return read_stream(open_url(url))
