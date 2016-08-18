@@ -102,12 +102,15 @@ class Application(object):
         if has_stns or self.args.pad_size is None:
           # Check if the direction matches, if we care
           if self.args.direction is None or self.all_angles_within(self.args.system, s, direction_obj, max_angle):
-            # If we *don't* have stations (because we don't care), or the stations match the requirements...
-            matching_stns = env.data.get_stations(s)
-            if not self.allow_outposts:
-              matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
-            if self.args.max_sc_distance is not None:
-              matching_stns = [st for st in matching_stns if (st.distance is not None and st.distance < self.args.max_sc_distance)]
+            # Check whether we even want to look for stations
+            matching_stns = []
+            if not self.allow_outposts or self.args.max_sc_distance is not None:
+              # If we *don't* have stations (because we don't care), or the stations match the requirements...
+              matching_stns = env.data.get_stations(s)
+              if not self.allow_outposts:
+                matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
+              if self.args.max_sc_distance is not None:
+                matching_stns = [st for st in matching_stns if (st.distance is not None and st.distance < self.args.max_sc_distance)]
             if not has_stns or len(matching_stns) > 0:
               dist = 0.0  # The total distance from this system to ALL start systems
               is_ok = True
