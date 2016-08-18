@@ -61,11 +61,6 @@ class Application(object):
     if not hasattr(self, 'args'):
       self.args = ap.parse_args(arg)
 
-    if self.args.pad_size is not None:
-      self.args.stations = True
-
-    self.allow_outposts = (self.args.pad_size != "L")
-
   def run(self):
     # Add the system object to each system arg
     for d in self.args.system:
@@ -94,7 +89,14 @@ class Application(object):
     if not any([x[2] for x in close_to_list]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
-    for s in env.data.find_systems_close_to(close_to_list):
+    stations_are_relevant = (self.args.pad_size is not None or self.args.max_sc_distance is not None)
+    allow_outposts = (self.args.pad_size != "L")
+
+    close_systems = list(env.data.find_systems_close_to(close_to_list))
+    close_stations = []
+    if any(close_systems) and stations_are_relevant:
+      close_stations = env.data.get_stations(close_systems)
+    for s in close_systems:
       # If we don't care about allegiance, or we do and it matches...
       if s.name.lower() not in start_names and (self.args.allegiance is None or s.allegiance == self.args.allegiance):
         has_stns = (s.allegiance is not None)
@@ -104,14 +106,14 @@ class Application(object):
           if self.args.direction is None or self.all_angles_within(self.args.system, s, direction_obj, max_angle):
             # Check whether we even want to look for stations
             matching_stns = []
-            if not self.allow_outposts or self.args.max_sc_distance is not None:
+            if stations_are_relevant:
               # If we *don't* have stations (because we don't care), or the stations match the requirements...
-              matching_stns = env.data.get_stations(s)
-              if not self.allow_outposts:
+              matching_stns = [st for st in close_stations if st.system == s]
+              if not allow_outposts:
                 matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
               if self.args.max_sc_distance is not None:
                 matching_stns = [st for st in matching_stns if (st.distance is not None and st.distance < self.args.max_sc_distance)]
-            if not has_stns or len(matching_stns) > 0:
+            if not has_stns or not stations_are_relevant or len(matching_stns) > 0:
               dist = 0.0  # The total distance from this system to ALL start systems
               is_ok = True
               for d in self.args.system:
