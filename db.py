@@ -1,3 +1,4 @@
+import collections
 import decimal
 import json
 import logging
@@ -162,14 +163,15 @@ class DBConnection(object):
     else:
       return (None, None)
 
-  def get_stations_by_system_id(self, sysid):
+  def get_stations_by_system_id(self, args):
+    sysids = args if isinstance(args, collections.Iterable) else [args]
     c = self._conn.cursor()
-    cmd = 'SELECT data FROM stations WHERE eddb_system_id = ?'
-    log.debug("Executing: {}; sysid = {}".format(cmd, sysid))
-    c.execute(cmd, (sysid, ))
+    cmd = 'SELECT eddb_system_id, data FROM stations WHERE eddb_system_id IN ({})'.format(','.join(['?'] * len(sysids)))
+    log.debug("Executing: {}; sysid = {}".format(cmd, sysids))
+    c.execute(cmd, sysids)
     results = c.fetchall()
     log.debug("Done.")
-    return [json.loads(r[0]) for r in results]
+    return [{ k: v for d in [{ 'eddb_system_id': r[0] }, json.loads(r[1])] for k, v in d.items()} for r in results]
 
   def get_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z):
     c = self._conn.cursor()

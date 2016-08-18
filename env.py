@@ -1,4 +1,5 @@
 import argparse
+import collections
 import logging
 import os
 import sys
@@ -62,11 +63,10 @@ class Env(object):
         return Station.none(sys)
     return None
 
-  def get_stations(self, sysobj, keep_station_data=False):
-    if hasattr(sysobj, 'id') and sysobj.id is not None:
-      return [self._make_station(sysobj, stndata, keep_data=keep_station_data) for stndata in self._db_conn.get_stations_by_system_id(sysobj.id)]
-    else:
-      return []
+  def get_stations(self, args, keep_station_data=False):
+    sysobjs = args if isinstance(args, collections.Iterable) else [args]
+    sysobjs = { s.id: s for s in sysobjs if s.id is not None }
+    return [self._make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._db_conn.get_stations_by_system_id(sysobjs.keys())]
 
   def get_system(self, sysname, keep_data=False):
     # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
