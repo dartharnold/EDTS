@@ -1,8 +1,6 @@
 import argparse
-import json
 import logging
 import os
-import re
 import sys
 import threading
 import time
@@ -17,13 +15,6 @@ log = logging.getLogger("env")
 
 class Env(object):
   def __init__(self, path = '.'):
-    # Match a float such as "33", "-33", "-33.1"
-    rgx_float = r'[-+]?\d+(?:\.\d+)?'
-    # Match a set of coords such as "[33, -45.6, 78.910]"
-    rgx_coords = r'^\[\s*(?P<x>{0})\s*[,/]\s*(?P<y>{0})\s*[,/]\s*(?P<z>{0})\s*\](?:=(?P<name>.+))?$'.format(rgx_float)
-    # Compile the regex for faster execution later
-    self._regex_coords = re.compile(rgx_coords)
-
     self.is_data_loaded = False
     self._db_conn = None
     self._data_path = os.path.normpath(path)
@@ -72,22 +63,17 @@ class Env(object):
     return None
 
   def get_stations(self, sysobj, keep_station_data=False):
-    return [self._make_station(sysobj, stndata, keep_data=keep_station_data) for stndata in self._db_conn.get_stations_by_system_id(sysobj.id)]
+    if hasattr(sysobj, 'id') and sysobj.id is not None:
+      return [self._make_station(sysobj, stndata, keep_data=keep_station_data) for stndata in self._db_conn.get_stations_by_system_id(sysobj.id)]
+    else:
+      return []
 
   def get_system(self, sysname, keep_data=False):
     # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
-    rx_match = self._regex_coords.match(sysname)
-    if rx_match is not None:
-      # If it matches, make a fake system and station at those coordinates
-      try:
-        cx = float(rx_match.group('x'))
-        cy = float(rx_match.group('y'))
-        cz = float(rx_match.group('z'))
-        name = rx_match.group('name') if rx_match.group('name') is not None else sysname
-        return System(cx, cy, cz, name)
-      except Exception as ex:
-        log.debug("Failed to parse manual system: {}".format(ex))
-        pass
+    coords_data = util.parse_coords(sysname)
+    if coords_data is not None:
+      cx, cy, cz, name = coords_data
+      return System(cx, cy, cz, name)
     else:
       result = self._db_conn.get_system_by_name(sysname)
       if result is not None:
@@ -132,10 +118,6 @@ class Env(object):
     for s in self._db_conn.find_systems_close_to(refs):
       yield self._make_known_system(s, keep_data)
 
-  def find_systems_close_to(self, refs):
-    for s in self._db_conn.find_systems_close_to(refs):
-      yield KnownSystem(s)
-
   def _load_data(self):
     with self._load_lock:
       try:
@@ -167,9 +149,6 @@ class Env(object):
       self._load_lock.release()
       log.debug("Finished waiting")
 
-  #
-  # Public Coriolis properties
-  #
   @property
   def coriolis_fsd_list(self):
     self._ensure_data_loaded()
