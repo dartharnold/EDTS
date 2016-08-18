@@ -6,6 +6,7 @@ class System(object):
     self.position = vector3.Vector3(float(x), float(y), float(z))
     self.name = name
     self.uses_sc = False
+    self.id = None
 
   @property
   def system_name(self):

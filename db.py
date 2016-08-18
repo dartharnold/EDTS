@@ -6,6 +6,7 @@ import os
 import re
 import sqlite3
 import time
+import util
 
 log = logging.getLogger("db")
 
@@ -190,23 +191,33 @@ class DBConnection(object):
     idx = 1
     for ref in refs:
       name, min_dist, max_dist = ref
-      select.append("(((ref{0}.pos_x - other.pos_x) * (ref{0}.pos_x - other.pos_x)) + ((ref{0}.pos_y - other.pos_y) * (ref{0}.pos_y - other.pos_y)) + ((ref{0}.pos_z - other.pos_z) * (ref{0}.pos_z - other.pos_z))) as diff{0}".format(idx))
-      tables.append("systems ref{0}".format(idx))
-      clause = "ref{0}.name = ? AND other.edsm_id != ref{0}.edsm_id".format(idx)
-      params.append(name)
-      debug_clause = "name{0} = {1}".format(idx, '{}')
-      debug_params.append(name)
+      coords_data = util.parse_coords(name)
+      # Check if this system name is actually coords, and use them if so
+      if coords_data is not None:
+        cx, cy, cz, name = coords_data
+        select.append("(((? - other.pos_x) * (? - other.pos_x)) + ((? - other.pos_y) * (? - other.pos_y)) + ((? - other.pos_z) * (? - other.pos_z))) as diff{0}".format(idx))
+        params += [cx, cx, cy, cy, cz, cz]
+        debug_clause = "x{0} = {1}, y{0} = {1}, z{0} = {1}".format(idx, '{}')
+        debug_params += [cx, cy, cz]
+      else:
+        # Search against system name directly
+        select.append("(((ref{0}.pos_x - other.pos_x) * (ref{0}.pos_x - other.pos_x)) + ((ref{0}.pos_y - other.pos_y) * (ref{0}.pos_y - other.pos_y)) + ((ref{0}.pos_z - other.pos_z) * (ref{0}.pos_z - other.pos_z))) as diff{0}".format(idx))
+        tables.append("systems ref{0}".format(idx))
+        where.append("ref{0}.name = ? AND other.edsm_id != ref{0}.edsm_id".format(idx))
+        params.append(name)
+        debug_clause = "name{0} = {1}".format(idx, '{}')
+        debug_params.append(name)
+      # Now see if we should restrict by distance
       if min_dist is not None:
-        clause += " AND diff{0} >= ? * ?".format(idx)
+        where.append("diff{0} >= ? * ?".format(idx))
         params += [min_dist, min_dist]
         debug_clause += ", min_dist{0} = {1}".format(idx, '{}')
         debug_params.append(min_dist)
       if max_dist is not None:
-        clause += " AND diff{0} <= ? * ?".format(idx)
+        where.append("diff{0} <= ? * ?".format(idx))
         params += [max_dist, max_dist]
         debug_clause += ", max_dist{0} = {1}".format(idx, '{}')
         debug_params.append(max_dist)
-      where.append(clause)
       debug.append(debug_clause)
       idx += 1
     cmd = "SELECT {0} FROM {1} WHERE {2}".format(', '.join(select), ', '.join(tables), ' AND '.join(where))
