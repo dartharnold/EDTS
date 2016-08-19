@@ -138,7 +138,7 @@ class Application(object):
       print("")
     else:
       print("")
-      print("Matching systems close to {0}:".format(', '.join([d["system"] for d in self.args.system])))
+      print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
       print("")
       for i in range(0, len(asys)):
         if len(self.args.system) == 1:
