@@ -710,7 +710,9 @@ ha_sectors = collections.OrderedDict([
   ("blue snowball sector", sector.HASector(vector3.Vector3(-5024.05469, -1663.03516, -1497.73438), 100.0, "Blue Snowball Sector")),
   ("g2 dust cloud sector", sector.HASector(vector3.Vector3(27.12500, -22.49609, 27899.97656), 100.0, "G2 Dust Cloud Sector")),
   ("regor sector", sector.HASector(vector3.Vector3(1099.23828, -146.67188, -133.58008), 100.0, "Regor Sector")),
+  # These cluster coords are fake, and are a fudge to give the right origins for generating ICZ's PG names
   ("icz", sector.HASectorCluster(vector3.Vector3(60, -120, 55), 100, 40, "ICZ", [
+    # The following coords/radii are the real spheres that make up ICZ
     sector.HASector(vector3.Vector3(11, -118, 56), 40, "ICZ"),
     sector.HASector(vector3.Vector3(17, -122, 32), 40, "ICZ"),
     sector.HASector(vector3.Vector3(32, -170, 13), 40, "ICZ"),
