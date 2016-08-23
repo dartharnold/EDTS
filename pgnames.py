@@ -256,7 +256,7 @@ def _get_mcode_cube_width(mcode):
 
 
 # Get a system's relative position within a sector
-# Original version by Kay Johnston (CMDR Jackie Silver)
+# Original version by CMDR Jackie Silver
 # Note that in the form "Sector AB-C d3", the "3" is number2, NOT number1 (which is 0)
 def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
   if number1 is None:
@@ -595,8 +595,6 @@ def _c1_get_offset_from_name(input):
   # Divide by the current prefix's run length, this is now how many iterations of the full 3037 we should have passed over
   # Also remember the current offset's position within a prefix run
   offset, offset_mod = divmod(offset, _get_prefix_run_length(frags[0]))
-  # Subtract one because ... I have no idea right now, because it works, just subtract one
-
   # Now multiply by the total run length (3037) to get the actual offset of this run
   offset *= pgdata.cx_prefix_total_run_length
   # Add the infixes/suffix's position within this prefix's part of the overall prefix run
