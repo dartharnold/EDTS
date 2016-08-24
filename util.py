@@ -1,5 +1,7 @@
+import defs
 import logging
 import re
+import ssl
 import sys
 
 if sys.version_info >= (3, 0):
@@ -8,6 +10,8 @@ else:
   import urllib2
 
 log = logging.getLogger("util")
+
+USER_AGENT = '{}/{}'.format(defs.name, defs.version)
 
 # Match a float such as "33", "-33", "-33.1"
 _rgxstr_float = r'[-+]?\d+(?:\.\d+)?'
@@ -33,9 +37,16 @@ def parse_coords(sysname):
 
 def open_url(url):
   if sys.version_info >= (3, 0):
-    return urllib.request.urlopen(url)
+    # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
+    request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+    return urllib.request.urlopen(request)
   else:
-    return urllib2.urlopen(url)
+    # Manually specify preferred ciphers to fix Cloudflare on Python 2.7.9+
+    sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+    sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
+    # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
+    request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
+    return urllib2.urlopen(request, context=sslctx)
 
 def read_stream(stream, limit = None):
   if sys.version_info >= (3, 0):
