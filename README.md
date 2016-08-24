@@ -20,6 +20,12 @@ The main **edts** script provides a way to determine good routes for visiting a 
 * Includes an estimation of time taken to reach stations in supercruise
 * Includes an estimation of jump range decay due to picking up cargo en-route
 
+### Requirements ###
+
+A Python 2.7/3.x interpreter, and enough disk space for the data (currently around 500MB-1GB).
+
+Please note that versions of Python 2.7 earlier than 2.7.9 may have problems initially retrieving data.
+
 ### How to use ###
 
 On first run, the latest [EDSM](http://edsm.net)/[EDDB](http://eddb.io) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
