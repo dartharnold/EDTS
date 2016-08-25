@@ -40,10 +40,11 @@ class FSD(object):
     if close_env:
       env.stop()
 
-    self.optmass = float(fsdobj['optmass'])
-    self.maxfuel = float(fsdobj['maxfuel'])
-    self.fuelmul = float(fsdobj['fuelmul'])
+    self.optmass   = float(fsdobj['optmass'])
+    self.maxfuel   = float(fsdobj['maxfuel'])
+    self.fuelmul   = float(fsdobj['fuelmul'])
     self.fuelpower = float(fsdobj['fuelpower'])
+    self.mass      = float(fsdobj['mass'])
 
   def range(self, mass, fuel, cargo = 0):
     cur_maxfuel = min(self.maxfuel, float(fuel))
