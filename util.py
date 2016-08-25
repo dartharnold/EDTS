@@ -1,5 +1,6 @@
 import defs
 import logging
+import platform
 import re
 import ssl
 import sys
@@ -41,9 +42,10 @@ def open_url(url):
     request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
     return urllib.request.urlopen(request)
   else:
-    # Manually specify preferred ciphers to fix Cloudflare on Python 2.7.9+
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-    sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
+    # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
+    if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
+      sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
     request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
     return urllib2.urlopen(request, context=sslctx)
