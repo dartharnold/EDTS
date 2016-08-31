@@ -112,7 +112,7 @@ class DBConnection(object):
   def update_table_systems(self, many):
     c = self._conn.cursor()
     log.debug("Going for UPDATE systems...")
-    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=? AND eddb_id IS NULL', self._generate_systems_update(many))
+    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=?', self._generate_systems_update(many))
     self._conn.commit()
     log.debug("Done, {} rows affected.".format(c.rowcount))
 
