@@ -22,7 +22,10 @@ eddb_stations_url = "https://eddb.io/archive/v4/stations.json"
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
 ap = argparse.ArgumentParser(description = 'Update local database')
-ap.add_argument('-b', '--batch', default=False, action='store_true', help='Import data in batches')
+ap.add_argument_group("Processing options")
+bex = ap.add_mutually_exclusive_group()
+bex.add_argument('-b', '--batch', dest='batch', action='store_true', default=True, help='Import data in batches')
+bex.add_argument('-n', '--no-batch', dest='batch', action='store_false', help='Import data in one load - this will use massive amounts of RAM and may fail!')
 ap.add_argument('-s', '--batch-size', required=False, type=int, help='Batch size; higher sizes are faster but consume more memory')
 args = ap.parse_args(sys.argv[1:])
 batch_size = None
@@ -91,6 +94,9 @@ def import_json(url, description, batch_size, key = None):
             yield obj
           done += len(batch)
           log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
+      done += len(batch)
+      for obj in batch:
+        yield obj
       log.info("Done.")
     else:
       log.info("Downloading {0} list from {1} ... ".format(description, url))
