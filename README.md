@@ -50,6 +50,12 @@ Sol, Galileo (505Ls, Ocellus Starport)
 Total distance: 392.72Ly; total jumps: 15; total SC distance: 8760Ls; ETT: 24:20
 ```
 
+### Contact ###
+
+[EDCD](http://edcd.github.io) has a [Discord server](https://discord.gg/0uwCh6R62aQ0eeAX) with a channel for EDTS. Feel free to drop by and chat or ask for help!
+
+There is also a [thread on the Frontier forums](https://forums.frontier.co.uk/showthread.php/197847) for the project.
+
 ### Thanks ###
 
-* CMDR furrycat - for patches! :)
+* CMDR furrycat - for many patches and useful suggestions! :)
