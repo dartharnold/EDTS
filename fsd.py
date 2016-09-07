@@ -23,22 +23,14 @@ class FSD(object):
       log.error("Error: Invalid FSD specification '{0}'.  Try, eg, '2A'".format(classrating))
       return None
 
-    # Check if we already have an environment, and start it up if not
-    close_env = False
-    if not env.is_started():
-      close_env = True
-      env.start()
-
     classrating = "{0}{1}".format(drive_class, drive_rating)
-    if classrating not in env.data.coriolis_fsd_list:
-      log.error("Error: No definition available for '{0}' drive.".format(classrating))
-      return None
-    self.drive = classrating
-    fsdobj = env.data.coriolis_fsd_list[self.drive]
-
-    # If we started the env, also stop it
-    if close_env:
-      env.stop()
+    # Ensure we have an environment to query
+    with env.use() as data:
+      if classrating not in data.coriolis_fsd_list:
+        log.error("Error: No definition available for '{0}' drive.".format(classrating))
+        return None
+      self.drive = classrating
+      fsdobj = data.coriolis_fsd_list[self.drive]
 
     self.optmass   = float(fsdobj['optmass'])
     self.maxfuel   = float(fsdobj['maxfuel'])

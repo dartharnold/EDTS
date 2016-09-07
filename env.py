@@ -155,6 +155,21 @@ class Env(object):
     return self._coriolis_fsd_list
 
 
+class EnvWrapper(object):
+  def __enter__(self):
+    self._close_env = False
+    if not is_started():
+      self._close_env = True
+      start()
+    global data
+    return data
+
+  def __exit__(self, typ, value, traceback):
+    if self._close_env:
+      stop()
+
+
+
 data = None
 
 
@@ -175,6 +190,10 @@ def stop():
   global data
   data.close()
   data = None
+
+
+def use():
+  return EnvWrapper()
 
 
 def set_verbosity(level):
