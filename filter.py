@@ -1,5 +1,6 @@
 import argparse
 import env
+import collections
 import logging
 import math
 import random
@@ -11,26 +12,81 @@ log = logging.getLogger("filter")
 
 default_direction_angle = 15.0
 
-def parse_filter_string(s):
-  entries = s.split(",")
-  output = {}
-  for e in entries:
-    kv = e.split("=")
-    output[kv[0].strip()] = kv[1].strip()
+entry_separator = ';'
+entry_subseparator = ','
+entry_kvseparator = '='
 
+
+def _parse_system(s):
+  with env.use() as data:
+    return data.parse_system(s)
+
+
+_conversions = {
+  'min_sc_distance': {'max': 1,    'fn': int},
+  'max_sc_distance': {'max': 1,    'fn': int},
+  'pad':             {'max': 1,    'fn': str.upper},
+  'direction':       {'max': None, 'fn': {0: _parse_system, 'angle': float}},
+  'close_to':        {'max': None, 'fn': {0: _parse_system, 'min': float, 'max': float}},
+  'allegiance':      {'max': 1,    'fn': str},
+  'limit':           {'max': 1,    'fn': int},
+}
+
+
+def parse_filter_string(s):
+  entries = s.split(entry_separator)
+  output = {}
+  # For each separate filter entry...
+  for entry in entries:
+    kv = entry.split(entry_kvseparator, 1)
+    key = kv[0].strip()
+    if key in _conversions:
+      multiple = (_conversions[key]['max'] != 1)
+    else:
+      raise KeyError("Unexpected filter key provided: {0}".format(k))
+    kvlist = kv[1].strip().split(entry_subseparator)
+    # Do we have sub-entries, or just a simple key=value ?
+    if multiple or len(kvlist) > 1:
+      idx = 0
+      value = {}
+      # For each sub-entry...
+      for e in kvlist:
+        ekv = [s.strip() for s in e.split(entry_kvseparator)]
+        # Is this sub-part a subkey=value?
+        if len(ekv) > 1:
+          value[ekv[0].strip()] = ekv[1].strip()
+        else:
+          # If not, give it a position-based index
+          value[idx] = ekv[0].strip()
+          idx += 1
+    else:
+      value = kvlist[0].strip()
+    # Set the value and move on
+    if multiple:
+      if key not in output:
+        output[key] = []
+      output[key].append(value)
+    else:
+      output[key] = value
+
+  # For each result
   for k in output.keys():
-    # -> system
-    if k in ['direction']:
-      output[k] = env.data.parse_system(output[k])
-    # -> int
-    elif k in ['min_sc_distance', 'max_sc_distance']:
-      output[k] = int(output[k])
-    # -> string.upper
-    elif k in ['pad']:
-      output[k] = output[k].upper()
-    # -> float
-    elif k in ['direction_angle', 'min_distance', 'max_distance']:
-      output[k] = float(output[k])
+    # Do we know about it?
+    if k in _conversions:
+      if _conversions[k]['max'] not in [None, 1] and len(output[k]) > _conversions[k]['max']:
+        raise KeyError("Filter key {} provided more than its maximum {} times".format(k, _conversions[k]['max']))
+      # Is it a complicated one, or a simple key=value?
+      if isinstance(_conversions[k]['fn'], collections.Iterable):
+        # For each present subkey, check if we know about it and convert it if so
+        outlist = output[k] if _conversions[k]['max'] != 1 else [output[k]]
+        for outentry in outlist:
+          for ek in outentry:
+            if ek in _conversions[k]['fn']:
+              outentry[ek] = _conversions[k]['fn'][ek](outentry[ek])
+            else:
+              raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
+      else:
+        output[k] = _conversions[k]['fn'](output[k])
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
@@ -38,25 +94,49 @@ def parse_filter_string(s):
 
 
 def generate_filter_sql(filters):
-  filter_str = ""
-  params = []
+  select_str = []
+  filter_str = []
+  modifier_str = []
+  select_params = []
+  filter_params = []
+  modifier_params = []
+  idx = 0
   if 'allegiance' in filters:
-    filter_str += "eddb_stations.allegiance = ? AND "
-    params += filters['allegiance']
+    filter_str.append("stations.allegiance = ?")
+    filter_params.append(filters['allegiance'])
   if 'pad' in filters:
     if filters['pad'] == 'L':
-      filter_str += "eddb_stations.max_pad_size = 'L' AND "
+      filter_str.append("stations.max_pad_size = 'L'")
     else:
-      filter_str += "eddb_stations.max_pad_size IN ('L', 'M') AND "
+      filter_str.append("stations.max_pad_size IN ('L', 'M')")
   if 'min_sc_distance' in filters:
-    filter_str += "eddb_stations.sc_distance >= ? AND "
-    params += filters['min_sc_distance']
+    filter_str.append("stations.sc_distance >= ?")
+    filter_params.append(filters['min_sc_distance'])
   if 'max_sc_distance' in filters:
-    filter_str += "eddb_stations.sc_distance < ? AND "
-    params += filters['max_sc_distance']
+    filter_str.append("stations.sc_distance < ?")
+    filter_params.append(filters['max_sc_distance'])
+  if 'close_to' in filters:
+    for entry in filters['close_to']:
+      pos = entry[0].position
+      select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
+      select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
+      if 'min' in entry:
+        filter_str.append("diff{0} >= ? * ?".format(idx))
+        filter_params += [entry['min'], entry['min']]
+      if 'max' in entry:
+        filter_str.append("diff{0} <= ? * ?".format(idx))
+        filter_params += [entry['max'], entry['max']]
+  if 'direction' in filters:
+    for entry in filters['direction']:
+      angle = entry.get('angle', 15.0)
+      filter_str.append("vec3_angle(systems.pos_x,systems.pos_y,systems.pos_z,?,?,?) < ?")
+      filter_params += [entry[0].position.x, entry[0].position.y, entry[0].position.z, angle]
   
-  filter_str = filter_str[0:-4]
-  return (filter_str, params)
+  if 'limit' in filters:
+    modifier_str.append("LIMIT ?")
+    modifier_params.append(filters['limit'])
+
+  return (select_str, filter_str, modifier_str, select_params, filter_params, modifier_params)
 
 
 def filter_list(s_list, filters, limit = None, p_src_list = None):

@@ -35,11 +35,21 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
   return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
 
 
+def _vec3_angle(x1, y1, z1, x2, y2, z2):
+  vl = max((x1*x1 + y1*y1 + z1*z1) * (x2*x2 + y2*y2 + z2*z2), 0.000001)
+  dotp = (x1*x2/vl + y1*y2/vl + z1*z2/vl)
+  if abs(dotp - 1.0) < 0.000001:
+    return 0.0
+  else:
+    return math.acos(dotp)
+
+
 def open_db(filename = default_db_file, check_version = True):
   conn = sqlite3.connect(filename)
   conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
   conn.create_function("vec3_len", 6, _vec3_len)
+  conn.create_function("vec3_angle", 6, _vec3_angle)
  
   if check_version:
     c = conn.cursor()
