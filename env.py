@@ -83,7 +83,7 @@ class Env(object):
       else:
         return None
 
-  def get_systems_by_aabb(self, vec_from, vec_to, buffer_from, buffer_to):
+  def get_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0):
     min_x = min(vec_from.x, vec_to.x) - buffer_from
     min_y = min(vec_from.y, vec_to.y) - buffer_from
     min_z = min(vec_from.z, vec_to.z) - buffer_from
