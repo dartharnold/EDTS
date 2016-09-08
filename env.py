@@ -13,6 +13,7 @@ from station import Station
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger("env")
 
+default_path = '.'
 
 class Env(object):
   def __init__(self, path = '.'):
@@ -28,7 +29,8 @@ class Env(object):
     self.load_data(False)
 
   def close(self):
-    self._db_conn.close()
+    if self._db_conn is not None:
+      self._db_conn.close()
 
   def parse_station(self, statstr):
     parts = statstr.split("/", 1)
@@ -156,13 +158,19 @@ class Env(object):
 
 
 class EnvWrapper(object):
+  def __init__(self, path = default_path):
+    self._path = path
+
   def __enter__(self):
     self._close_env = False
     if not is_started():
+      start(self._path)
       self._close_env = True
-      start()
-    global data
-    return data
+    if is_started():
+      global data
+      return data
+    else:
+      raise RuntimeError("Failed to load environment")
 
   def __exit__(self, typ, value, traceback):
     if self._close_env:
@@ -173,12 +181,17 @@ class EnvWrapper(object):
 data = None
 
 
-def start(path = '.'):
-  global data
-  if data is None or not data.is_data_loaded:
+def start(path = default_path):
+  if not is_started():
     newdata = Env(path)
     if newdata.is_data_loaded:
+      global data
       data = newdata
+      return True
+    else:
+      return False
+  else:
+    return True
 
 
 def is_started():
@@ -188,12 +201,14 @@ def is_started():
 
 def stop():
   global data
-  data.close()
-  data = None
+  if data is not None:
+    data.close()
+    data = None
+  return True
 
 
-def use():
-  return EnvWrapper()
+def use(path = default_path):
+  return EnvWrapper(path)
 
 
 def set_verbosity(level):
