@@ -58,6 +58,12 @@ def open_url(url):
       log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
       return None
 
+def read_stream_line(stream):
+  if sys.version_info >= (3, 0):
+    return stream.readline().decode("utf-8")
+  else:
+    return stream.readline()
+
 def read_stream(stream, limit = None):
   if sys.version_info >= (3, 0):
     return stream.read(limit).decode("utf-8")
