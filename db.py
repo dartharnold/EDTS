@@ -327,6 +327,17 @@ class DBConnection(object):
       yield (_process_system_result(result), json.loads(result['stndata']))
       result = c.fetchone()
 
+  def get_populated_systems(self):
+    c = self._conn.cursor()
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE allegiance IS NOT NULL'
+    log.debug("Executing: {}".format(cmd))
+    c.execute(cmd)
+    result = c.fetchone()
+    log.debug("Done.")
+    while result is not None:
+      yield _process_system_result(result)
+      result = c.fetchone()
+
 
 def _process_system_result(result):
   if result['data'] is not None:
