@@ -16,8 +16,8 @@ log = logging.getLogger("update")
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
 edsm_systems_url = "https://www.edsm.net/dump/systemsWithCoordinates.json"
-eddb_systems_url = "https://eddb.io/archive/v4/systems_populated.json"
-eddb_stations_url = "https://eddb.io/archive/v4/stations.json"
+eddb_systems_url = "https://eddb.io/archive/v4/systems_populated.jsonl"
+eddb_stations_url = "https://eddb.io/archive/v4/stations.jsonl"
 
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
@@ -43,54 +43,34 @@ def import_json(url, description, batch_size, key = None):
 
       start = int(time())
       done = 0
+      failed = 0
       last_elapsed = 0
 
       batch = []
       encoded = ''
-      bufsize = 4096
-      bytes_read = 0
       stream = util.open_url(url)
       if stream is None:
         return
       while True:
-        read = util.read_stream(stream, bufsize)
-        if not read:
+        line = util.read_stream_line(stream)
+        if not line:
           break
-        encoded += read
-        if not bytes_read:
-          # Handle leading [.
-          encoded = re.sub(r'^\s*\[\s*', r'[\n', encoded, re.MULTILINE)
-        bytes_read += len(read)
-        if len(read) < bufsize:
-          # Handle trailing ].
-          encoded = re.sub(r'\s*\]\s*$', r'\n]', encoded, re.MULTILINE)
-        encoded = re.sub(r'\s*\}\s*,\s*\{', '}\n{', encoded)
-        lines = encoded.split('\n')
-        if len(lines) == 1:
-          continue
-        last = len(lines) - 1
-        encoded = ''
-        for i in range(0, len(lines)):
-          line = lines[i]
-          m = re.match(r'\s*(\{.*\})(?:\s*,?\s*)?', line)
-          if m is not None:
-            try:
-              obj = json.loads(m.group(1))
-            except ValueError:
-              encoded = '\n'.join(lines[i:])
-              break
-            batch.append(obj)
-            if len(batch) >= batch_size:
-              for obj in batch:
-                yield obj
-              done += len(batch)
-              elapsed = int(time()) - start
-              if elapsed - last_elapsed >= 30:
-                log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
-                last_elapsed = elapsed
-              batch = []
-          elif i == last:
-            encoded = line
+        try:
+          obj = json.loads(line)
+        except ValueError:
+          log.debug("Line failed JSON parse: {0}".format(line))
+          failed += 1
+          break
+        batch.append(obj)
+        if len(batch) >= batch_size:
+          for obj in batch:
+            yield obj
+          done += len(batch)
+          elapsed = int(time()) - start
+          if elapsed - last_elapsed >= 30:
+            log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
+            last_elapsed = elapsed
+          batch = []
         if len(batch) >= batch_size:
           for obj in batch:
             yield obj
@@ -99,6 +79,8 @@ def import_json(url, description, batch_size, key = None):
       done += len(batch)
       for obj in batch:
         yield obj
+      if failed:
+        log.info("Lines failing JSON parse: {0}".format(failed))
       log.info("Done.")
     else:
       log.info("Downloading {0} list from {1} ... ".format(description, url))
