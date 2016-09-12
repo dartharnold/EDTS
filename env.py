@@ -97,8 +97,12 @@ class Env(object):
       yield self._make_known_system(s, keep_data)
 
   def get_all_stations(self, keep_data=False):
-    for st,sy in self._db_conn.get_all_stations():
+    for sy,st in self._db_conn.get_all_stations():
       yield self._make_station(sy, st, keep_data)
+
+  def get_populated_systems(self, keep_data=False):
+    for s in self._db_conn.get_populated_systems():
+      yield self._make_known_system(s, keep_data)
 
   def find_systems_by_glob(self, name, keep_data=False):
     for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_GLOB):
