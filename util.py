@@ -40,7 +40,11 @@ def open_url(url):
   if sys.version_info >= (3, 0):
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
     request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-    return urllib.request.urlopen(request)
+    try:
+      return urllib.request.urlopen(request)
+    except urllib.error.HTTPError as err:
+      log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
+      return None
   else:
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
     # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
@@ -48,7 +52,11 @@ def open_url(url):
       sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
     request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
-    return urllib2.urlopen(request, context=sslctx)
+    try:
+      return urllib2.urlopen(request, context=sslctx)
+    except urllib2.HTTPError as err:
+      log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
+      return None
 
 def read_stream(stream, limit = None):
   if sys.version_info >= (3, 0):

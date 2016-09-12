@@ -50,6 +50,8 @@ def import_json(url, description, batch_size, key = None):
       bufsize = 4096
       bytes_read = 0
       stream = util.open_url(url)
+      if stream is None:
+        return
       while True:
         read = util.read_stream(stream, bufsize)
         if not read:
