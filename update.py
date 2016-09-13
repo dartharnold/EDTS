@@ -55,12 +55,15 @@ def import_json(url, description, batch_size, key = None):
         line = util.read_stream_line(stream)
         if not line:
           break
+        m = re.match(r'\s*(\{.*\})(?:\s*,?\s*)?', line)
+        if m is None:
+          continue
         try:
-          obj = json.loads(line)
+          obj = json.loads(m.group(1))
         except ValueError:
           log.debug("Line failed JSON parse: {0}".format(line))
           failed += 1
-          break
+          continue
         batch.append(obj)
         if len(batch) >= batch_size:
           for obj in batch:
