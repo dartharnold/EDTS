@@ -16,8 +16,8 @@ log = logging.getLogger("update")
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
 edsm_systems_url = "https://www.edsm.net/dump/systemsWithCoordinates.json"
-eddb_systems_url = "https://eddb.io/archive/v4/systems_populated.jsonl"
-eddb_stations_url = "https://eddb.io/archive/v4/stations.jsonl"
+eddb_systems_url = "https://eddb.io/archive/v4/systems_populated.json{}"
+eddb_stations_url = "https://eddb.io/archive/v4/stations.json{}"
 
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
@@ -35,10 +35,11 @@ if args.batch or args.batch_size:
     log.error("Batch size must be a natural number!")
     sys.exit(1)
 
-def import_json(url, description, batch_size, key = None):
+def import_json_from_url(urlfmt, jsonl, description, batch_size, key = None):
+  url = urlfmt.format('l' if jsonl and batch_size else '')
   try:
     if batch_size is not None:
-      log.info("Downloading {0} list from {1} ... ".format(description, url))
+      log.info("Batch downloading {0} list from {1} ... ".format(description, url))
       sys.stdout.flush()
 
       start = int(time())
@@ -84,6 +85,7 @@ def import_json(url, description, batch_size, key = None):
         yield obj
       if failed:
         log.info("Lines failing JSON parse: {0}".format(failed))
+      log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
       log.info("Done.")
     else:
       log.info("Downloading {0} list from {1} ... ".format(description, url))
@@ -113,6 +115,12 @@ def import_json(url, description, batch_size, key = None):
     gc.collect()
     raise
 
+def import_jsonl(urlfmt, description, batch_size, key = None):
+  return import_json_from_url(urlfmt, True, description, batch_size, key)
+
+def import_json(urlfmt, description, batch_size, key = None):
+  return import_json_from_url(urlfmt, False, description, batch_size, key)
+
 # If the data directory doesn't exist, make it
 if not os.path.exists(os.path.dirname(db.default_db_file)):
   os.makedirs(os.path.dirname(db.default_db_file))
@@ -128,8 +136,8 @@ log.info("Done.")
 
 try:
   dbc.populate_table_systems(import_json(edsm_systems_url, 'EDSM systems', batch_size))
-  dbc.update_table_systems(import_json(eddb_systems_url, 'EDDB systems', batch_size))
-  dbc.populate_table_stations(import_json(eddb_stations_url, 'EDDB stations', batch_size))
+  dbc.update_table_systems(import_jsonl(eddb_systems_url, 'EDDB systems', batch_size))
+  dbc.populate_table_stations(import_jsonl(eddb_stations_url, 'EDDB stations', batch_size))
   dbc.populate_table_coriolis_fsds(import_json(coriolis_fsds_url, 'Coriolis FSDs', None, 'fsd'))
 except MemoryError:
   log.error("Out of memory!")
