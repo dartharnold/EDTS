@@ -128,7 +128,7 @@ def generate_filter_sql(filters):
         filter_params += [entry['max'], entry['max']]
   if 'direction' in filters:
     for entry in filters['direction']:
-      angle = entry.get('angle', 15.0)
+      angle = entry.get('angle', 15.0) * math.pi / 180.0
       filter_str.append("vec3_angle(systems.pos_x,systems.pos_y,systems.pos_z,?,?,?) < ?")
       filter_params += [entry[0].position.x, entry[0].position.y, entry[0].position.z, angle]
   
@@ -136,7 +136,7 @@ def generate_filter_sql(filters):
     modifier_str.append("LIMIT ?")
     modifier_params.append(filters['limit'])
 
-  return (select_str, filter_str, modifier_str, select_params, filter_params, modifier_params)
+  return {'select': (select_str, select_params), 'filter': (filter_str, filter_params), 'modifier': (modifier_str, modifier_params)}
 
 
 def filter_list(s_list, filters, limit = None, p_src_list = None):
