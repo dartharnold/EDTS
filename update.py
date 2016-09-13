@@ -55,10 +55,8 @@ def import_json(url, description, batch_size, key = None):
         line = util.read_stream_line(stream)
         if not line:
           break
-        if '{' not in line:
-          continue
         try:
-          obj = json.loads(line.strip(" ,\r\n\t")) # Remove trailing commas for non-JSONL
+          obj = json.loads(line)
         except ValueError:
           log.debug("Line failed JSON parse: {0}".format(line))
           failed += 1
