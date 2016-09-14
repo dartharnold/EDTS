@@ -17,20 +17,37 @@ entry_subseparator = ','
 entry_kvseparator = '='
 
 
+class AnyType(object):
+  def __str__(self):
+    return "Any"
+  def __repr__(self):
+    return "Any"
+Any = AnyType()
+
+
 def _parse_system(s):
   with env.use() as data:
     return data.parse_system(s)
 
 
 _conversions = {
-  'min_sc_distance': {'max': 1,    'fn': int},
-  'max_sc_distance': {'max': 1,    'fn': int},
-  'pad':             {'max': 1,    'fn': str.upper},
-  'direction':       {'max': None, 'fn': {0: _parse_system, 'angle': float}},
-  'close_to':        {'max': None, 'fn': {0: _parse_system, 'min': float, 'max': float}},
-  'allegiance':      {'max': 1,    'fn': str},
-  'limit':           {'max': 1,    'fn': int},
+  'min_sc_distance': {'max': 1,    'special': [Any],       'fn': int},
+  'max_sc_distance': {'max': 1,    'special': [Any],       'fn': int},
+  'pad':             {'max': 1,    'special': [Any, None], 'fn': str.upper},
+  'direction':       {'max': None, 'special': [],          'fn': {0: _parse_system, 'angle': float}},
+  'close_to':        {'max': None, 'special': [],          'fn': {0: _parse_system, 'min': float, 'max': float}},
+  'allegiance':      {'max': 1,    'special': [Any, None], 'fn': str},
+  'limit':           {'max': 1,    'special': [],          'fn': int},
 }
+
+
+def _global_conv(val, specials = []):
+  if val.lower() == "any" and Any in specials:
+    return (Any, False)
+  elif val.lower() == "none" and None in specials:
+    return (None, False)
+  else:
+    return (val, True)
 
 
 def parse_filter_string(s):
@@ -82,11 +99,15 @@ def parse_filter_string(s):
         for outentry in outlist:
           for ek in outentry:
             if ek in _conversions[k]['fn']:
-              outentry[ek] = _conversions[k]['fn'][ek](outentry[ek])
+              outentry[ek], continue_conv = _global_conv(outentry[ek], []) # TODO: Support specials in inner args?
+              if continue_conv:
+                outentry[ek] = _conversions[k]['fn'][ek](outentry[ek])
             else:
               raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
       else:
-        output[k] = _conversions[k]['fn'](output[k])
+        output[k], continue_conv = _global_conv(output[k], _conversions[k]['special'])
+        if continue_conv:
+          output[k] = _conversions[k]['fn'](output[k])
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
@@ -102,17 +123,24 @@ def generate_filter_sql(filters):
   modifier_params = []
   idx = 0
   if 'allegiance' in filters:
-    filter_str.append("stations.allegiance = ?")
-    filter_params.append(filters['allegiance'])
-  if 'pad' in filters:
-    if filters['pad'] == 'L':
-      filter_str.append("stations.max_pad_size = 'L'")
+    if filters['allegiance'] is Any:
+      filter_str.append("stations.allegiance IS NOT NULL AND stations.allegiance != 'None'")
+    elif filters['allegiance'] is None:
+      filter_str.append("stations.allegiance IS NULL OR stations.allegiance == 'None'")
     else:
+      filter_str.append("stations.allegiance = ?")
+      filter_params.append(filters['allegiance'])
+  if 'pad' in filters:
+    if filters['pad'] is None:
+      filter_str.append("stations.max_pad_size IS NULL") # Should never hit, resulting in no matches for this system
+    elif filters['pad'] == 'L':
+      filter_str.append("stations.max_pad_size = 'L'")
+    else: # Effectively "Any"
       filter_str.append("stations.max_pad_size IN ('L', 'M')")
-  if 'min_sc_distance' in filters:
+  if 'min_sc_distance' in filters and filters['min_sc_distance'] is not Any:
     filter_str.append("stations.sc_distance >= ?")
     filter_params.append(filters['min_sc_distance'])
-  if 'max_sc_distance' in filters:
+  if 'max_sc_distance' in filters and filters['max_sc_distance'] is not Any:
     filter_str.append("stations.sc_distance < ?")
     filter_params.append(filters['max_sc_distance'])
   if 'close_to' in filters:
@@ -168,6 +196,7 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
         sy = st.system
       else:
         log.error("Could not find system in list: \"{0}\"!".format(s))
+        continue
 
     if ('allegiance' in filters and ((not hasattr(sy, 'allegiance')) or filters['allegiance'] != sy.allegiance)):
       continue
