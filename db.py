@@ -2,6 +2,7 @@ import collections
 import decimal
 import json
 import logging
+from lib.pylev import pylev
 import math
 import os
 import re
@@ -35,11 +36,16 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
   return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
 
 
+def _levenshtein(w1, w2):
+  return pylev.levenshtein(str(w1), str(w2))
+
+
 def open_db(filename = default_db_file, check_version = True):
   conn = sqlite3.connect(filename)
   conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
   conn.create_function("vec3_len", 6, _vec3_len)
+  conn.create_function("levenshtein", 2, _levenshtein)
  
   if check_version:
     c = conn.cursor()
