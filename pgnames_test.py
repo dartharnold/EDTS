@@ -56,7 +56,8 @@ def run_test(it):
               okha += 1
             else:
               badha += 1
-              log.info("BadHA: {4}, {0} not close enough to {1} with {2}Ly/axis uncertainty, actually {3:.2f}Ly".format(coords, system.position, rpe, realdist, system.name))
+              absdiff = abs(coords - system.position)
+              log.info("BadHA{5}: {4}, {0} not close enough to {1} with {2:.0f}Ly/axis uncertainty, actually {3}".format(coords, system.position, rpe, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else ""))
           else:
             noneha += 1
             is_noneha = True
@@ -103,7 +104,8 @@ def run_test(it):
                   bad2 += 1
                 elif cls == 'c1':
                   bad1 += 1
-                log.info("Bad position: {4}, {0} not close enough to {1} with {2}Ly/axis uncertainty, actually {3:.2f}Ly".format(coords, system.position, dist, realdist, system.name))
+                absdiff = abs(coords - system.position)
+                log.info("Bad position{5}: {4}, {0} not close enough to {1} with {2:.0f}Ly/axis uncertainty, actually {3}".format(coords, system.position, dist, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else ""))
             else:
               if cls == 'c2':
                 bad2 += 1
