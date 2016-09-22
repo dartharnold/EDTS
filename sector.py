@@ -9,6 +9,11 @@ base_sector_coords = [39, 8, 18]
 named_origin_coords = base_coords - vector3.Vector3(cube_size * base_sector_coords[0], cube_size*base_sector_coords[1], cube_size*base_sector_coords[2])
 internal_origin_coords = vector3.Vector3(-49985, -40985, -24105)
 
+
+def get_mcode_cube_width(mcode):
+  return cube_size / pow(2, ord('h') - ord(mcode.lower()))
+
+
 class Sector(object):
   def __init__(self, name):
     self.name = name
