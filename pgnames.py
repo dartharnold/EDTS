@@ -251,10 +251,6 @@ _expected_fragment_limit = 4
 # Internal functions: shared/HA
 # #
 
-def _get_mcode_cube_width(mcode):
-  return sector.cube_size / pow(2, ord('h') - ord(mcode.lower()))
-
-
 # Get a system's relative position within a sector
 # Original version by CMDR Jackie Silver
 # Note that in the form "Sector AB-C d3", the "3" is number2, NOT number1 (which is 0)
@@ -275,7 +271,7 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
 
   column = position
 
-  cubeside = _get_mcode_cube_width(mcode.lower())
+  cubeside = sector.get_mcode_cube_width(mcode.lower())
   halfwidth = cubeside / 2
 
   approx_x = (column * cubeside) + halfwidth
@@ -286,7 +282,7 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
 
 
 def _get_sysid_from_relpos(pos, mcode, format_output=False):
-  cubeside = _get_mcode_cube_width(mcode.lower())
+  cubeside = sector.get_mcode_cube_width(mcode.lower())
   column = int(pos.x // cubeside)
   stack  = int(pos.y // cubeside)
   row    = int(pos.z // cubeside)
@@ -434,7 +430,7 @@ def _get_coords_from_name(raw_system_name):
   if sect is None:
     return (None, None)
   # Get the absolute position of the sector
-  abs_pos = sect.get_origin(_get_mcode_cube_width(m.group("mcode")))
+  abs_pos = sect.get_origin(sector.get_mcode_cube_width(m.group("mcode")))
   # Get the relative position of the star within the sector
   # Also get the +/- error bounds
   rel_pos, rel_pos_error = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
@@ -457,7 +453,7 @@ def _get_system_from_pos(input, mcode):
     return None
   psect = get_sector(input, allow_ha=True)
   # Get cube width for this mcode, and the sector origin
-  cwidth = _get_mcode_cube_width(mcode)
+  cwidth = sector.get_mcode_cube_width(mcode)
   psorig = psect.get_origin(cwidth)
   # Get the relative inputition within this sector and the system identifier
   relpos = vector3.Vector3(input.x - psorig.x, input.y - psorig.y, input.z - psorig.z)
