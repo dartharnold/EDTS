@@ -87,7 +87,7 @@ Get a system object based on its name or position
 
 Args:
   input: The system's name or position
-  mcode: The system's mass code ('a'-'h'); only required when input is a position
+  mcode: The system's mass code ('a'-'h') or cube side length; only required when input is a position
 
 Returns:
   A system or system prototype object
@@ -271,7 +271,7 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
 
   column = position
 
-  cubeside = sector.get_mcode_cube_width(mcode.lower())
+  cubeside = sector.get_mcode_cube_width(mcode)
   halfwidth = cubeside / 2
 
   approx_x = (column * cubeside) + halfwidth
@@ -282,7 +282,7 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
 
 
 def _get_sysid_from_relpos(pos, mcode, format_output=False):
-  cubeside = sector.get_mcode_cube_width(mcode.lower())
+  cubeside = sector.get_mcode_cube_width(mcode)
   column = int(pos.x // cubeside)
   stack  = int(pos.y // cubeside)
   row    = int(pos.z // cubeside)
@@ -299,12 +299,12 @@ def _get_sysid_from_relpos(pos, mcode, format_output=False):
   suffix = string.ascii_uppercase[suffixn]
 
   if format_output:
-    output = '{}{}-{} {}'.format(prefix, centre, suffix, mcode)
+    output = '{}{}-{} {}'.format(prefix, centre, suffix, sector.get_mcode(mcode))
     if number1 != 0:
       output += '{}-'.format(number1)
     return output
   else:
-    return [prefix, centre, suffix, mcode, number1]
+    return [prefix, centre, suffix, sector.get_mcode(mcode), number1]
 
 
 # Get the class of the sector from its name

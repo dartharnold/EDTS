@@ -15,8 +15,7 @@ def _calculate(input):
     input = int(input, 16)
   # Get the mass code from the end of the ID
   mc = (input & _mask_mcode)  # a-h = 0-7
-  mcode = chr(mc + ord('a'))
-  cube_width = sector.get_mcode_cube_width(mcode)
+  cube_width = 10 * (2**mc)
   # Calculate the shifts we need to do to get the individual fields out
   # Can't tell how long N2 field is (or if the start moves!), assuming ~16 for now
   shn2 = ( 4 + 3*mc, 20 + 3*mc)
@@ -32,13 +31,13 @@ def _calculate(input):
   coords_internal = vector3.Vector3(xb * cube_width, yb * cube_width, zb * cube_width)
   # Shift the coords to be the origin we know and love
   coords = coords_internal + sector.internal_origin_coords
-  return (coords, mcode, n2)
+  return (coords, cube_width, n2)
 
 
 def get_system_from_starid(id, allow_ha = True):
-  coords, mcode, n2 = _calculate(id)
+  coords, cube_width, n2 = _calculate(id)
   # Get a system prototype to steal its name
-  sys_proto = pgnames.get_system(coords, mcode, allow_ha)
+  sys_proto = pgnames.get_system(coords, cube_width, allow_ha)
   name = sys_proto.name + str(n2)
   x, y, z = sys_proto.position
   return system.PGSystem(x, y, z, name, sys_proto.sector, sys_proto.uncertainty)
