@@ -1,4 +1,6 @@
 import math
+import numbers
+import util
 import vector3
 
 cube_size = 1280.0
@@ -11,7 +13,21 @@ internal_origin_coords = vector3.Vector3(-49985, -40985, -24105)
 
 
 def get_mcode_cube_width(mcode):
-  return cube_size / pow(2, ord('h') - ord(mcode.lower()))
+  if util.is_str(mcode):
+    return cube_size / pow(2, ord('h') - ord(mcode.lower()))
+  elif isinstance(mcode, numbers.Number):
+    return mcode
+  else:
+    raise ValueError("First argument to get_mcode_cube_width must be string or numeric")
+
+
+def get_mcode(input):
+  if util.is_str(input) and len(input) == 1:
+    return input.lower()
+  elif isinstance(input, numbers.Number) and (int(input) % 10) == 0:
+    return chr(int(math.log(input / 10, 2)) + ord('a'))
+  else:
+    raise ValueError("First argument to get_mcode must be string or numeric and multiple of 10")
 
 
 class Sector(object):
