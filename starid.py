@@ -18,7 +18,8 @@ def _calculate(input):
   mcode = chr(mc + ord('a'))
   cube_width = sector.get_mcode_cube_width(mcode)
   # Calculate the shifts we need to do to get the individual fields out
-  shn2 = ( 4 + 3*mc, 20 + 3*mc)  # Can't tell how long N2 field is, assuming ~16 for now
+  # Can't tell how long N2 field is (or if the start moves!), assuming ~16 for now
+  shn2 = ( 4 + 3*mc, 20 + 3*mc)
   shxb = (20 + 3*mc, 34 + 2*mc)
   shyb = (34 + 2*mc, 47 +   mc)
   shzb = (47 +   mc, 61       )
