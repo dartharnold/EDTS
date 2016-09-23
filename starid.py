@@ -14,7 +14,7 @@ def _calculate(input):
   if util.is_str(input):
     input = int(input, 16)
   # Get the mass code from the end of the ID
-  mc = (input & _mask_mcode)
+  mc = (input & _mask_mcode)  # a-h = 0-7
   mcode = chr(mc + ord('a'))
   cube_width = sector.get_mcode_cube_width(mcode)
   # Calculate the shifts we need to do to get the individual fields out
