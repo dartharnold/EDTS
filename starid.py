@@ -4,31 +4,32 @@ import system
 import util
 import vector3
 
-# mask, e.g. 000002937DFC92DA
-_mask_xb = 0x0000003FFC000000
-_mask_yb = 0x0000000003FF8000
-_mask_zb = 0x0000000000007FF8
-_mask_n2 = 0x003FFFC000000000
-_mask_mc = 0x0000000000000007
+
+_max_int64 = 0xFFFFFFFFFFFFFFFF
+_mask_mc   = 0x0000000000000007
 
 
 def _calculate(input):
   # If input is a string, assume hex
   if util.is_str(input):
     input = int(input, 16)
-  xb = (input & _mask_xb) >> (64-38)
-  yb = (input & _mask_yb) >> (64-49)
-  zb = (input & _mask_zb) >> (64-61)
-  n2 = (input & _mask_n2) >> (64-26)
-  mc = (input & _mask_mc) >> (64-64)
-  
+  # Get the mass code from the end of the ID
+  mc = (input & _mask_mc)
   mcode = chr(mc + ord('a'))
+  # Calculate the shifts we need to do to get the individual fields out
+  shn2 = ( 5 + 3*mc, 20 + 3*mc)  # Can't tell how long N2 field is, assuming ~15 for now
+  shxb = (20 + 3*mc, 34 + 2*mc)
+  shyb = (34 + 2*mc, 47 +   mc)
+  shzb = (47 +   mc, 61       )
+  # Perform the shifts (clamping to 64-bit)
+  xb = ((input << shxb[0]) & _max_int64) >> (64 + shxb[0] - shxb[1])
+  yb = ((input << shyb[0]) & _max_int64) >> (64 + shyb[0] - shyb[1])
+  zb = ((input << shzb[0]) & _max_int64) >> (64 + shzb[0] - shzb[1])
+  n2 = ((input << shn2[0]) & _max_int64) >> (64 + shn2[0] - shn2[1])
   cw = sector.get_mcode_cube_width(mcode)
   coords_internal = vector3.Vector3(xb * cw, yb * cw, zb * cw)
-  print(coords_internal)
   # Shift the coords to be the origin we know and love
   coords = coords_internal + sector.internal_origin_coords
-  
   return (coords, mcode, n2)
 
 
