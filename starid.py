@@ -5,8 +5,8 @@ import util
 import vector3
 
 
-_max_int64 = 0xFFFFFFFFFFFFFFFF
-_mask_mc   = 0x0000000000000007
+_max_int64  = 0xFFFFFFFFFFFFFFFF
+_mask_mcode = 0x0000000000000007
 
 
 def _calculate(input):
@@ -14,10 +14,11 @@ def _calculate(input):
   if util.is_str(input):
     input = int(input, 16)
   # Get the mass code from the end of the ID
-  mc = (input & _mask_mc)
+  mc = (input & _mask_mcode)
   mcode = chr(mc + ord('a'))
+  cube_width = sector.get_mcode_cube_width(mcode)
   # Calculate the shifts we need to do to get the individual fields out
-  shn2 = ( 5 + 3*mc, 20 + 3*mc)  # Can't tell how long N2 field is, assuming ~15 for now
+  shn2 = ( 4 + 3*mc, 20 + 3*mc)  # Can't tell how long N2 field is, assuming ~16 for now
   shxb = (20 + 3*mc, 34 + 2*mc)
   shyb = (34 + 2*mc, 47 +   mc)
   shzb = (47 +   mc, 61       )
@@ -26,16 +27,17 @@ def _calculate(input):
   yb = ((input << shyb[0]) & _max_int64) >> (64 + shyb[0] - shyb[1])
   zb = ((input << shzb[0]) & _max_int64) >> (64 + shzb[0] - shzb[1])
   n2 = ((input << shn2[0]) & _max_int64) >> (64 + shn2[0] - shn2[1])
-  cw = sector.get_mcode_cube_width(mcode)
-  coords_internal = vector3.Vector3(xb * cw, yb * cw, zb * cw)
+  # Multiply each X/Y/Z value by the cube width to get actual coords
+  coords_internal = vector3.Vector3(xb * cube_width, yb * cube_width, zb * cube_width)
   # Shift the coords to be the origin we know and love
   coords = coords_internal + sector.internal_origin_coords
   return (coords, mcode, n2)
 
 
-def get_system_from_starid(id):
+def get_system_from_starid(id, allow_ha = True):
   coords, mcode, n2 = _calculate(id)
-  sys_proto = pgnames.get_system(coords, mcode)
+  # Get a system prototype to steal its name
+  sys_proto = pgnames.get_system(coords, mcode, allow_ha)
   name = sys_proto.name + str(n2)
   x, y, z = sys_proto.position
   return system.PGSystem(x, y, z, name, sys_proto.sector, sys_proto.uncertainty)
