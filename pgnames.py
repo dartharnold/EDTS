@@ -92,15 +92,15 @@ Args:
 Returns:
   A system or system prototype object
 """
-def get_system(input, mcode = None):
+def get_system(input, mcode = None, allow_ha = True):
   posinput = _get_as_position(input)
   if posinput is not None:
     if mcode is not None:
-      return _get_system_from_pos(posinput, mcode)
+      return _get_system_from_pos(posinput, mcode, allow_ha)
     else:
       raise ValueError("mcode argument must be provided to get_system if input is a position")
   else:
-    return _get_system_from_name(input)
+    return _get_system_from_name(input, allow_ha)
 
 
 """
@@ -403,21 +403,21 @@ def _get_sector_from_name(sector_name, allow_ha = True):
     return pgdata.ha_sectors[sector_name.lower()]
   else:
     frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
-    if frags is None:
-      return None
-    
-    sc = _get_sector_class(frags)
-    if sc == 2:
-      # Class 2
-      return _c2_get_sector(frags)
-    elif sc == 1:
-      # Class 1
-      return _c1_get_sector(frags)
+    if frags is not None:
+      sc = _get_sector_class(frags)
+      if sc == 2:
+        # Class 2
+        return _c2_get_sector(frags)
+      elif sc == 1:
+        # Class 1
+        return _c1_get_sector(frags)
+      else:
+        return None
     else:
       return None
 
 
-def _get_coords_from_name(raw_system_name):
+def _get_coords_from_name(raw_system_name, allow_ha = True):
   system_name = get_canonical_name(raw_system_name)
   if system_name is None:
     return (None, None)
@@ -426,7 +426,7 @@ def _get_coords_from_name(raw_system_name):
   if m is None:
     return (None, None)
   sector_name = m.group("sector")
-  sect = _get_sector_from_name(sector_name)
+  sect = _get_sector_from_name(sector_name, allow_ha)
   if sect is None:
     return (None, None)
   # Get the absolute position of the sector
@@ -447,11 +447,11 @@ def _get_coords_from_name(raw_system_name):
     return (None, None)
 
 
-def _get_system_from_pos(input, mcode):
+def _get_system_from_pos(input, mcode, allow_ha = True):
   input = _get_as_position(input)
   if input is None:
     return None
-  psect = get_sector(input, allow_ha=True)
+  psect = get_sector(input, allow_ha=allow_ha)
   # Get cube width for this mcode, and the sector origin
   cwidth = sector.get_mcode_cube_width(mcode)
   psorig = psect.get_origin(cwidth)
@@ -461,10 +461,23 @@ def _get_system_from_pos(input, mcode):
   return system.PGSystemPrototype(input.x, input.y, input.z, "{} {}".format(psect.name, sysid), sector=psect, uncertainty=0)
 
 
-def _get_system_from_name(input):
-  coords, uncertainty = _get_coords_from_name(input)
-  if coords is not None and uncertainty is not None:
-    return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=get_sector(input))
+def _get_system_from_name(input, allow_ha = True):
+  m = pgdata.pg_system_regex.match(input)
+  if m is not None:
+    sect = get_sector(m.group("sector"))
+    rel_pos, uncertainty = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+    if sect is not None and rel_pos is not None and uncertainty is not None:
+      cube_width = sector.get_mcode_cube_width(m.group("mcode"))
+      coords = sect.get_origin(cube_width) + rel_pos
+      if allow_ha:
+        return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=sect)
+      else:
+        pg_sect = get_sector(coords, allow_ha=False)
+        # Now subtract the coords from ye olde origin to get the real PG relpos
+        sysid = _get_sysid_from_relpos(coords - pg_sect.get_origin(cube_width), m.group("mcode"), format_output=True)
+        return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name="{} {}{}".format(pg_sect.name, sysid, m.group("number2")), sector=pg_sect)
+    else:
+      return None
   else:
     return None
 
