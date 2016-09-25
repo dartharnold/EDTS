@@ -8,8 +8,8 @@ cube_size = 1280.0
 # Galaxy actually goes from [-49985, -40985, -24105] = [-39, -32, -18]
 base_coords = vector3.Vector3(-65.0, -25.0, 215.0 - 1280.0)
 base_sector_coords = [39, 8, 18]
-named_origin_coords = base_coords - vector3.Vector3(cube_size * base_sector_coords[0], cube_size*base_sector_coords[1], cube_size*base_sector_coords[2])
-internal_origin_coords = vector3.Vector3(-49985, -40985, -24105)
+named_origin_offset = base_coords - vector3.Vector3(cube_size * base_sector_coords[0], cube_size*base_sector_coords[1], cube_size*base_sector_coords[2])
+internal_origin_offset = vector3.Vector3(-49985, -40985, -24105)
 
 
 def get_mcode_cube_width(mcode):

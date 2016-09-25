@@ -37,7 +37,7 @@ def run_test(it):
           sect = pgdata.ha_sectors[m.group("sector").lower()]
           is_noneha = False
           if sect.contains(system.position):
-            rp, rpe = pgnames._get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+            rp, rpe = pgnames._get_relpos_from_sysid(*m.group("l1", "l2", "l3", "mcode", "n1", "n2"))
             if rp is None or rpe is None:
               log.info("BadRelPos: could not calculate relative position for {}".format(system.name))
               badha += 1
