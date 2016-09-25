@@ -59,6 +59,14 @@ class PGSystem(PGSystemPrototype):
   def __repr__(self):
     return u"PGSystem({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
 
+  @property
+  def internal_id(self):
+    m = pgnames.get_system_fragments(self.name)
+    if m is not None:
+      return _calculate_id(self.position, m['MCode'], m['N2'])
+    else:
+      return None
+
 
 class KnownSystem(System):
   def __init__(self, obj):
@@ -112,8 +120,31 @@ def _calculate_from_id(input):
   # Multiply each X/Y/Z value by the cube width to get actual coords
   coords_internal = vector3.Vector3(xb * cube_width, yb * cube_width, zb * cube_width)
   # Shift the coords to be the origin we know and love
-  coords = coords_internal + sector.internal_origin_coords
+  coords = coords_internal + sector.internal_origin_offset
   return (coords, cube_width, n2)
+
+
+def _calculate_id(pos, mcode, n2):
+  # Get the data we need to start with (mc as 0-7, cube width, boxel X/Y/Z coords)
+  mc = ord(sector.get_mcode(mcode)) - ord('a')
+  cube_width = sector.get_mcode_cube_width(mcode)
+  boxel_coords = (pgnames.get_boxel_origin(pos, mcode) - sector.internal_origin_offset) / cube_width
+  # Calculate the shifts we need to populate the individual fields
+  shn2 = ( 4 + 3*mc, 20 + 3*mc)
+  shxb = (20 + 3*mc, 34 + 2*mc)
+  shyb = (34 + 2*mc, 47 +   mc)
+  shzb = (47 +   mc, 61       )
+  # Populate each field, shifting as required
+  # This currently does not guard against overflowing input values
+  output  = 0
+  output |= (int(boxel_coords.x) << (64 - shxb[1]))
+  output |= (int(boxel_coords.y) << (64 - shyb[1]))
+  output |= (int(boxel_coords.z) << (64 - shzb[1]))
+  output |= (            int(n2) << (64 - shn2[1]))
+  output |= mc
+  # Clamp to 64-bit (not necessary if values are sensible)
+  output &= _max_int64
+  return output
 
 
 def from_id(id, allow_ha = True):

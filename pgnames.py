@@ -15,6 +15,7 @@ import vector3
 app_name = "pgnames"
 log = logging.getLogger(app_name)
 
+
 # #
 # Publicly-useful functions
 # #
@@ -127,8 +128,8 @@ def get_canonical_name(name, sector_only = False):
   if sectname_raw.lower() in pgdata.ha_sectors:
     sectname = pgdata.ha_sectors[sectname_raw.lower()].name
   else:
-    # get_fragments converts to Title Case, so we don't need to
-    frags = get_fragments(sectname_raw)
+    # get_sector_fragments converts to Title Case, so we don't need to
+    frags = get_sector_fragments(sectname_raw)
     if frags is not None:
       sectname = format_name(frags)
 
@@ -137,13 +138,13 @@ def get_canonical_name(name, sector_only = False):
 
   # Work out what we should be returning, and do it
   if m is not None and sectname is not None:
-    if m.group("number1") is not None and int(m.group("number1")) != 0:
-      sysid = "{}{}-{} {}{}-{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number1"), m.group("number2"))
+    if m.group("n1") is not None and int(m.group("n1")) != 0:
+      sysid = "{}{}-{} {}{}-{}".format(m.group("l1").upper(), m.group("l2").upper(), m.group("l3").upper(), m.group("mcode").lower(), m.group("n1"), m.group("n2"))
     else:
-      sysid = "{}{}-{} {}{}".format(m.group("prefix").upper(), m.group("centre").upper(), m.group("suffix").upper(), m.group("mcode").lower(), m.group("number2"))
+      sysid = "{}{}-{} {}{}".format(m.group("l1").upper(), m.group("l2").upper(), m.group("l3").upper(), m.group("mcode").lower(), m.group("n2"))
     return "{} {}".format(sectname, sysid)
   else:
-    # This may be none if get_fragments/format_name failed
+    # This may be none if get_sector_fragments/format_name failed
     return sectname
 
 
@@ -158,7 +159,7 @@ Args:
 Returns:
   A list of fragments representing the sector name
 """
-def get_fragments(sector_name, allow_long = False):
+def get_sector_fragments(sector_name, allow_long = False):
   # Convert the string to Title Case, then remove spaces
   sector_name = sector_name.title().replace(' ', '')
   segments = []
@@ -182,7 +183,7 @@ def get_fragments(sector_name, allow_long = False):
 """
 Checks whether or not the provided sector name is a valid PG name
 
-Mild weakness: due to the way get_fragments works, this currently ignores all spaces
+Mild weakness: due to the way get_sector_fragments works, this currently ignores all spaces
 This means that names like "Synoo kio" are considered valid
 
 Args:
@@ -192,7 +193,7 @@ Returns:
   True if the sector name is valid, False if not
 """
 def is_valid_sector_name(input):
-  frags = get_fragments(input) if util.is_str(input) else frags
+  frags = get_sector_fragments(input) if util.is_str(input) else frags
   if frags is None or len(frags) == 0 or frags[0] not in pgdata.cx_prefixes:
     return False
   if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
@@ -220,19 +221,59 @@ def is_valid_sector_name(input):
 Format a given set of fragments into a full name
 
 Args:
-  frags: A list of sector name fragments
+  input: A list of sector name fragments
 
 Returns:
   The sector name as a string
 """
 def format_name(input):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
   if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
     return "{0}{1} {2}{3}".format(*frags)
   else:
     return "".join(frags)
+
+
+"""
+Get the origin of the boxel (cube) that the given coordinates sit within
+
+Args:
+  position: A vector or tuple of X/Y/Z coordinates, or a System object
+  mcode: The system's mass code ('a'-'h') or cube side length
+
+Returns:
+  A Vector3 representing the origin of the boxel containing this position
+"""
+def get_boxel_origin(position, mcode):
+  posinput = _get_as_position(position)
+  cube_width = sector.get_mcode_cube_width(mcode)
+  if posinput is None or cube_width is None:
+    return None
+  x = posinput.x - ((posinput.x - sector.internal_origin_offset.x) % cube_width)
+  y = posinput.y - ((posinput.y - sector.internal_origin_offset.y) % cube_width)
+  z = posinput.z - ((posinput.z - sector.internal_origin_offset.z) % cube_width)
+  return vector3.Vector3(x, y, z)
+
+
+"""
+Parse the given PG system name and return the canonical versions of its individual components
+
+Args:
+  input: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
+
+Returns:
+  A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
+"""
+def get_system_fragments(input):
+  m = pgdata.pg_system_regex.match(get_canonical_name(input))
+  if m is None:
+    return None
+  return {
+    'SectorName': m.group('sector'), 'L1': m.group('l1'), 'L2': m.group('l2'), 'L3': m.group('l3'),
+    'MCode': m.group('mcode'), 'N1': int(m.group('n1')) if m.group('n1') is not None else None, 'N2': int(m.group('n2'))
+  }
 
 
 # #
@@ -312,7 +353,7 @@ def _get_sysid_from_relpos(pos, mcode, format_output=False):
 def _get_sector_class(sect):
   if util.is_str(sect) and sect.lower() in pgdata.ha_sectors:
     return "ha"
-  frags = get_fragments(sect) if util.is_str(sect) else sect
+  frags = get_sector_fragments(sect) if util.is_str(sect) else sect
   if frags is not None and len(frags) == 4 and frags[0] in pgdata.cx_prefixes and frags[2] in pgdata.cx_prefixes:
     return 2
   elif frags is not None and len(frags) in [3,4] and frags[0] in pgdata.cx_prefixes:
@@ -324,7 +365,7 @@ def _get_sector_class(sect):
 # Get the full list of suffixes for a given set of fragments missing a suffix
 # e.g. "Dryau Ao", "Ogair", "Wreg"
 def _get_suffixes(input, get_all = False):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
   wordstart = frags[0]
@@ -402,7 +443,7 @@ def _get_sector_from_name(sector_name, allow_ha = True):
   if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_sectors:
     return pgdata.ha_sectors[sector_name.lower()]
   else:
-    frags = get_fragments(sector_name) if util.is_str(sector_name) else sector_name
+    frags = get_sector_fragments(sector_name) if util.is_str(sector_name) else sector_name
     if frags is not None:
       sc = _get_sector_class(frags)
       if sc == 2:
@@ -422,18 +463,18 @@ def _get_coords_from_name(raw_system_name, allow_ha = True):
   if system_name is None:
     return (None, None)
   # Reparse it now it's (hopefully) right
-  m = pgdata.pg_system_regex.match(system_name)
+  m = get_system_fragments(system_name)
   if m is None:
     return (None, None)
-  sector_name = m.group("sector")
+  sector_name = m['SectorName']
   sect = _get_sector_from_name(sector_name, allow_ha)
   if sect is None:
     return (None, None)
   # Get the absolute position of the sector
-  abs_pos = sect.get_origin(sector.get_mcode_cube_width(m.group("mcode")))
+  abs_pos = sect.get_origin(sector.get_mcode_cube_width(m['MCode']))
   # Get the relative position of the star within the sector
   # Also get the +/- error bounds
-  rel_pos, rel_pos_error = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+  rel_pos, rel_pos_error = _get_relpos_from_sysid(m['L1'], m['L2'], m['L3'], m['MCode'], m['N1'], m['N2'])
 
   # Check if the relpos is invalid
   leeway = rel_pos_error if (sect.sector_class == 'ha') else 0
@@ -462,20 +503,20 @@ def _get_system_from_pos(input, mcode, allow_ha = True):
 
 
 def _get_system_from_name(input, allow_ha = True):
-  m = pgdata.pg_system_regex.match(input)
+  m = get_system_fragments(input)
   if m is not None:
-    sect = get_sector(m.group("sector"))
-    rel_pos, uncertainty = _get_relpos_from_sysid(*m.group("prefix", "centre", "suffix", "mcode", "number1", "number2"))
+    sect = get_sector(m['SectorName'])
+    rel_pos, uncertainty = _get_relpos_from_sysid(m['L1'], m['L2'], m['L3'], m['MCode'], m['N1'], m['N2'])
     if sect is not None and rel_pos is not None and uncertainty is not None:
-      cube_width = sector.get_mcode_cube_width(m.group("mcode"))
+      cube_width = sector.get_mcode_cube_width(m['MCode'])
       coords = sect.get_origin(cube_width) + rel_pos
       if allow_ha:
         return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name=get_canonical_name(input), sector=sect)
       else:
         pg_sect = get_sector(coords, allow_ha=False)
         # Now subtract the coords from ye olde origin to get the real PG relpos
-        sysid = _get_sysid_from_relpos(coords - pg_sect.get_origin(cube_width), m.group("mcode"), format_output=True)
-        return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name="{} {}{}".format(pg_sect.name, sysid, m.group("number2")), sector=pg_sect)
+        sysid = _get_sysid_from_relpos(coords - pg_sect.get_origin(cube_width), m['MCode'], format_output=True)
+        return system.PGSystem(coords.x, coords.y, coords.z, uncertainty=uncertainty, name="{} {}{}".format(pg_sect.name, sysid, m['N2']), sector=pg_sect)
     else:
       return None
   else:
@@ -497,7 +538,7 @@ def _ha_get_name(pos):
 # Get the full list of infixes for a given set of fragments missing an infix
 # e.g. "Ogai", "Wre", "P"
 def _c1_get_infixes(input):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
   if frags[-1] in pgdata.cx_prefixes:
@@ -539,7 +580,7 @@ def _c1_get_offset(input):
     return _c1_get_offset_from_name(input)
 
 def _c1_get_offset_from_name(input):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
 
@@ -618,7 +659,7 @@ def _c1_get_offset_from_name(input):
 
 # Get the sector position of the given input class 1 sector name
 def _c1_get_sector(input):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
   offset = _c1_get_offset(frags)
@@ -701,7 +742,7 @@ def _c2_get_name(pos):
 
 # Get the sector position of the given input class 2 sector name
 def _c2_get_sector(input):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
   offset = _c2_get_offset_from_name(frags)
@@ -749,7 +790,7 @@ def _c2_get_name_from_offset(offset, format_output=False):
 
 
 def _c2_get_offset_from_name(input):
-  frags = get_fragments(input) if util.is_str(input) else input
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return
   
@@ -833,6 +874,10 @@ def _get_as_position(v):
   # If it's already a vector, all is OK
   if isinstance(v, vector3.Vector3):
     return v
+  if isinstance(v, system.System):
+    return v.position
+  if isinstance(v, sector.Sector):
+    return v.centre
   try:
     if len(v) == 3 and all([isinstance(i, numbers.Number) for i in v]):
       return vector3.Vector3(v[0], v[1], v[2])
