@@ -154,6 +154,7 @@ def generate_filter_sql(filters):
       if 'max' in entry:
         filter_str.append("diff{0} <= ? * ?".format(idx))
         filter_params += [entry['max'], entry['max']]
+      idx += 1
   if 'direction' in filters:
     for entry in filters['direction']:
       angle = entry.get('angle', 15.0) * math.pi / 180.0
