@@ -74,14 +74,12 @@ class Application(object):
 
     if self.args.direction is not None:
       direction_obj = env.data.parse_system(self.args.direction)
-      max_angle = self.args.direction_angle * math.pi / 180.0
       if direction_obj is None:
         log.error("Could not find direction system \"{0}\"!".format(self.args.direction))
         return
 
     asys = []
 
-    maxdist = 0.0
     close_to_list = []
     for s in self.args.system:
       min_dist = s['min_dist'] if 'min_dist' in s else None
@@ -90,8 +88,6 @@ class Application(object):
     if not any([x['max'] for x in close_to_list]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
-    stations_are_relevant = (self.args.pad_size is not None or self.args.max_sc_distance is not None)
-    allow_outposts = (self.args.pad_size != "L")
     filters = {}
     filters['close_to'] = close_to_list
     if self.args.pad_size is not None:
@@ -104,7 +100,7 @@ class Application(object):
     if self.args.num is not None:
       filters['limit'] = self.args.num
     if self.args.direction is not None:
-      filters['direction'] = {0: direction_obj, 'angle': self.args.direction_angle}
+      filters['direction'] = [{0: direction_obj, 'angle': self.args.direction_angle}]
 
     names = [d['sysobj'].name for d in self.args.system]
     asys = [s for s in env.data.find_all_systems(filters=filters) if s.name not in names]
