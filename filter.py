@@ -119,7 +119,6 @@ def parse_filter_string(s):
               raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
       else:
         output[k], continue_conv, post_conv = _global_conv(output[k], _conversions[k]['special'])
-        print("{}".format(output[k]))
         if continue_conv:
           output[k] = _conversions[k]['fn'](output[k])
         if post_conv:
