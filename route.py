@@ -72,7 +72,7 @@ class Routing(object):
 
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
-    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    stars_tmp = self._envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
@@ -128,7 +128,7 @@ class Routing(object):
   def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
-    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    stars_tmp = self._envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
     best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
@@ -225,7 +225,7 @@ class Routing(object):
 
     rbuffer_ly = self._rbuffer_base
     hbuffer_ly = self._hbuffer_base
-    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    stars_tmp = self._envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))

@@ -220,7 +220,7 @@ if __name__ == '__main__':
       env.set_verbosity(2)
       env.start()
       
-      run_test(env.data.get_all_systems())
+      run_test(env.data.find_all_systems())
 
     elif sys.argv[1] == "nametest":
       env.set_verbosity(2)
@@ -229,7 +229,7 @@ if __name__ == '__main__':
       ok = 0
       bad = 0
 
-      for s in env.data.get_all_systems():
+      for s in env.data.find_all_systems():
         m = pgdata.pg_system_regex.match(s.name)
         if m is not None:
           cls = pgnames._get_sector_class(m.group("sector"))
@@ -251,7 +251,7 @@ if __name__ == '__main__':
       bad = 0
 
       sectors = {}
-      for s in env.data.get_all_systems():
+      for s in env.data.find_all_systems():
         m = pgdata.pg_system_regex.match(s.name)
         if m is not None:
           if m.group("sector") not in sectors:
@@ -284,7 +284,7 @@ if __name__ == '__main__':
 
       y_levels = {}
       
-      for system in env.data.get_all_systems():
+      for system in env.data.find_all_systems():
         m = pgdata.pg_system_regex.match(system.name)
         if m is not None and m.group("sector") in edsm_sectors:
           sname = m.group("sector")

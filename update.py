@@ -3,6 +3,7 @@
 from __future__ import print_function, division
 from time import time
 import argparse
+import defs
 import gc
 import json
 import logging
@@ -122,10 +123,10 @@ def import_json(urlfmt, description, batch_size, key = None):
   return import_json_from_url(urlfmt, False, description, batch_size, key)
 
 # If the data directory doesn't exist, make it
-if not os.path.exists(os.path.dirname(db.default_db_file)):
-  os.makedirs(os.path.dirname(db.default_db_file))
+if not os.path.exists(os.path.dirname(defs.default_db_file)):
+  os.makedirs(os.path.dirname(defs.default_db_file))
 
-db_tmp_filename = "{0}.tmp".format(db.default_db_file)
+db_tmp_filename = "{0}.tmp".format(defs.default_db_file)
 
 log.info("Initialising database...")
 sys.stdout.flush()
@@ -150,8 +151,8 @@ except MemoryError:
 
 dbc.close()
 
-if os.path.isfile(db.default_db_file):
-  os.unlink(db.default_db_file)
-os.rename(db_tmp_filename, db.default_db_file)
+if os.path.isfile(defs.default_db_file):
+  os.unlink(defs.default_db_file)
+os.rename(db_tmp_filename, defs.default_db_file)
 
 log.info("All done.")

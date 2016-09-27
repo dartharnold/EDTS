@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 import env
+import filter
 import logging
 import math
 import sys
@@ -85,52 +86,28 @@ class Application(object):
     for s in self.args.system:
       min_dist = s['min_dist'] if 'min_dist' in s else None
       max_dist = s['max_dist'] if 'max_dist' in s else None
-      close_to_list.append([s['system'], min_dist, max_dist])
-    if not any([x[2] for x in close_to_list]):
+      close_to_list.append({0: s['sysobj'], 'min': min_dist, 'max': max_dist})
+    if not any([x['max'] for x in close_to_list]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
     stations_are_relevant = (self.args.pad_size is not None or self.args.max_sc_distance is not None)
     allow_outposts = (self.args.pad_size != "L")
+    filters = {}
+    filters['close_to'] = close_to_list
+    if self.args.pad_size is not None:
+      # Retain previous behaviour: 'M' counts as 'any'
+      filters['pad'] = 'L' if self.args.pad_size == 'L' else filter.Any
+    if self.args.max_sc_distance is not None:
+      filters['max_sc_distance'] = self.args.max_sc_distance
+    if self.args.allegiance is not None:
+      filters['allegiance'] = self.args.allegiance
+    if self.args.num is not None:
+      filters['limit'] = self.args.num
+    if self.args.direction is not None:
+      filters['direction'] = {0: direction_obj, 'angle': self.args.direction_angle}
 
-    close_systems = list(env.data.find_systems_close_to(close_to_list))
-    close_stations = []
-    if any(close_systems) and stations_are_relevant:
-      close_stations = env.data.get_stations(close_systems)
-    for s in close_systems:
-      # If we don't care about allegiance, or we do and it matches...
-      if s.name.lower() not in start_names and (self.args.allegiance is None or s.allegiance == self.args.allegiance):
-        has_stns = (s.allegiance is not None)
-        # If we have stations, or we don't care...
-        if has_stns or self.args.pad_size is None:
-          # Check if the direction matches, if we care
-          if self.args.direction is None or self.all_angles_within(self.args.system, s, direction_obj, max_angle):
-            # Check whether we even want to look for stations
-            matching_stns = []
-            if stations_are_relevant:
-              # If we *don't* have stations (because we don't care), or the stations match the requirements...
-              matching_stns = [st for st in close_stations if st.system == s]
-              if not allow_outposts:
-                matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
-              if self.args.max_sc_distance is not None:
-                matching_stns = [st for st in matching_stns if (st.distance is not None and st.distance < self.args.max_sc_distance)]
-            if not has_stns or not stations_are_relevant or len(matching_stns) > 0:
-              dist = 0.0  # The total distance from this system to ALL start systems
-              is_ok = True
-              for d in self.args.system:
-                start = d['sysobj']
-                dist += s.distance_to(start)
-
-              if not is_ok:
-                continue
-
-              if len(asys) < self.args.num or dist < maxdist:
-                # We have a new contender; add it, sort by distance, chop to length and set the new max distance
-                asys.append(s)
-                # Sort the list by distance to ALL start systems
-                asys.sort(key=lambda t: math.fsum([t.distance_to(e['sysobj']) for e in self.args.system]))
-
-                asys = asys[0:self.args.num]
-                maxdist = max(dist, maxdist)
+    names = [d['sysobj'].name for d in self.args.system]
+    asys = [s for s in env.data.find_all_systems(filters=filters) if s.name not in names]
 
     if not len(asys):
       print("")
@@ -146,7 +123,7 @@ class Application(object):
         else:
           print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format(asys[i].distance_to(self.args.system[0]['sysobj']))))
         if self.args.list_stations:
-          stlist = env.data.get_stations(asys[i])
+          stlist = env.data.find_stations(asys[i])
           stlist.sort(key=lambda t: t.distance)
           for stn in stlist:
             print("        {0}".format(stn.to_string(False)))

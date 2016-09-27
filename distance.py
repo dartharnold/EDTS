@@ -136,13 +136,15 @@ class Application(object):
         print('')
 
       # Otherwise, just return the simple output
-      else:
+      elif len(self.args.systems) > 1:
         start = env.data.parse_system(self.args.systems[0])
         end = env.data.parse_system(self.args.systems[1])
 
         print(start.to_string())
         print('    === {0: >7.2f}Ly ===> {1}'.format(start.distance_to(end), end.to_string()))
-
+      else:
+        log.error("For a simple distance calculation, at least two system names must be provided!")
+        return
     print('')
 
 if __name__ == '__main__':

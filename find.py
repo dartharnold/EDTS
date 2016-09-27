@@ -48,7 +48,7 @@ class Application(object):
         print("  {0}{1}".format(sysobj.to_string(), " ({0})".format(sysobj.id) if self.args.show_ids else ""))
         if self.args.list_stations:
           # TODO: Maybe roll this into the original query somehow
-          stlist = env.data.get_stations(sysobj)
+          stlist = env.data.find_stations(sysobj)
           stlist.sort(key=lambda t: t.distance)
           for stn in stlist:
             print("        {0}".format(stn.to_string(False)))

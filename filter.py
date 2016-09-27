@@ -1,6 +1,6 @@
 import argparse
-import env
 import collections
+import env
 import logging
 import math
 import random
@@ -24,6 +24,14 @@ class AnyType(object):
     return "Any"
 Any = AnyType()
 
+class Not(object):
+  def __init__(self, val):
+    self.value = val
+  def __str__(self):
+    return "Not({})".format(self.value)
+  def __repr__(self):
+    return "Not({})".format(self.value)
+
 
 def _parse_system(s):
   with env.use() as data:
@@ -31,23 +39,25 @@ def _parse_system(s):
 
 
 _conversions = {
-  'min_sc_distance': {'max': 1,    'special': [Any],       'fn': int},
-  'max_sc_distance': {'max': 1,    'special': [Any],       'fn': int},
-  'pad':             {'max': 1,    'special': [Any, None], 'fn': str.upper},
-  'direction':       {'max': None, 'special': [],          'fn': {0: _parse_system, 'angle': float}},
-  'close_to':        {'max': None, 'special': [],          'fn': {0: _parse_system, 'min': float, 'max': float}},
-  'allegiance':      {'max': 1,    'special': [Any, None], 'fn': str},
-  'limit':           {'max': 1,    'special': [],          'fn': int},
+  'min_sc_distance': {'max': 1,    'special': [Any],            'fn': int},
+  'max_sc_distance': {'max': 1,    'special': [Any],            'fn': int},
+  'pad':             {'max': 1,    'special': [Any, None, Not], 'fn': str.upper},
+  'direction':       {'max': None, 'special': [],               'fn': {0: _parse_system, 'angle': float}},
+  'close_to':        {'max': None, 'special': [],               'fn': {0: _parse_system, 'min': float, 'max': float}},
+  'allegiance':      {'max': 1,    'special': [Any, None, Not], 'fn': str},
+  'limit':           {'max': 1,    'special': [],               'fn': int},
 }
 
 
 def _global_conv(val, specials = []):
   if val.lower() == "any" and Any in specials:
-    return (Any, False)
+    return (Any, False, None)
   elif val.lower() == "none" and None in specials:
-    return (None, False)
+    return (None, False, None)
+  elif len(val) > 0 and val[0] == '!' and Not in specials:
+    return (_global_conv(val[1:]), True, Not)
   else:
-    return (val, True)
+    return (val, True, None)
 
 
 def parse_filter_string(s):
@@ -99,15 +109,19 @@ def parse_filter_string(s):
         for outentry in outlist:
           for ek in outentry:
             if ek in _conversions[k]['fn']:
-              outentry[ek], continue_conv = _global_conv(outentry[ek], []) # TODO: Support specials in inner args?
+              outentry[ek], continue_conv, post_conv = _global_conv(outentry[ek], []) # TODO: Support specials in inner args?
               if continue_conv:
                 outentry[ek] = _conversions[k]['fn'][ek](outentry[ek])
+              if post_conv:
+                outentry[ek] = post_conv(outentry[ek])
             else:
               raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
       else:
-        output[k], continue_conv = _global_conv(output[k], _conversions[k]['special'])
+        output[k], continue_conv, post_conv = _global_conv(output[k], _conversions[k]['special'])
         if continue_conv:
           output[k] = _conversions[k]['fn'](output[k])
+        if post_conv:
+          output[k] = post_conv(output[k])
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
@@ -117,55 +131,84 @@ def parse_filter_string(s):
 def generate_filter_sql(filters):
   select_str = []
   filter_str = []
-  modifier_str = []
+  group_str = []
+  order_str = []
+  limit = None
   select_params = []
   filter_params = []
-  modifier_params = []
+  group_params = []
+  order_params = []
+  req_tables = set()
   idx = 0
-  if 'allegiance' in filters:
-    if filters['allegiance'] is Any:
-      filter_str.append("stations.allegiance IS NOT NULL AND stations.allegiance != 'None'")
-    elif filters['allegiance'] is None:
-      filter_str.append("stations.allegiance IS NULL OR stations.allegiance == 'None'")
-    else:
-      filter_str.append("stations.allegiance = ?")
-      filter_params.append(filters['allegiance'])
-  if 'pad' in filters:
-    if filters['pad'] is None:
-      filter_str.append("stations.max_pad_size IS NULL") # Should never hit, resulting in no matches for this system
-    elif filters['pad'] == 'L':
-      filter_str.append("stations.max_pad_size = 'L'")
-    else: # Effectively "Any"
-      filter_str.append("stations.max_pad_size IN ('L', 'M')")
-  if 'min_sc_distance' in filters and filters['min_sc_distance'] is not Any:
-    filter_str.append("stations.sc_distance >= ?")
-    filter_params.append(filters['min_sc_distance'])
-  if 'max_sc_distance' in filters and filters['max_sc_distance'] is not Any:
-    filter_str.append("stations.sc_distance < ?")
-    filter_params.append(filters['max_sc_distance'])
+
   if 'close_to' in filters:
+    start_idx = idx
+    req_tables.add('systems')
     for entry in filters['close_to']:
       pos = entry[0].position
       select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
       select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
-      if 'min' in entry:
+      if 'min' in entry and entry['min']:
         filter_str.append("diff{0} >= ? * ?".format(idx))
         filter_params += [entry['min'], entry['min']]
-      if 'max' in entry:
+      if 'max' in entry and entry['max']:
         filter_str.append("diff{0} <= ? * ?".format(idx))
         filter_params += [entry['max'], entry['max']]
       idx += 1
+    order_str.append("+".join(["diff{}".format(i) for i in range(start_idx, idx)]))
   if 'direction' in filters:
+    start_idx = idx
+    req_tables.add('systems')
     for entry in filters['direction']:
       angle = entry.get('angle', 15.0) * math.pi / 180.0
-      filter_str.append("vec3_angle(systems.pos_x,systems.pos_y,systems.pos_z,?,?,?) < ?")
-      filter_params += [entry[0].position.x, entry[0].position.y, entry[0].position.z, angle]
-  
+      select_str.append("vec3_angle(systems.pos_x,systems.pos_y,systems.pos_z,?,?,?) AS diff{}".format(idx))
+      select_params += [entry[0].position.x, entry[0].position.y, entry[0].position.z]
+      filter_str.append("diff{} < ?".format(idx))
+      filter_params.append(angle)
+      idx += 1
+    order_str.append("+".join(["diff{}".format(i) for i in range(start_idx, idx)]))
+  if 'allegiance' in filters:
+    req_tables.add('systems')
+    if filters['allegiance'] is Any or (isinstance(filters['allegiance'], Not) and filters['allegiance'].value is None):
+      filter_str.append("systems.allegiance IS NOT NULL AND systems.allegiance != 'None'")
+    elif filters['allegiance'] is None or (isinstance(filters['allegiance'], Not) and filters['allegiance'].value is Any):
+      filter_str.append("systems.allegiance IS NULL OR systems.allegiance == 'None'")
+    elif isinstance(filters['allegiance'], Not):
+      filter_str.append("systems.allegiance != ?")
+      filter_params.append(filters['allegiance'].value)
+    else:
+      filter_str.append("systems.allegiance = ?")
+      filter_params.append(filters['allegiance'])
+  if 'pad' in filters:
+    req_tables.add('stations')
+    if filters['pad'] is None:
+      filter_str.append("stations.max_pad_size IS NULL") # Should never hit, resulting in no matches for this system
+    elif filters['pad'] is Any:
+      filter_str.append("stations.max_pad_size IS NOT NULL")
+    else:
+      filter_str.append("stations.max_pad_size = ?")
+      filter_params.append(filters['pad'])
+  if 'max_sc_distance' in filters and filters['max_sc_distance'] is not Any:
+    req_tables.add('stations')
+    filter_str.append("stations.sc_distance < ?")
+    filter_params.append(filters['max_sc_distance'])
+    order_str.append("stations.sc_distance")
+  if 'min_sc_distance' in filters and filters['min_sc_distance'] is not Any:
+    req_tables.add('stations')
+    filter_str.append("stations.sc_distance >= ?")
+    filter_params.append(filters['min_sc_distance'])
+    order_str.append("stations.sc_distance")
   if 'limit' in filters:
-    modifier_str.append("LIMIT ?")
-    modifier_params.append(filters['limit'])
+    limit = int(filters['limit'])
 
-  return {'select': (select_str, select_params), 'filter': (filter_str, filter_params), 'modifier': (modifier_str, modifier_params)}
+  return {
+    'select': (select_str, select_params),
+    'filter': (filter_str, filter_params),
+    'order': (order_str, order_params),
+    'group': (group_str, group_params),
+    'limit': limit,
+    'tables': list(req_tables)
+  }
 
 
 def filter_list(s_list, filters, limit = None, p_src_list = None):
