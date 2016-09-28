@@ -41,6 +41,7 @@ class Operator(object):
   def __repr__(self):
     return "{} {}".format(self.operator, self.value)
 
+_assumed_operators = {int: '<', float: '<'}
 
 def _parse_system(s):
   if isinstance(s, System):
@@ -198,7 +199,7 @@ def parse_filter_string(s):
   return output
 
 
-def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs = True, assume_eq = True):
+def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
   if not isinstance(filters, dict):
     raise ValueError("filter object must be a dict")
   output = filters
@@ -218,24 +219,40 @@ def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs
     if convdata['max'] is not None and len(output[k]) > convdata['max']:
       raise ValueError("filter key '{}' specified {} times, more than its maximum allowed {} times".format(k, len(output[k]), convdata['max']))
     # Start checking inner stuff
-    for entry in output[k]:
-      if not isinstance(entry, dict):
+    for i in range(0, len(output[k])):
+      if not isinstance(output[k][i], dict):
         if anonymous_posargs:
-          entry = {PosArgs: entry}
+          output[k][i] = {PosArgs: output[k][i]}
         else:
           raise ValueError("filter key '{}' contains invalid value".format(k))
-      for ek in entry:
+      for ek in output[k][i]:
+        if not isinstance(output[k][i][ek], list):
+          output[k][i][ek] = [output[k][i][ek]]
         # Ensure we have a relevant item in the convdata
         if ek is PosArgs:
           # If we're not simple data, we should either have a PosArgs entry or specific numeric entries
           if isinstance(convdata['fn'], dict):
-            if ek not in convdata['fn'] and len(entry[ek])-1 not in convdata['fn']:
+            if ek not in convdata['fn'] and len(output[k][i][ek])-1 not in convdata['fn']:
               raise ValueError("filter key '{}' contains unexpected positional arguments".format(k))
-            if ek in convdata['fn'] and convdata['fn'][ek]['max'] is not None and len(entry[ek]) > convdata['fn'][ek]['max']:
+            if ek in convdata['fn'] and convdata['fn'][ek]['max'] is not None and len(output[k][i][ek]) > convdata['fn'][ek]['max']:
               raise ValueError("filter key '{}' contains too many positional arguments".format(k))
         else:
           if not isinstance(convdata['fn'], dict):
             raise ValueError("filter key '{}' contains complex data with subkey '{}' when it should not".format(k, ek))
+          if ek not in convdata['fn']:
+            raise ValueError("filter key '{}' contains unexpected subkey '{}'".format(k, ek))
+        for j in range(0, len(output[k][i][ek])):
+          if not isinstance(output[k][i][ek][j], Operator):
+            if assume_ops:
+              conv_fn = convdata['fn']
+              if isinstance(conv_fn, dict):
+                conv_fn = conv_fn[ek]
+              if isinstance(conv_fn, dict):
+                conv_fn = conv_fn['fn']
+              output[k][i][ek][j] = Operator(_assumed_operators.get(conv_fn, '='), output[k][i][ek][j])
+            else:
+              raise ValueError("filter key '{}/{}' was not an Operator object".format(k, ek))
+  return output
 
 
 def generate_filter_sql(filters):
