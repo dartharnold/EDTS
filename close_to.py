@@ -82,25 +82,27 @@ class Application(object):
 
     close_to_list = []
     for s in self.args.system:
-      min_dist = s['min_dist'] if 'min_dist' in s else None
-      max_dist = s['max_dist'] if 'max_dist' in s else None
-      close_to_list.append({0: s['sysobj'], 'min': min_dist, 'max': max_dist})
-    if not any([x['max'] for x in close_to_list]):
+      min_dist = [filter.Operator('>=', s['min_dist'])] if 'min_dist' in s else []
+      max_dist = [filter.Operator('<',  s['max_dist'])] if 'max_dist' in s else []
+      close_to_list.append({filter.PosArgs: [filter.Operator('=', s['sysobj'])], 'distance': min_dist + max_dist})
+    if not any([('max_dist' in s) for s in self.args.system]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
     filters = {}
     filters['close_to'] = close_to_list
     if self.args.pad_size is not None:
       # Retain previous behaviour: 'M' counts as 'any'
-      filters['pad'] = 'L' if self.args.pad_size == 'L' else filter.Any
+      filters['pad'] = [{filter.PosArgs: [filter.Operator('=', 'L' if self.args.pad_size == 'L' else filter.Any)]}]
     if self.args.max_sc_distance is not None:
-      filters['max_sc_distance'] = self.args.max_sc_distance
+      filters['sc_distance'] = [{filter.PosArgs: [filter.Operator('<', self.args.max_sc_distance)]}]
     if self.args.allegiance is not None:
-      filters['allegiance'] = self.args.allegiance
+      filters['allegiance'] = [{filter.PosArgs: [filter.Operator('=', self.args.allegiance)]}]
     if self.args.num is not None:
       filters['limit'] = self.args.num
     if self.args.direction is not None:
-      filters['direction'] = [{0: direction_obj, 'angle': self.args.direction_angle}]
+      for entry in filters['close_to']:
+        entry['direction'] = [filter.Operator('=', direction_obj)]
+        entry['angle'] = [filter.Operator('<', self.args.direction_angle)]
 
     names = [d['sysobj'].name for d in self.args.system]
     asys = [s for s in env.data.find_all_systems(filters=filters) if s.name not in names]
