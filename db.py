@@ -10,6 +10,7 @@ import re
 import sqlite3
 import time
 import util
+import vector3
 
 log = logging.getLogger("db")
 
@@ -37,12 +38,7 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
 
 
 def _vec3_angle(x1, y1, z1, x2, y2, z2):
-  vl = max((x1*x1 + y1*y1 + z1*z1) * (x2*x2 + y2*y2 + z2*z2), 0.000001)
-  dotp = (x1*x2/vl + y1*y2/vl + z1*z2/vl)
-  if abs(dotp - 1.0) < 0.000001:
-    return 0.0
-  else:
-    return math.acos(dotp)
+  return vector3.Vector3(x1, y1, z1).angle_to(vector3.Vector3(x2, y2, z2))
 
 
 def open_db(filename = defs.default_db_file, check_version = True):
