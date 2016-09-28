@@ -4,6 +4,7 @@ import env
 import logging
 import math
 import random
+import re
 import vector3
 from station import Station
 from system import System
@@ -14,7 +15,7 @@ default_direction_angle = 15.0
 
 entry_separator = ';'
 entry_subseparator = ','
-entry_kvseparator = '='
+entry_kvseparator_re = re.compile('(=|!=|<>|<|>|<=|>=)')
 
 
 class AnyType(object):
@@ -24,13 +25,21 @@ class AnyType(object):
     return "Any"
 Any = AnyType()
 
-class Not(object):
-  def __init__(self, val):
-    self.value = val
+class PosArgsType(object):
   def __str__(self):
-    return "Not({})".format(self.value)
+    return "PosArgs"
   def __repr__(self):
-    return "Not({})".format(self.value)
+    return "PosArgs"
+PosArgs = PosArgsType()
+
+class Operator(object):
+  def __init__(self, op, value):
+    self.value = value
+    self.operator = op
+  def __str__(self):
+    return "{} {}".format(self.operator, self.value)
+  def __repr__(self):
+    return "{} {}".format(self.operator, self.value)
 
 
 def _parse_system(s):
@@ -38,27 +47,73 @@ def _parse_system(s):
     return data.parse_system(s)
 
 
+def _get_valid_ops(fn):
+  if isinstance(fn, dict) and 'fn' in fn:
+    return _get_valid_ops(fn['fn'])
+  if fn is int or fn is float:
+    return ['=','<','>','<=','>=']
+  if isinstance(fn, dict):
+    return ['=']
+  else:
+    return ['=','!=','<>']
+
+def _get_valid_conversion(fndict, idx, subidx = None):
+  if idx in fndict:
+    if isinstance(fndict[idx], dict) and 'fn' in fndict[idx]:
+      return fndict[idx]['fn']
+    else:
+      return fndict[idx]
+  if idx is None:
+    if subidx is not None and subidx in fndict:
+      return fndict[subidx]
+    elif PosArgs in fndict:
+      return fndict[PosArgs]
+  return None
+
 _conversions = {
-  'min_sc_distance': {'max': 1,    'special': [Any],            'fn': int},
-  'max_sc_distance': {'max': 1,    'special': [Any],            'fn': int},
-  'pad':             {'max': 1,    'special': [Any, None, Not], 'fn': str.upper},
-  'direction':       {'max': None, 'special': [],               'fn': {0: _parse_system, 'angle': float}},
-  'close_to':        {'max': None, 'special': [],               'fn': {0: _parse_system, 'min': float, 'max': float}},
-  'allegiance':      {'max': 1,    'special': [Any, None, Not], 'fn': str},
-  'limit':           {'max': 1,    'special': [],               'fn': int},
+  'sc_distance': { 'max': None,
+                   'special': [Any],
+                   'fn': int
+                 },
+  'pad':         {
+                   'max': 1,
+                   'special': [Any, None],
+                   'fn': str.upper
+                 },
+  'close_to':    {
+                   'max': None,
+                   'special': [],
+                   'fn':
+                   {
+                     PosArgs: _parse_system,
+                     'distance':  {'max': None, 'special': [], 'fn': float},
+                     'direction': {'max': None, 'special': [], 'fn': _parse_system},
+                     'angle':     {'max': None, 'special': [], 'fn': float}
+                   }
+                 },
+  'allegiance':  {
+                   'max': 1,
+                   'special': [Any, None],
+                   'fn': str
+                 },
+  'limit':       {
+                   'max': 1,
+                   'special': [],
+                   'fn': int
+                 },
 }
 
 
 def _global_conv(val, specials = []):
+  if isinstance(val, Operator):
+    return Operator(value=_global_conv(val.value, specials), op=val.operator)
+
   if val.lower() == "any" and Any in specials:
-    return (Any, False, None)
+    return (Any, False)
   elif val.lower() == "none" and None in specials:
-    return (None, False, None)
-  elif len(val) > 0 and val[0] == '!' and Not in specials:
-    nval, ncontinue, _ = _global_conv(val[1:], [s for s in specials if s is not Not])
-    return (nval, ncontinue, Not)
+    return (None, False)
   else:
-    return (val, True, None)
+    return (val, True)
 
 
 def parse_filter_string(s):
@@ -66,36 +121,32 @@ def parse_filter_string(s):
   output = {}
   # For each separate filter entry...
   for entry in entries:
-    kv = entry.split(entry_kvseparator, 1)
-    key = kv[0].strip()
+    ksv = entry_kvseparator_re.split(entry, 1)
+    key = ksv[0].strip()
     if key in _conversions:
       multiple = (_conversions[key]['max'] != 1)
     else:
-      raise KeyError("Unexpected filter key provided: {0}".format(k))
-    kvlist = kv[1].strip().split(entry_subseparator)
+      raise KeyError("Unexpected filter key provided: {0}".format(key))
+    ksvlist = ksv[2].strip().split(entry_subseparator)
     # Do we have sub-entries, or just a simple key=value ?
-    if multiple or len(kvlist) > 1:
-      idx = 0
-      value = {}
-      # For each sub-entry...
-      for e in kvlist:
-        ekv = [s.strip() for s in e.split(entry_kvseparator)]
-        # Is this sub-part a subkey=value?
-        if len(ekv) > 1:
-          value[ekv[0].strip()] = ekv[1].strip()
-        else:
-          # If not, give it a position-based index
-          value[idx] = ekv[0].strip()
-          idx += 1
-    else:
-      value = kvlist[0].strip()
+    value = {}
+    # For each sub-entry...
+    for e in ksvlist:
+      eksv = [s.strip() for s in entry_kvseparator_re.split(e, 1)]
+      # Is this sub-part a subkey=value?
+      if len(eksv) > 1:
+        if eksv[0] not in value:
+          value[eksv[0]] = []
+        value[eksv[0]].append(Operator(value=eksv[2], op=eksv[1]))
+      else:
+        # If not, give it a position-based index
+        if PosArgs not in value:
+          value[PosArgs] = []
+        value[PosArgs].append(Operator(value=eksv[0], op=ksv[1]))
     # Set the value and move on
-    if multiple:
-      if key not in output:
-        output[key] = []
-      output[key].append(value)
-    else:
-      output[key] = value
+    if key not in output:
+      output[key] = []
+    output[key].append(value)
 
   # For each result
   for k in output.keys():
@@ -104,25 +155,40 @@ def parse_filter_string(s):
       if _conversions[k]['max'] not in [None, 1] and len(output[k]) > _conversions[k]['max']:
         raise KeyError("Filter key {} provided more than its maximum {} times".format(k, _conversions[k]['max']))
       # Is it a complicated one, or a simple key=value?
-      if isinstance(_conversions[k]['fn'], collections.Iterable):
-        # For each present subkey, check if we know about it and convert it if so
-        outlist = output[k] if _conversions[k]['max'] != 1 else [output[k]]
+      if isinstance(_conversions[k]['fn'], dict):
+        # For each present subkey, check if we know about it
+        outlist = output[k]
+        # For each subkey...
         for outentry in outlist:
+          # For each named entry in that subkey (and None for positional args)...
           for ek in outentry:
-            if ek in _conversions[k]['fn']:
-              outentry[ek], continue_conv, post_conv = _global_conv(outentry[ek], []) # TODO: Support specials in inner args?
+            # For each instance of that named entry...
+            for i in range(0, len(outentry[ek])):
+              ev = outentry[ek][i]
+              # Check we have a valid conversion for the provided name
+              conv = _get_valid_conversion(_conversions[k]['fn'], ek, i)
+              if not conv:
+                raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
+              # Check the provided operator is valid in this scenario
+              if ev.operator not in _get_valid_ops(conv):
+                raise KeyError("Invalid operator provided for filter subkey '{}'".format(ek))
+              # Do the conversions
+              specials = _conversions[k]['fn'][ek]['special'] if (ek in _conversions[k]['fn'] and isinstance(_conversions[k]['fn'][ek], dict)) else []
+              ev.value, continue_conv = _global_conv(ev.value, specials)
               if continue_conv:
-                outentry[ek] = _conversions[k]['fn'][ek](outentry[ek])
-              if post_conv:
-                outentry[ek] = post_conv(outentry[ek])
-            else:
-              raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
+                ev.value = conv(ev.value)
       else:
-        output[k], continue_conv, post_conv = _global_conv(output[k], _conversions[k]['special'])
-        if continue_conv:
-          output[k] = _conversions[k]['fn'](output[k])
-        if post_conv:
-          output[k] = post_conv(output[k])
+        # For each entry associated with this key...
+        for ovl in output[k]:
+          # For each entry in the positional args list...
+          for ov in ovl[PosArgs]:
+            # Check the provided operator is valid in this scenario
+            if ov.operator not in _get_valid_ops(_conversions[k]['fn']):
+              raise KeyError("Invalid operator provided for filter key '{}'".format(k))
+            # Do the conversions
+            ov.value, continue_conv = _global_conv(ov.value, _conversions[k]['special'])
+            if continue_conv:
+              ov.value = _conversions[k]['fn'](ov.value)
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
@@ -145,59 +211,59 @@ def generate_filter_sql(filters):
   if 'close_to' in filters:
     start_idx = idx
     req_tables.add('systems')
-    for entry in filters['close_to']:
-      pos = entry[0].position
-      select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
-      select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
-      if 'min' in entry and entry['min']:
-        filter_str.append("diff{0} >= ? * ?".format(idx))
-        filter_params += [entry['min'], entry['min']]
-      if 'max' in entry and entry['max']:
-        filter_str.append("diff{0} <= ? * ?".format(idx))
-        filter_params += [entry['max'], entry['max']]
-      idx += 1
-    order_str.append("+".join(["diff{}".format(i) for i in range(start_idx, idx)]))
-  if 'direction' in filters:
-    start_idx = idx
-    req_tables.add('systems')
-    for entry in filters['direction']:
-      angle = entry.get('angle', 15.0) * math.pi / 180.0
-      select_str.append("vec3_angle(systems.pos_x,systems.pos_y,systems.pos_z,?,?,?) AS diff{}".format(idx))
-      select_params += [entry[0].position.x, entry[0].position.y, entry[0].position.z]
-      filter_str.append("diff{} < ?".format(idx))
-      filter_params.append(angle)
-      idx += 1
+    for oentry in filters['close_to']:
+      for entry in oentry[PosArgs]:
+        pos = entry.value.position
+        select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
+        select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
+        # For each operator and value...
+        if 'distance' in oentry:
+          for opval in oentry['distance']:
+            filter_str.append("diff{} {} ? * ?".format(idx, opval.operator))
+            filter_params += [opval.value, opval.value]
+        idx += 1
+        if 'direction' in oentry:
+          for dentry in oentry['direction']:
+            dpos = dentry.value.position
+            select_str.append("vec3_angle(systems.pos_x-?,systems.pos_y-?,systems.pos_z-?,?-?,?-?,?-?) AS diff{}".format(idx))
+            select_params += [pos.x, pos.y, pos.z, dpos.x, pos.x, dpos.y, pos.y, dpos.z, pos.z]
+            if 'angle' in oentry:
+              for aentry in oentry['angle']:
+                angle = aentry.value * math.pi / 180.0
+                filter_str.append("diff{} {} ?".format(idx, aentry.operator))
+                filter_params.append(angle)
+            idx += 1
     order_str.append("+".join(["diff{}".format(i) for i in range(start_idx, idx)]))
   if 'allegiance' in filters:
     req_tables.add('systems')
-    if filters['allegiance'] is Any or (isinstance(filters['allegiance'], Not) and filters['allegiance'].value is None):
-      filter_str.append("systems.allegiance IS NOT NULL AND systems.allegiance != 'None'")
-    elif filters['allegiance'] is None or (isinstance(filters['allegiance'], Not) and filters['allegiance'].value is Any):
-      filter_str.append("systems.allegiance IS NULL OR systems.allegiance == 'None'")
-    elif isinstance(filters['allegiance'], Not):
-      filter_str.append("systems.allegiance != ?")
-      filter_params.append(filters['allegiance'].value)
-    else:
-      filter_str.append("systems.allegiance = ?")
-      filter_params.append(filters['allegiance'])
+    for oentry in filters['allegiance']:
+      for entry in oentry[PosArgs]:
+        if (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
+          filter_str.append("(systems.allegiance IS NOT NULL AND systems.allegiance != 'None')")
+        elif (entry.operator == '=' and entry.value is None) or (entry.operator in ['!=','<>'] and entry.value is Any):
+          filter_str.append("(systems.allegiance IS NULL OR systems.allegiance == 'None')")
+        else:
+          extra_str = " OR systems.allegiance IS NULL OR systems.allegiance == 'None'"
+          filter_str.append("(systems.allegiance {} ?{})".format(entry.operator, extra_str if entry.operator == '!=' else ''))
+          filter_params.append(entry.value)
   if 'pad' in filters:
     req_tables.add('stations')
-    if filters['pad'] is None:
-      filter_str.append("stations.max_pad_size IS NULL") # Should never hit, resulting in no matches for this system
-    elif filters['pad'] is Any:
-      filter_str.append("stations.max_pad_size IS NOT NULL")
-    else:
-      filter_str.append("stations.max_pad_size = ?")
-      filter_params.append(filters['pad'])
-  if 'max_sc_distance' in filters and filters['max_sc_distance'] is not Any:
+    for oentry in filters['pad']:
+      for entry in oentry[PosArgs]:
+        if (entry.operator == '=' and entry.value is None) or (entry.operator in ['!=','<>'] and entry.value is Any):
+          filter_str.append("stations.max_pad_size IS NULL")
+        elif (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
+          filter_str.append("stations.max_pad_size IS NOT NULL")
+        else:
+          extra_str = " OR stations.max_pad_size IS NULL"
+          filter_str.append("stations.max_pad_size {} ?{}".format(entry.operator, extra_str if entry.operator == '!=' else ''))
+          filter_params.append(entry.value)
+  if 'sc_distance' in filters:
     req_tables.add('stations')
-    filter_str.append("stations.sc_distance < ?")
-    filter_params.append(filters['max_sc_distance'])
-    order_str.append("stations.sc_distance")
-  if 'min_sc_distance' in filters and filters['min_sc_distance'] is not Any:
-    req_tables.add('stations')
-    filter_str.append("stations.sc_distance >= ?")
-    filter_params.append(filters['min_sc_distance'])
+    for oentry in filters['sc_distance']:
+      for entry in oentry[PosArgs]:
+        filter_str.append("stations.sc_distance {} ?".format(entry.operator))
+        filter_params.append(entry.value)
     order_str.append("stations.sc_distance")
   if 'limit' in filters:
     limit = int(filters['limit'])
