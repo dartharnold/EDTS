@@ -84,7 +84,7 @@ class Env(object):
   def find_stations(self, args, filters = None, keep_station_data = False):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
     sysobjs = { s.id: s for s in sysobjs if s.id is not None }
-    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._db_conn.find_stations_by_system_id(sysobjs.keys(), filters=filters)]
+    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._db_conn.find_stations_by_system_id(list(sysobjs.keys()), filters=filters)]
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
     min_x = min(vec_from.x, vec_to.x) - buffer_from

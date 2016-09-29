@@ -6,6 +6,7 @@ import env
 import fnmatch
 import logging
 import re
+import sys
 
 app_name = "find"
 
@@ -49,7 +50,7 @@ class Application(object):
         if self.args.list_stations:
           # TODO: Maybe roll this into the original query somehow
           stlist = env.data.find_stations(sysobj)
-          stlist.sort(key=lambda t: t.distance)
+          stlist.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
           for stn in stlist:
             print("        {0}".format(stn.to_string(False)))
       print("")
