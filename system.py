@@ -103,25 +103,25 @@ def _calculate_from_id(input):
   # If input is a string, assume hex
   if util.is_str(input):
     input = int(input, 16)
-  # Get the mass code from the end of the ID
-  mc = (input & _mask_mcode)  # a-h = 0-7
-  cube_width = 10 * (2**mc)
   # Calculate the shifts we need to do to get the individual fields out
   # Can't tell how long N2 field is (or if the start moves!), assuming ~16 for now
-  shn2 = ( 4 + 3*mc, 20 + 3*mc)
-  shxb = (20 + 3*mc, 34 + 2*mc)
-  shyb = (34 + 2*mc, 47 +   mc)
-  shzb = (47 +   mc, 61       )
-  # Perform the shifts (clamping to 64-bit)
-  xb = ((input << shxb[0]) & _max_int64) >> (64 + shxb[0] - shxb[1])
-  yb = ((input << shyb[0]) & _max_int64) >> (64 + shyb[0] - shyb[1])
-  zb = ((input << shzb[0]) & _max_int64) >> (64 + shzb[0] - shzb[1])
-  n2 = ((input << shn2[0]) & _max_int64) >> (64 + shn2[0] - shn2[1])
+  input, mc       = util.unpack_and_shift(input, 3) # mc = 0-7 for a-h
+  input, boxel_z  = util.unpack_and_shift(input, 7-mc)
+  input, sector_z = util.unpack_and_shift(input, 7)
+  input, boxel_y  = util.unpack_and_shift(input, 7-mc)
+  input, sector_y = util.unpack_and_shift(input, 6)
+  input, boxel_x  = util.unpack_and_shift(input, 7-mc)
+  input, sector_x = util.unpack_and_shift(input, 7)
+  input, n2       = util.unpack_and_shift(input, 16)  # Could be the whole rest of the input, not sure
   # Multiply each X/Y/Z value by the cube width to get actual coords
-  coords_internal = vector3.Vector3(xb * cube_width, yb * cube_width, zb * cube_width)
+  boxel_size = 10 * (2**mc)
+  coord_x = (sector_x * sector.cube_size) + (boxel_x * boxel_size)
+  coord_y = (sector_y * sector.cube_size) + (boxel_y * boxel_size)
+  coord_z = (sector_z * sector.cube_size) + (boxel_z * boxel_size)
+  coords_internal = vector3.Vector3(coord_x, coord_y, coord_z)
   # Shift the coords to be the origin we know and love
   coords = coords_internal + sector.internal_origin_offset
-  return (coords, cube_width, n2)
+  return (coords, boxel_size, n2)
 
 
 def _calculate_id(pos, mcode, n2):
@@ -129,21 +129,13 @@ def _calculate_id(pos, mcode, n2):
   mc = ord(sector.get_mcode(mcode)) - ord('a')
   cube_width = sector.get_mcode_cube_width(mcode)
   boxel_coords = (pgnames.get_boxel_origin(pos, mcode) - sector.internal_origin_offset) / cube_width
-  # Calculate the shifts we need to populate the individual fields
-  shn2 = ( 4 + 3*mc, 20 + 3*mc)
-  shxb = (20 + 3*mc, 34 + 2*mc)
-  shyb = (34 + 2*mc, 47 +   mc)
-  shzb = (47 +   mc, 61       )
   # Populate each field, shifting as required
-  # This currently does not guard against overflowing input values
-  output  = 0
-  output |= (int(boxel_coords.x) << (64 - shxb[1]))
-  output |= (int(boxel_coords.y) << (64 - shyb[1]))
-  output |= (int(boxel_coords.z) << (64 - shzb[1]))
-  output |= (            int(n2) << (64 - shn2[1]))
-  output |= mc
-  # Clamp to 64-bit (not necessary if values are sensible)
-  output &= _max_int64
+  output = util.pack_and_shift(0, 0, 3)
+  output = util.pack_and_shift(output, int(n2), 16)  # Not sure what the length is
+  output = util.pack_and_shift(output, int(boxel_coords.x), 14-mc)
+  output = util.pack_and_shift(output, int(boxel_coords.y), 13-mc)
+  output = util.pack_and_shift(output, int(boxel_coords.z), 14-mc)
+  output = util.pack_and_shift(output, mc, 3)
   return output
 
 
