@@ -181,34 +181,6 @@ c1_infix_length_overrides = {
 c1_infix_s1_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s1_length_default) for p in c1_infixes_s1])
 c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2_length_default) for p in c1_infixes_s2])
 
-# Welp
-c1_arbitrary_index_offset = 3072
-
-
-# Index modifiers for runs
-# Unit is a full run using 8 suffixes
-c2_outer_step = 16
-c2_outer_state_count = 16
-c2_outer_states = [
-  (0, 2), (0, 3), (2, 2), (2, 3),
-  (4, 6), (4, 7), (6, 6), (6, 7),
-  (8, 0), (8, 1), (10, 0), (10, 1),
-  (12, 4), (12, 5), (14, 4), (14, 5),
-]
-
-
-# Index modifiers for all states
-# In pairs of (phoneme 1, phoneme 3)
-c2_f0_step = 16
-c2_f2_step = 8
-c2_run_state_count = 128
-
-c2_run_diff = c2_f2_step
-c2_outer_diff = c2_run_diff * c2_outer_step
-
-c1_galaxy_size = [128, 128,  128]
-c2_galaxy_size = [128,  16,  128]
-
 
 # Hand-authored sectors
 ha_sectors = collections.OrderedDict([

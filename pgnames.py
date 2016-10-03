@@ -70,9 +70,9 @@ def get_sector(input, allow_ha = True, get_name = True):
       if ha_name is not None:
         return pgdata.ha_sectors[ha_name.lower()]
     # If we're not checking HA or it's not in such a sector, do PG
-    x = (input.x - sector.base_coords.x) // sector.cube_size
-    y = (input.y - sector.base_coords.y) // sector.cube_size
-    z = (input.z - sector.base_coords.z) // sector.cube_size
+    x = (input.x - sector.base_coords.x) // sector.sector_size
+    y = (input.y - sector.base_coords.y) // sector.sector_size
+    z = (input.z - sector.base_coords.z) // sector.sector_size
     # Get the name, if we are
     frags = None
     if get_name:
@@ -300,9 +300,9 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
     number1 = 0
 
   position  = _srp_divisor3 * int(number1)
-  position += _srp_divisor2 * string.ascii_uppercase.index(suffix.upper())
-  position += _srp_divisor1 * string.ascii_uppercase.index(centre.upper())
-  position +=                 string.ascii_uppercase.index(prefix.upper())
+  position += _srp_divisor2 * (ord(suffix.upper()) - ord('A'))
+  position += _srp_divisor1 * (ord(centre.upper()) - ord('A'))
+  position +=                 (ord(prefix.upper()) - ord('A'))
 
   row = int(position // _srp_sidelength)
   position -= (row * _srp_sidelength)
@@ -407,16 +407,14 @@ def _get_sector_pos_from_offset(offset, galsize):
   y = (offset // galsize[0]) % galsize[1]
   z = (offset // (galsize[0] * galsize[1])) % galsize[2]
   # Put it in "our" coordinate space
-  x -= sector.base_sector_coords[0]
-  y -= sector.base_sector_coords[1]
-  z -= sector.base_sector_coords[2]
+  x -= sector.base_sector_index[0]
+  y -= sector.base_sector_index[1]
+  z -= sector.base_sector_index[2]
   return [x, y, z]
 
 
 # Determines whether a given sector should be C1 or C2
 def _get_c1_or_c2(key):
-  # Add the offset we subtract to make the normal positions make sense
-  key += pgdata.c1_arbitrary_index_offset
   # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
   # Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
   key += (key << 12)
@@ -478,7 +476,7 @@ def _get_coords_from_name(raw_system_name, allow_ha = True):
 
   # Check if the relpos is invalid
   leeway = rel_pos_error if (sect.sector_class == 'ha') else 0
-  if any([s > (sector.cube_size + leeway) for s in rel_pos]):
+  if any([s > (sector.sector_size + leeway) for s in rel_pos]):
     log.warning("RelPos for input {} was invalid: {}, uncertainty {}".format(system_name, rel_pos, rel_pos_error))
     return (None, None)
 
@@ -575,7 +573,7 @@ def _c1_get_infix_total_run_length(frag):
 def _c1_get_offset(input):
   pos_input = _get_as_position(input)
   if pos_input is not None:
-    return _get_offset_from_pos(pos_input, pgdata.c1_galaxy_size)
+    return _get_offset_from_pos(pos_input, sector.galaxy_size)
   else:
     return _c1_get_offset_from_name(input)
 
@@ -649,8 +647,6 @@ def _c1_get_offset_from_name(input):
   offset *= pgdata.cx_prefix_total_run_length
   # Add the infixes/suffix's position within this prefix's part of the overall prefix run
   offset += offset_mod
-  # Subtract a magic number, "Just 'Cause!"
-  offset -= pgdata.c1_arbitrary_index_offset
   # Add the base position of this prefix within the run
   offset += _prefix_offsets[frags[0]][0]
   # Whew!
@@ -667,7 +663,7 @@ def _c1_get_sector(input):
     return None
 
   # Calculate the X/Y/Z positions from the offset
-  spos = _get_sector_pos_from_offset(offset, pgdata.c1_galaxy_size)
+  spos = _get_sector_pos_from_offset(offset, sector.galaxy_size)
   name = format_name(frags)
   return sector.PGSector(spos[0], spos[1], spos[2], format_name(frags), _get_sector_class(frags))
 
@@ -678,7 +674,7 @@ def _c1_get_name(pos):
   offset = _c1_get_offset(pos)
 
   # Get the current prefix run we're on, and keep the remaining offset
-  prefix_cnt, cur_offset = divmod(offset + pgdata.c1_arbitrary_index_offset, pgdata.cx_prefix_total_run_length)
+  prefix_cnt, cur_offset = divmod(offset, pgdata.cx_prefix_total_run_length)
   # Work out which prefix we're currently within
   prefix = [c for c in _prefix_offsets if cur_offset >= _prefix_offsets[c][0] and cur_offset < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
   # Put us in that prefix's space
@@ -736,7 +732,7 @@ def _c1_get_name(pos):
 
 # Get the name of a class 2 sector based on its position
 def _c2_get_name(pos):
-  offset = _get_offset_from_pos(pos, pgdata.c2_galaxy_size)
+  offset = _get_offset_from_pos(pos, sector.galaxy_size)
   return _c2_get_name_from_offset(offset)
 
 
@@ -750,32 +746,16 @@ def _c2_get_sector(input):
     return None
 
   # Calculate the X/Y/Z positions from the offset
-  spos = _get_sector_pos_from_offset(offset, pgdata.c2_galaxy_size)
+  spos = _get_sector_pos_from_offset(offset, sector.galaxy_size)
   name = format_name(frags)
   return sector.PGSector(spos[0], spos[1], spos[2], format_name(frags), _get_sector_class(frags))
 
 
 def _c2_get_name_from_offset(offset, format_output=False):
-  # Get the line of 128 we're a part of, since we can only work from a start point
-  line, off = divmod(offset, pgdata.c2_run_state_count)
+  # Deinterleave the two offsets from the single big one
+  cur_idx0, cur_idx1 = util.deinterleave(offset, 32)  # No idea what length this actually is
   
-  # Work out what point along the various state steps we're at
-  vo1, oo1  = divmod(line, pgdata.c2_outer_state_count)
-  
-  # Get the (prefix0, prefix1) index pairs at each step
-  vs0, vs1 = util.deinterleave(vo1, 7)
-  os0, os1 = pgdata.c2_outer_states[oo1]
-  
-  # Calculate the current prefix-run (3037) index of this start point for each prefix
-  cur_idx0 = (vs0 * pgdata.c2_outer_diff) + (os0 * pgdata.c2_run_diff)
-  cur_idx1 = (vs1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
-  
-  # Add the offset from the start back, so we're at our actual sector not the start point
-  rs0, rs1 = util.deinterleave(off, 7)
-  cur_idx0 += rs0
-  cur_idx1 += rs1
-  
-  # Retrieve the actual prefix/suffix strings
+  # Get prefixes/suffixes from the individual offsets
   p0 = [c for c in _prefix_offsets if cur_idx0 >= _prefix_offsets[c][0] and cur_idx0 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
   p1 = [c for c in _prefix_offsets if cur_idx1 >= _prefix_offsets[c][0] and cur_idx1 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
   s0 = _get_suffixes(p0)[cur_idx0 - _prefix_offsets[p0][0]]
@@ -802,35 +782,8 @@ def _c2_get_offset_from_name(input):
     log.warning("Failed to look up prefixes/suffixes in _c2_get_offset_from_name; bad sector name?")
     return None
   
-  # Wind the indexes back to the start point of this run (c2_run_states[0])
-  off0 = (cur_idx0 % pgdata.c2_f0_step)
-  off1 = (cur_idx1 % pgdata.c2_f2_step)
-  cur_idx0 -= off0
-  cur_idx1 -= off1
-  
-  # Find out what states we're at for the various layers
-  vs0, cur_idx0 = divmod(cur_idx0, pgdata.c2_outer_diff)
-  os0 , _       = divmod(cur_idx0, pgdata.c2_run_diff)
-  vs1, cur_idx1 = divmod(cur_idx1, pgdata.c2_outer_diff)
-  os1 , _       = divmod(cur_idx1, pgdata.c2_run_diff)
-  
-  try:
-    # Get what index these states are
-    vo1 = util.interleave(vs0, vs1, 7)
-    oo1 = pgdata.c2_outer_states.index((os0, os1))
-    off = util.interleave(off0, off1, 7)
-  except:
-    # If we failed to get any of these indexes, the entire name likely isn't valid
-    log.warning("Failed to get run state indexes in _c2_get_offset_from_name; bad sector name?")
-    return None
-  
-  # Calculate the offset from the various layers' state indexes
-  offset  = vo1 * pgdata.c2_run_state_count * pgdata.c2_outer_state_count
-  offset += oo1 * pgdata.c2_run_state_count
-  # Now re-add the offset we removed at the start
-  offset += off
-  
-  return offset
+  # Interleave the individual offsets into one big offset
+  return util.interleave(cur_idx0, cur_idx1, 32)  # Again, length is anyone's guess
 
   
 # #
