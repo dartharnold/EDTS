@@ -393,6 +393,10 @@ def _get_prefix_run_length(frag):
   return pgdata.cx_prefix_length_overrides.get(frag, pgdata.cx_prefix_length_default)
 
 
+def _get_entry_from_offset(offset, keys, list):
+  return [c for c in keys if offset >= list[c][0] and offset < (list[c][0] + list[c][1])][0]
+
+
 # Get the sector offset of a position
 def _get_offset_from_pos(pos, galsize):
   sect = get_sector(pos, allow_ha=False, get_name=False) if not isinstance(pos, sector.PGSector) else pos
@@ -676,7 +680,7 @@ def _c1_get_name(pos):
   # Get the current prefix run we're on, and keep the remaining offset
   prefix_cnt, cur_offset = divmod(offset, pgdata.cx_prefix_total_run_length)
   # Work out which prefix we're currently within
-  prefix = [c for c in _prefix_offsets if cur_offset >= _prefix_offsets[c][0] and cur_offset < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
+  prefix = _get_entry_from_offset(cur_offset, _prefix_offsets, _prefix_offsets)
   # Put us in that prefix's space
   cur_offset -= _prefix_offsets[prefix][0]
   
@@ -686,7 +690,7 @@ def _c1_get_name(pos):
   # Work out where we are in infix1 space, keep the remaining offset
   infix1_cnt, cur_offset = divmod(prefix_cnt * _get_prefix_run_length(prefix) + cur_offset, infix1_total_len)
   # Find which infix1 we're currently in
-  infix1 = [c for c in _c1_infix_offsets if c in infix1s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
+  infix1 = _get_entry_from_offset(cur_offset, infix1s, _c1_infix_offsets)
   # Put us in that infix1's space
   cur_offset -= _c1_infix_offsets[infix1][0]
   
@@ -709,7 +713,7 @@ def _c1_get_name(pos):
     # Work out where we are in infix2 space, still keep the remaining offset
     infix2_cnt, cur_offset = divmod(infix1_cnt * _c1_get_infix_run_length(infix1) + cur_offset, infix2_total_len)
     # Find which infix2 we're currently in
-    infix2 = [c for c in _c1_infix_offsets if c in infix2s and cur_offset >= _c1_infix_offsets[c][0] and cur_offset < (_c1_infix_offsets[c][0] + _c1_infix_offsets[c][1])][0]
+    infix2 = _get_entry_from_offset(cur_offset, infix2s, _c1_infix_offsets)
     # Put us in this infix2's space
     cur_offset -= _c1_infix_offsets[infix2][0]
     
