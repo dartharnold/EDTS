@@ -185,20 +185,6 @@ c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2
 c1_arbitrary_index_offset = 3072
 
 
-# Index modifiers for outer states
-# Unit is a full run set using 128 suffixes
-c2_vouter_step = 4
-c2_vouter_states = [
-  (0, 0), (1, 0),
-  (0, 1), (1, 1),
-  (2, 0), (3, 0),
-  (2, 1), (3, 1),
-  (0, 2), (1, 2),
-  (0, 3), (1, 3),
-  (2, 2), (3, 2),
-  (2, 3), (3, 3),
-]
-
 # Index modifiers for runs
 # Unit is a full run using 8 suffixes
 c2_outer_step = 16
@@ -251,10 +237,9 @@ c2_run_states = [
 
 c2_run_diff = c2_f2_step
 c2_outer_diff = c2_run_diff * c2_outer_step
-c2_vouter_diff = c2_outer_diff * c2_vouter_step
 
-c1_galaxy_size = [128, 128,  78]
-c2_galaxy_size = [128,  16,  78]
+c1_galaxy_size = [128, 128,  128]
+c2_galaxy_size = [128,  16,  128]
 
 
 # Hand-authored sectors

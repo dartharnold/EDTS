@@ -760,17 +760,15 @@ def _c2_get_name_from_offset(offset, format_output=False):
   line, off = divmod(offset, len(pgdata.c2_run_states))
   
   # Work out what point along the various state steps we're at
-  vo1, line = divmod(line, len(pgdata.c2_vouter_states) * len(pgdata.c2_outer_states))
-  vo2, oo1  = divmod(line, len(pgdata.c2_outer_states))
+  vo1, oo1  = divmod(line, len(pgdata.c2_outer_states))
   
   # Get the (prefix0, prefix1) index pairs at each step
-  ors0, ors1 = pgdata.c2_vouter_states[vo1]
-  oos0, oos1 = pgdata.c2_vouter_states[vo2]
+  vs0, vs1 = pgdata.c2_run_states[vo1]
   os0, os1 = pgdata.c2_outer_states[oo1]
   
   # Calculate the current prefix-run (3037) index of this start point for each prefix
-  cur_idx0 = (ors0 * pgdata.c2_vouter_diff) + (oos0 * pgdata.c2_outer_diff) + (os0 * pgdata.c2_run_diff)
-  cur_idx1 = (ors1 * pgdata.c2_vouter_diff) + (oos1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
+  cur_idx0 = (vs0 * pgdata.c2_outer_diff) + (os0 * pgdata.c2_run_diff)
+  cur_idx1 = (vs1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
   
   # Add the offset from the start back, so we're at our actual sector not the start point
   cur_idx0 += pgdata.c2_run_states[off][0]
@@ -810,17 +808,14 @@ def _c2_get_offset_from_name(input):
   cur_idx1 -= off1
   
   # Find out what states we're at for the various layers
-  ors0, cur_idx0 = divmod(cur_idx0, pgdata.c2_vouter_diff)
-  oos0, cur_idx0 = divmod(cur_idx0, pgdata.c2_outer_diff)
-  os0 , _        = divmod(cur_idx0, pgdata.c2_run_diff)
-  ors1, cur_idx1 = divmod(cur_idx1, pgdata.c2_vouter_diff)
-  oos1, cur_idx1 = divmod(cur_idx1, pgdata.c2_outer_diff)
-  os1 , _        = divmod(cur_idx1, pgdata.c2_run_diff)
+  vs0, cur_idx0 = divmod(cur_idx0, pgdata.c2_outer_diff)
+  os0 , _       = divmod(cur_idx0, pgdata.c2_run_diff)
+  vs1, cur_idx1 = divmod(cur_idx1, pgdata.c2_outer_diff)
+  os1 , _       = divmod(cur_idx1, pgdata.c2_run_diff)
   
   try:
     # Get what index these states are
-    vo1 = pgdata.c2_vouter_states.index((ors0, ors1))
-    vo2 = pgdata.c2_vouter_states.index((oos0, oos1))
+    vo1 = pgdata.c2_run_states.index((vs0, vs1))
     oo1 = pgdata.c2_outer_states.index((os0, os1))
     off = pgdata.c2_run_states.index((off0, off1))
   except:
@@ -829,8 +824,7 @@ def _c2_get_offset_from_name(input):
     return None
   
   # Calculate the offset from the various layers' state indexes
-  offset  = vo1 * len(pgdata.c2_vouter_states) * len(pgdata.c2_outer_states)
-  offset += vo2 * len(pgdata.c2_outer_states)
+  offset  = vo1 * len(pgdata.c2_outer_states)
   offset += oo1
   # Multiply this by the length of a run
   offset *= len(pgdata.c2_run_states)
