@@ -94,3 +94,10 @@ def download_file(url, file):
 
 def string_bool(s):
   return s.lower() in ("yes", "true", "1")
+
+
+def unpack_and_shift(value, bits):
+  return (value >> bits, value & (2**bits-1))
+
+def pack_and_shift(value, new_data, bits):
+  return (value << bits) + (new_data & (2**bits-1))
