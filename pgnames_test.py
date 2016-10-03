@@ -42,7 +42,7 @@ def run_test(it):
               log.info("BadRelPos: could not calculate relative position for {}".format(system.name))
               badha += 1
               continue
-            elif any([s > (sector.cube_size + rpe) for s in rp]):
+            elif any([s > (sector.sector_size + rpe) for s in rp]):
               log.info("BadRelPos: invalid relpos for {}".format(system.name))
               badha += 1
               continue
@@ -166,7 +166,7 @@ if __name__ == '__main__':
       limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
       for idx, frags in pgnames._c2_get_run(input, limit):
-        x = sector.base_coords.x + (idx * sector.cube_size)
+        x = sector.base_coords.x + (idx * sector.sector_size)
         print ("[{1}/{2}] {0}".format(pgnames.format_name(frags), idx, x))
       
     elif sys.argv[1] == "fr2":
