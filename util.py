@@ -96,8 +96,31 @@ def string_bool(s):
   return s.lower() in ("yes", "true", "1")
 
 
+# Grabs the value from the first N bits, then return a right-shifted remainder
 def unpack_and_shift(value, bits):
   return (value >> bits, value & (2**bits-1))
 
+# Shifts existing data left by N bits and adds a new value into the "empty" space
 def pack_and_shift(value, new_data, bits):
   return (value << bits) + (new_data & (2**bits-1))
+
+# Interleaves two values, starting at least significant bit
+# e.g. (0b1111, 0b0000) --> (0b01010101)
+def interleave(val1, val2, maxbits):
+  output = 0
+  for i in range(0, maxbits//2 + 1):
+    output |= ((val1 >> i) & 1) << (i*2)
+  for i in range(0, maxbits//2 + 1):
+    output |= ((val2 >> i) & 1) << (i*2 + 1)
+  return output & (2**maxbits - 1)
+
+# Deinterleaves two values, starting at least significant bit
+# e.g. (0b00110010) --> (0b0100, 0b0101)
+def deinterleave(val, maxbits):
+  out1 = 0
+  out2 = 0
+  for i in range(0, maxbits, 2):
+    out1 |= ((val >> i) & 1) << (i//2)
+  for i in range(1, maxbits, 2):
+    out2 |= ((val >> i) & 1) << (i//2)
+  return (out1, out2)

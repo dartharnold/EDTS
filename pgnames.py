@@ -757,13 +757,13 @@ def _c2_get_sector(input):
 
 def _c2_get_name_from_offset(offset, format_output=False):
   # Get the line of 128 we're a part of, since we can only work from a start point
-  line, off = divmod(offset, len(pgdata.c2_run_states))
+  line, off = divmod(offset, pgdata.c2_run_state_count)
   
   # Work out what point along the various state steps we're at
-  vo1, oo1  = divmod(line, len(pgdata.c2_outer_states))
+  vo1, oo1  = divmod(line, pgdata.c2_outer_state_count)
   
   # Get the (prefix0, prefix1) index pairs at each step
-  vs0, vs1 = pgdata.c2_run_states[vo1]
+  vs0, vs1 = util.deinterleave(vo1, 7)
   os0, os1 = pgdata.c2_outer_states[oo1]
   
   # Calculate the current prefix-run (3037) index of this start point for each prefix
@@ -771,8 +771,9 @@ def _c2_get_name_from_offset(offset, format_output=False):
   cur_idx1 = (vs1 * pgdata.c2_outer_diff) + (os1 * pgdata.c2_run_diff)
   
   # Add the offset from the start back, so we're at our actual sector not the start point
-  cur_idx0 += pgdata.c2_run_states[off][0]
-  cur_idx1 += pgdata.c2_run_states[off][1]
+  rs0, rs1 = util.deinterleave(off, 7)
+  cur_idx0 += rs0
+  cur_idx1 += rs1
   
   # Retrieve the actual prefix/suffix strings
   p0 = [c for c in _prefix_offsets if cur_idx0 >= _prefix_offsets[c][0] and cur_idx0 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
@@ -815,19 +816,17 @@ def _c2_get_offset_from_name(input):
   
   try:
     # Get what index these states are
-    vo1 = pgdata.c2_run_states.index((vs0, vs1))
+    vo1 = util.interleave(vs0, vs1, 7)
     oo1 = pgdata.c2_outer_states.index((os0, os1))
-    off = pgdata.c2_run_states.index((off0, off1))
+    off = util.interleave(off0, off1, 7)
   except:
     # If we failed to get any of these indexes, the entire name likely isn't valid
     log.warning("Failed to get run state indexes in _c2_get_offset_from_name; bad sector name?")
     return None
   
   # Calculate the offset from the various layers' state indexes
-  offset  = vo1 * len(pgdata.c2_outer_states)
-  offset += oo1
-  # Multiply this by the length of a run
-  offset *= len(pgdata.c2_run_states)
+  offset  = vo1 * pgdata.c2_run_state_count * pgdata.c2_outer_state_count
+  offset += oo1 * pgdata.c2_run_state_count
   # Now re-add the offset we removed at the start
   offset += off
   
