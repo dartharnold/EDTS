@@ -146,3 +146,14 @@ def from_id(id, allow_ha = True):
   name = sys_proto.name + str(n2)
   x, y, z = sys_proto.position
   return PGSystem(x, y, z, name, sys_proto.sector, sys_proto.uncertainty)
+
+
+# Only import env down here because it relies on System and KnownSystem
+from env import use as use_env
+
+def from_name(name, allow_ha = True):
+  with use_env() as data:
+    known_sys = data.get_system(name)
+    if known_sys is not None:
+      return known_sys
+  return pgnames.get_system(name)
