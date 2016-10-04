@@ -21,6 +21,19 @@ log = logging.getLogger(app_name)
 # #
 
 """
+Check whether the given name is a valid PG system name, either in a PG or HA sector.
+
+Returns:
+  True if the name is valid, False if not
+"""
+def is_pg_system_name(name):
+  m = pgdata.pg_system_regex.match(name.strip())
+  if m is None:
+    return False
+  return (get_sector(m.group("sector")) is not None)
+
+
+"""
 Get the name of a sector that a position falls within.
 
 Args:
