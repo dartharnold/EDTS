@@ -60,6 +60,7 @@ class HASector(Sector):
     self._size = radius
 
   def get_origin(self, cube_width):
+    cube_width = get_mcode_cube_width(cube_width)
     sector_origin = self.centre - vector3.Vector3(self.radius, self.radius, self.radius)
     sox = math.floor(sector_origin.x)
     soy = math.floor(sector_origin.y)

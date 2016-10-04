@@ -339,6 +339,9 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
 
 
 def _get_sysid_from_relpos(pos, mcode, format_output=False):
+  pos = _get_as_position(pos)
+  if pos is None:
+    return None
   cubeside = sector.get_mcode_cube_width(mcode)
   column = int(pos.x // cubeside)
   stack  = int(pos.y // cubeside)
