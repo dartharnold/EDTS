@@ -8,7 +8,7 @@ import time
 
 import pgdata
 import sector
-import system
+import system_internal as system
 import util
 import vector3
 
@@ -280,7 +280,10 @@ Returns:
   A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
 """
 def get_system_fragments(input):
-  m = pgdata.pg_system_regex.match(get_canonical_name(input))
+  input = get_canonical_name(input)
+  if input is None:
+    return None
+  m = pgdata.pg_system_regex.match(input)
   if m is None:
     return None
   return {

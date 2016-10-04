@@ -2,7 +2,6 @@ import logging
 import pgdata
 import pgnames
 import sector
-import system
 import json
 import math
 import sys
