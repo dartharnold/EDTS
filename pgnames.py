@@ -412,8 +412,8 @@ def _get_prefix_run_length(frag):
   return pgdata.cx_prefix_length_overrides.get(frag, pgdata.cx_prefix_length_default)
 
 
-def _get_entry_from_offset(offset, keys, list):
-  return [c for c in keys if offset >= list[c][0] and offset < (list[c][0] + list[c][1])][0]
+def _get_entry_from_offset(offset, keys, data):
+  return [c for c in keys if offset >= data[c][0] and offset < (data[c][0] + data[c][1])][0]
 
 
 # Get the sector offset of a position
@@ -779,8 +779,8 @@ def _c2_get_name_from_offset(offset, format_output=False):
   cur_idx0, cur_idx1 = util.deinterleave(offset, 32)  # No idea what length this actually is
   
   # Get prefixes/suffixes from the individual offsets
-  p0 = [c for c in _prefix_offsets if cur_idx0 >= _prefix_offsets[c][0] and cur_idx0 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
-  p1 = [c for c in _prefix_offsets if cur_idx1 >= _prefix_offsets[c][0] and cur_idx1 < (_prefix_offsets[c][0] + _prefix_offsets[c][1])][0]
+  p0 = _get_entry_from_offset(cur_idx0, _prefix_offsets, _prefix_offsets)
+  p1 = _get_entry_from_offset(cur_idx1, _prefix_offsets, _prefix_offsets)
   s0 = _get_suffixes(p0)[cur_idx0 - _prefix_offsets[p0][0]]
   s1 = _get_suffixes(p1)[cur_idx1 - _prefix_offsets[p1][0]]
   
