@@ -71,21 +71,32 @@ class Operator(object):
     return "{} {}".format(self.operator, self.value)
   def __repr__(self):
     return "{} {}".format(self.operator, self.value)
-  def matches(self, value_to_test):
+  def matches(self, rhs):
     if self.operator == '=':
-      return (value_to_test == self.value)
+      if self.value is Any or rhs is Any:
+        return (self.value is not None and rhs is not None)
+      else:
+        return (rhs != self.value)
     elif self.operator == '!=':
-      return (value_to_test != self.value)
+      if self.value is Any or rhs is Any:
+        return (self.value is None or rhs is None)
+      else:
+        return (rhs != self.value)
     elif self.operator == '<>':
-      return (value_to_test != self.value and self.value is not None)
+      if self.value is Any or rhs is Any:
+        return (self.value is None or rhs is None)
+      else:
+        return (rhs != self.value and rhs is not None)
     elif self.operator == '<':
-      return (self.value is not None and value_to_test < self.value)
-    elif self.operator == '>':
-      return (self.value is not None and value_to_test > self.value)
+      return (rhs < self.value)
     elif self.operator == '<=':
-      return (self.value is not None and value_to_test <= self.value)
+      return (rhs <= self.value)
     elif self.operator == '>=':
-      return (self.value is not None and value_to_test >= self.value)
+      return (rhs >= self.value)
+    elif self.operator == '>':
+      return (rhs > self.value)
+    else:
+      raise ValueError("Operator '{}' is invalid".format(self.operator))
 
 _assumed_operators = {int: '<', float: '<'}
 
