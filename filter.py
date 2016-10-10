@@ -40,6 +40,30 @@ class Operator(object):
     return "{} {}".format(self.operator, self.value)
   def __repr__(self):
     return "{} {}".format(self.operator, self.value)
+  def __call__(self, lhs):
+    if self.operator == '=':
+      if self.value is Any or lhs is Any:
+        return (self.value is not None and lhs is not None)
+      else:
+        return (lhs != self.value)
+    elif self.operator == '!=':
+      if self.value is Any or lhs is Any:
+        return (self.value is None or lhs is None)
+      else:
+        return (lhs != self.value)
+    elif self.operator == '<>':
+      if self.value is Any or lhs is Any:
+        return (self.value is None or lhs is None)
+      else:
+        return (lhs != self.value and lhs is not None)
+    elif self.operator == '<':
+      return (lhs < self.value)
+    elif self.operator == '<=':
+      return (lhs <= self.value)
+    elif self.operator == '>=':
+      return (lhs >= self.value)
+    elif self.operator == '>':
+      return (lhs > self.value)
 
 _assumed_operators = {int: '<', float: '<'}
 
