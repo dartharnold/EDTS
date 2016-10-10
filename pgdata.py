@@ -181,81 +181,6 @@ c1_infix_length_overrides = {
 c1_infix_s1_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s1_length_default) for p in c1_infixes_s1])
 c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2_length_default) for p in c1_infixes_s2])
 
-# Welp
-c1_arbitrary_index_offset = 3072
-
-
-# Index modifiers for outer states
-# Unit is a full run set using 128 suffixes
-c2_vouter_step = 4
-c2_vouter_states = [
-  (0, 0), (1, 0),
-  (0, 1), (1, 1),
-  (2, 0), (3, 0),
-  (2, 1), (3, 1),
-  (0, 2), (1, 2),
-  (0, 3), (1, 3),
-  (2, 2), (3, 2),
-  (2, 3), (3, 3),
-]
-
-# Index modifiers for runs
-# Unit is a full run using 8 suffixes
-c2_outer_step = 16
-c2_outer_states = [
-  (0, 2), (0, 3), (2, 2), (2, 3),
-  (4, 6), (4, 7), (6, 6), (6, 7),
-  (8, 0), (8, 1), (10, 0), (10, 1),
-  (12, 4), (12, 5), (14, 4), (14, 5),
-]
-
-
-# Index modifiers for all states
-# In pairs of (phoneme 1, phoneme 3)
-c2_f0_step = 16
-c2_f2_step = 8
-c2_run_states = [
-  (0, 0), (1, 0), (0, 1), (1, 1),
-  (2, 0), (3, 0), (2, 1), (3, 1),
-  (0, 2), (1, 2), (0, 3), (1, 3),
-  (2, 2), (3, 2), (2, 3), (3, 3),
-  (4, 0), (5, 0), (4, 1), (5, 1),
-  (6, 0), (7, 0), (6, 1), (7, 1),
-  (4, 2), (5, 2), (4, 3), (5, 3),
-  (6, 2), (7, 2), (6, 3), (7, 3),
-  (0, 4), (1, 4), (0, 5), (1, 5),
-  (2, 4), (3, 4), (2, 5), (3, 5),
-  (0, 6), (1, 6), (0, 7), (1, 7),
-  (2, 6), (3, 6), (2, 7), (3, 7),
-  (4, 4), (5, 4), (4, 5), (5, 5),
-  (6, 4), (7, 4), (6, 5), (7, 5),
-  (4, 6), (5, 6), (4, 7), (5, 7),
-  (6, 6), (7, 6), (6, 7), (7, 7),
-  (8,  0), (9,  0), (8,  1), (9,  1),
-  (10, 0), (11, 0), (10, 1), (11, 1),
-  (8,  2), (9,  2), (8,  3), (9,  3),
-  (10, 2), (11, 2), (10, 3), (11, 3),
-  (12, 0), (13, 0), (12, 1), (13, 1),
-  (14, 0), (15, 0), (14, 1), (15, 1),
-  (12, 2), (13, 2), (12, 3), (13, 3),
-  (14, 2), (15, 2), (14, 3), (15, 3),
-  (8,  4), (9,  4), (8,  5), (9,  5),
-  (10, 4), (11, 4), (10, 5), (11, 5),
-  (8,  6), (9,  6), (8,  7), (9,  7),
-  (10, 6), (11, 6), (10, 7), (11, 7),
-  (12, 4), (13, 4), (12, 5), (13, 5),
-  (14, 4), (15, 4), (14, 5), (15, 5),
-  (12, 6), (13, 6), (12, 7), (13, 7),
-  (14, 6), (15, 6), (14, 7), (15, 7),
-]
-
-c2_run_diff = c2_f2_step
-c2_outer_diff = c2_run_diff * c2_outer_step
-c2_vouter_diff = c2_outer_diff * c2_vouter_step
-
-c1_galaxy_size = [128, 128,  78]
-c2_galaxy_size = [128,  16,  78]
-
 
 # Hand-authored sectors
 ha_sectors = collections.OrderedDict([
@@ -514,7 +439,6 @@ ha_sectors = collections.OrderedDict([
   ("ngc 7686 sector", sector.HASector(vector3.Vector3(-3010.24609, -655.51562, -1065.98438), 133.0, "NGC 7686 Sector")),
   ("ngc 7789 sector", sector.HASector(vector3.Vector3(-6847.17578, -717.10547, -3265.93555), 555.0, "NGC 7789 Sector")),
   ("ngc 7790 sector", sector.HASector(vector3.Vector3(-8582.57422, -167.54297, -4297.83203), 336.0, "NGC 7790 Sector")),
-  ("ngc 1624 sector", sector.HASector(vector3.Vector3(-8349.38672, 872.38672, -18152.86963), 150.0, "NGC 1624 Sector")),
   ("ic 410 sector", sector.HASector(vector3.Vector3(-1225.55469, -345.51953, -10926.05273), 150.0, "IC 410 Sector")),
   ("ngc 3603 sector", sector.HASector(vector3.Vector3(18594.82031, -174.53125, 7362.21094), 150.0, "NGC 3603 Sector")),
   ("ngc 7822 sector", sector.HASector(vector3.Vector3(-2443.97266, 302.39844, -1332.49805), 100.0, "NGC 7822 Sector")),
@@ -615,7 +539,6 @@ ha_sectors = collections.OrderedDict([
   ("little dumbbell sector", sector.HASector(vector3.Vector3(-1560.71484, -382.69531, -1351.93164), 100.0, "Little Dumbbell Sector")),
   ("ic 289 sector", sector.HASector(vector3.Vector3(-1118.43359, 83.04297, -1277.57812), 100.0, "IC 289 Sector")),
   ("ngc 1360 sector", sector.HASector(vector3.Vector3(437.24219, -925.14844, -513.75586), 100.0, "NGC 1360 Sector")),
-  ("ic 351 sector", sector.HASector(vector3.Vector3(-10947.40625, -8337.61523, -28668.42285), 100.0, "IC 351 Sector")),
   ("ngc 1501 sector", sector.HASector(vector3.Vector3(-2071.58984, 413.77344, -2915.01367), 100.0, "NGC 1501 Sector")),
   ("ngc 1514 sector", sector.HASector(vector3.Vector3(-202.23438, -218.68750, -807.39844), 100.0, "NGC 1514 Sector")),
   ("ngc 1535 sector", sector.HASector(vector3.Vector3(1422.89844, -2733.25000, -2853.89062), 100.0, "NGC 1535 Sector")),

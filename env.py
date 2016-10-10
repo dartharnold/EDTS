@@ -1,16 +1,17 @@
+import logging
+logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
+
 import argparse
 import collections
-import logging
 import os
 import sys
 import threading
 import time
 import util
 import db
-from system import System, KnownSystem
-from station import Station
+import system_internal as system
+import station
 
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger("env")
 
 default_path = '.'
@@ -42,14 +43,14 @@ class Env(object):
     return self.get_system(sysstr)
 
   def _make_known_system(self, s, keep_data=False):
-    sysobj = KnownSystem(s)
+    sysobj = system.KnownSystem(s)
     if keep_data:
       sysobj.data = s.copy()
     return sysobj
 
   def _make_station(self, sy, st, keep_data=False):
-    sysobj = self._make_known_system(sy, keep_data) if not isinstance(sy, KnownSystem) else sy
-    stnobj = Station(st, sysobj)
+    sysobj = self._make_known_system(sy, keep_data) if not isinstance(sy, system.KnownSystem) else sy
+    stnobj = station.Station(st, sysobj)
     if keep_data:
       stnobj.data = st
     return stnobj
@@ -62,7 +63,7 @@ class Env(object):
     else:
       sys = self.get_system(sysname, keep_data)
       if sys is not None:
-        return Station.none(sys)
+        return station.Station.none(sys)
     return None
 
   def get_stations(self, args, keep_station_data=False):
@@ -75,7 +76,7 @@ class Env(object):
     coords_data = util.parse_coords(sysname)
     if coords_data is not None:
       cx, cy, cz, name = coords_data
-      return System(cx, cy, cz, name)
+      return system.System(cx, cy, cz, name)
     else:
       result = self._db_conn.get_system_by_name(sysname)
       if result is not None:
@@ -90,7 +91,7 @@ class Env(object):
     max_x = max(vec_from.x, vec_to.x) + buffer_to
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
-    return [KnownSystem(s) for s in self._db_conn.get_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z)]
+    return [system.KnownSystem(s) for s in self._db_conn.get_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z)]
  
   def get_all_systems(self, keep_data=False):
     for s in self._db_conn.get_all_systems():
