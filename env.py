@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
+
 import argparse
 import collections
 import defs
@@ -8,10 +11,9 @@ import threading
 import time
 import util
 import db
-from system import System, KnownSystem
-from station import Station
+import system_internal as system
+import station
 
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 log = logging.getLogger("env")
 
 default_path = '.'
@@ -65,7 +67,7 @@ class Env(object):
     else:
       sys = self.get_system(sysname, keep_data)
       if sys is not None:
-        return Station.none(sys)
+        return station.Station.none(sys)
     return None
 
   def get_system(self, sysname, keep_data = False):
@@ -73,7 +75,7 @@ class Env(object):
     coords_data = util.parse_coords(sysname)
     if coords_data is not None:
       cx, cy, cz, name = coords_data
-      return System(cx, cy, cz, name)
+      return system.System(cx, cy, cz, name)
     else:
       result = self._db_conn.get_system_by_name(sysname)
       if result is not None:

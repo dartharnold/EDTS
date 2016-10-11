@@ -3,18 +3,17 @@ import numbers
 import util
 import vector3
 
-cube_size = 1280.0
-# Sector at (0,0,0) is Wregoe, the sector containing Sol
-# Galaxy actually goes from [-49985, -40985, -24105] = [-39, -32, -18]
-base_coords = vector3.Vector3(-65.0, -25.0, 215.0 - 1280.0)
-base_sector_coords = [39, 8, 18]
-named_origin_offset = base_coords - vector3.Vector3(cube_size * base_sector_coords[0], cube_size*base_sector_coords[1], cube_size*base_sector_coords[2])
+sector_size = 1280.0
+galaxy_size = [128, 128, 128]
 internal_origin_offset = vector3.Vector3(-49985, -40985, -24105)
+# Sector at (0,0,0) is Wregoe, the sector containing Sol
+base_sector_index = [39, 32, 18]
+base_coords = internal_origin_offset + (vector3.Vector3(base_sector_index) * sector_size)
 
 
 def get_mcode_cube_width(mcode):
   if util.is_str(mcode):
-    return cube_size / pow(2, ord('h') - ord(mcode.lower()))
+    return sector_size / pow(2, ord('h') - ord(mcode.lower()))
   elif isinstance(mcode, numbers.Number):
     return mcode
   else:
@@ -61,6 +60,7 @@ class HASector(Sector):
     self._size = radius
 
   def get_origin(self, cube_width):
+    cube_width = get_mcode_cube_width(cube_width)
     sector_origin = self.centre - vector3.Vector3(self.radius, self.radius, self.radius)
     sox = math.floor(sector_origin.x)
     soy = math.floor(sector_origin.y)
@@ -173,22 +173,27 @@ class PGSector(Sector):
     return self.get_origin()
 
   def get_origin(self, cube_width = None):
-    ox = base_coords.x + (cube_size * self.x)
-    oy = base_coords.y + (cube_size * self.y)
-    oz = base_coords.z + (cube_size * self.z)
+    ox = base_coords.x + (sector_size * self.x)
+    oy = base_coords.y + (sector_size * self.y)
+    oz = base_coords.z + (sector_size * self.z)
     return vector3.Vector3(ox, oy, oz)
   
   @property
   def centre(self):
-    return self.origin + vector3.Vector3(cube_size / 2, cube_size / 2, cube_size / 2)
+    return self.origin + vector3.Vector3(sector_size / 2, sector_size / 2, sector_size / 2)
 
   @property
   def size(self):
-    return cube_size
+    return sector_size
 
   @property
   def index(self):
-    return [self.x + base_sector_coords[0], self.y + base_sector_coords[1], self.z + base_sector_coords[2]]
+    return [self.x + base_sector_index[0], self.y + base_sector_index[1], self.z + base_sector_index[2]]
+
+  @property
+  def offset(self):
+    ix, iy, iz = self.index
+    return (iz * galaxy_size[1] * galaxy_size[0]) + (iy * galaxy_size[0]) + (ix)
 
   @property
   def sector_class(self):
@@ -196,7 +201,7 @@ class PGSector(Sector):
 
   def contains(self, pos):
     o = self.origin
-    return (pos[0] >= o.x and pos[0] < (o.x + cube_size)
-        and pos[1] >= o.y and pos[1] < (o.y + cube_size)
-        and pos[2] >= o.z and pos[2] < (o.z + cube_size))
+    return (pos[0] >= o.x and pos[0] < (o.x + sector_size)
+        and pos[1] >= o.y and pos[1] < (o.y + sector_size)
+        and pos[2] >= o.z and pos[2] < (o.z + sector_size))
 

@@ -22,6 +22,8 @@ eddb_stations_url = "https://eddb.io/archive/v4/stations.json{}"
 
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
+_re_json_line = re.compile(r'\s*(\{.*\})[\s,]*')
+
 ap = argparse.ArgumentParser(description = 'Update local database')
 ap.add_argument_group("Processing options")
 bex = ap.add_mutually_exclusive_group()
@@ -57,7 +59,7 @@ def import_json_from_url(urlfmt, jsonl, description, batch_size, key = None):
         line = util.read_stream_line(stream)
         if not line:
           break
-        m = re.match(r'\s*(\{.*\})(?:\s*,?\s*)?', line)
+        m = _re_json_line.match(line)
         if m is None:
           continue
         try:

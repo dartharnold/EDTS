@@ -7,6 +7,7 @@ import collections
 
 sys.path.insert(0, '..')
 import env
+import fsd
 import pgnames
 import pgdata
 import sector
@@ -28,6 +29,11 @@ def index():
   return bottle.template('index')
 
 
+@bottle.route('/jump_range')
+def jump_range():
+  return bottle.template('jump_range')
+
+
 @bottle.route('/api/v1')
 def api_index():
   return bottle.template('api_v1_index')
@@ -37,6 +43,25 @@ def api_index():
 def static(path):
   return bottle.static_file(path, root='static')
 
+
+@bottle.route('/api/v1/jump_range/<fsdcls:re:[0-9][A-E]>,<mass:float>,<fuel:float>,<cargo:int>,<optmod:re:[-+0-9.]+%?>,<maxfmod:re:[-+0-9.]+%?>,<massmod:re:[-+0-9.]+%?>')
+def api_jump_range(fsdcls, mass, fuel, cargo, optmod, maxfmod, massmod):
+  f = fsd.FSD(fsdcls)
+  # Check values make sense
+  f.optmass = (f.optmass * (1.0+float(optmod[:-1])/100.0) if '%' in optmod else float(optmod))
+  f.maxfuel = (f.maxfuel * (1.0+float(maxfmod[:-1])/100.0) if '%' in maxfmod else float(maxfmod))
+  
+  fsdmass = (f.mass * (1.0+float(massmod[:-1])/100.0) if '%' in massmod else float(massmod))
+  shipmass = mass + (fsdmass - f.mass)
+  
+  max_range = f.max_range(shipmass)
+  full_range = f.range(shipmass, fuel)
+  cargo_range = f.range(shipmass, fuel, cargo)
+
+  result = {'max': max_range, 'full': full_range, 'laden': cargo_range}
+
+  bottle.response.content_type = 'application/json'
+  return {'result': result}
 
 @bottle.route('/api/v1/system_name/<x:float>,<y:float>,<z:float>/<mcode:re:[a-h]>')
 def api_system_name(x, y, z, mcode):

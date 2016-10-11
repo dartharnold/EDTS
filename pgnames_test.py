@@ -2,7 +2,6 @@ import logging
 import pgdata
 import pgnames
 import sector
-import system
 import json
 import math
 import sys
@@ -42,7 +41,7 @@ def run_test(it):
               log.info("BadRelPos: could not calculate relative position for {}".format(system.name))
               badha += 1
               continue
-            elif any([s > (sector.cube_size + rpe) for s in rp]):
+            elif any([s > (sector.sector_size + rpe) for s in rp]):
               log.info("BadRelPos: invalid relpos for {}".format(system.name))
               badha += 1
               continue
@@ -166,15 +165,15 @@ if __name__ == '__main__':
       limit = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
       for idx, frags in pgnames._c2_get_run(input, limit):
-        x = sector.base_coords.x + (idx * sector.cube_size)
+        x = sector.base_coords.x + (idx * sector.sector_size)
         print ("[{1}/{2}] {0}".format(pgnames.format_name(frags), idx, x))
       
     elif sys.argv[1] == "fr2":
       limit = int(sys.argv[2]) if len(sys.argv) > 2 else 1248
       
-      x = -sector.base_sector_coords[0]
+      x = -sector.base_sector_index[0]
       y = -8
-      z = -sector.base_sector_coords[2]
+      z = -sector.base_sector_index[2]
       count = 0
       ok = 0
       bad = 0
@@ -301,16 +300,16 @@ if __name__ == '__main__':
               y_levels[sect.y][sect.z][sect.x][sname] = 0
             y_levels[sect.y][sect.z][sect.x][sname] += 1
 
-      xcount = pgdata.c2_galaxy_size[0]
-      zcount = pgdata.c2_galaxy_size[2]
+      xcount = sector.galaxy_size[0]
+      zcount = sector.galaxy_size[2]
       for y in y_levels:
         with open("sectors_{0}.csv".format(y), 'w') as f:
-          for z in range(zcount - sector.base_sector_coords[2], -sector.base_sector_coords[2], -1):
+          for z in range(zcount - sector.base_sector_index[2], -sector.base_sector_index[2], -1):
             zvalues = ["" for _ in range(xcount)]
             if z in y_levels[y]:
-              for x in range(-sector.base_sector_coords[0], xcount - sector.base_sector_coords[0], 1):
+              for x in range(-sector.base_sector_index[0], xcount - sector.base_sector_index[0], 1):
                 if x in y_levels[y][z]:
-                  zvalues[x + sector.base_sector_coords[0]] = max(y_levels[y][z][x], key=lambda t: y_levels[y][z][x][t])
+                  zvalues[x + sector.base_sector_index[0]] = max(y_levels[y][z][x], key=lambda t: y_levels[y][z][x][t])
             f.write(",".join(zvalues) + "\n")
     else:
       print("Unknown test {0}".format(sys.argv[1]))
