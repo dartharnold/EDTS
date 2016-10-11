@@ -30,30 +30,31 @@ class Application(object):
     sys_matches = []
     stn_matches = []
 
-    if self.args.regex:
-      if self.args.systems or not self.args.stations:
-        sys_matches = list(env.data.find_systems_by_regex(self.args.system[0]))
-      if self.args.stations or not self.args.systems:
-        stn_matches = list(env.data.find_stations_by_regex(self.args.system[0]))
-    else:
-      if self.args.systems or not self.args.stations:
-        sys_matches = list(env.data.find_systems_by_glob(self.args.system[0]))
-      if self.args.stations or not self.args.systems:
-        stn_matches = list(env.data.find_stations_by_glob(self.args.system[0]))
+    with env.use() as envdata:
+      if self.args.regex:
+        if self.args.systems or not self.args.stations:
+          sys_matches = list(envdata.find_systems_by_regex(self.args.system[0]))
+        if self.args.stations or not self.args.systems:
+          stn_matches = list(envdata.find_stations_by_regex(self.args.system[0]))
+      else:
+        if self.args.systems or not self.args.stations:
+          sys_matches = list(envdata.find_systems_by_glob(self.args.system[0]))
+        if self.args.stations or not self.args.systems:
+          stn_matches = list(envdata.find_stations_by_glob(self.args.system[0]))
 
-    if (self.args.systems or not self.args.stations) and len(sys_matches) > 0:
-      print("")
-      print("Matching systems:")
-      print("")
-      for sysobj in sorted(sys_matches, key=lambda t: t.name):
-        print("  {0}{1}".format(sysobj.to_string(), " ({0})".format(sysobj.id) if self.args.show_ids else ""))
-        if self.args.list_stations:
-          # TODO: Maybe roll this into the original query somehow
-          stlist = env.data.find_stations(sysobj)
-          stlist.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
-          for stn in stlist:
-            print("        {0}".format(stn.to_string(False)))
-      print("")
+      if (self.args.systems or not self.args.stations) and len(sys_matches) > 0:
+        print("")
+        print("Matching systems:")
+        print("")
+        for sysobj in sorted(sys_matches, key=lambda t: t.name):
+          print("  {0}{1}".format(sysobj.to_string(), " ({0})".format(sysobj.id) if self.args.show_ids else ""))
+          if self.args.list_stations:
+            # TODO: Maybe roll this into the original query somehow
+            stlist = envdata.find_stations(sysobj)
+            stlist.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
+            for stn in stlist:
+              print("        {0}".format(stn.to_string(False)))
+        print("")
 
     if (self.args.stations or not self.args.systems) and len(stn_matches) > 0:
       print("")

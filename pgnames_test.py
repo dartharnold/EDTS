@@ -217,45 +217,45 @@ if __name__ == '__main__':
 
     elif sys.argv[1] == "eddbtest":
       env.set_verbosity(2)
-      env.start()
       
-      run_test(env.data.find_all_systems())
+      with env.use() as envdata:
+        run_test(envdata.find_all_systems())
 
     elif sys.argv[1] == "nametest":
       env.set_verbosity(2)
-      env.start()
 
       ok = 0
       bad = 0
 
-      for s in env.data.find_all_systems():
-        m = pgdata.pg_system_regex.match(s.name)
-        if m is not None:
-          cls = pgnames._get_sector_class(m.group("sector"))
-          if cls is not None:
-            predsys = pgnames.get_system(s.position, m.group("mcode"))
-            if s.name.lower().startswith(predsys.name.lower()):
-              ok += 1
-            else:
-              log.info("Bad: {} @ {} should be {}?".format(s.name, s.position, predsys.name))
-              bad += 1
+      with env.use() as envdata:
+        for s in envdata.find_all_systems():
+          m = pgdata.pg_system_regex.match(s.name)
+          if m is not None:
+            cls = pgnames._get_sector_class(m.group("sector"))
+            if cls is not None:
+              predsys = pgnames.get_system(s.position, m.group("mcode"))
+              if s.name.lower().startswith(predsys.name.lower()):
+                ok += 1
+              else:
+                log.info("Bad: {} @ {} should be {}?".format(s.name, s.position, predsys.name))
+                bad += 1
 
       log.info("Checked {} systems, OK: {}, bad: {}".format(ok + bad, ok, bad))
 
     elif sys.argv[1] == "sectortest":
       env.set_verbosity(2)
-      env.start()
 
       ok = 0
       bad = 0
 
-      sectors = {}
-      for s in env.data.find_all_systems():
-        m = pgdata.pg_system_regex.match(s.name)
-        if m is not None:
-          if m.group("sector") not in sectors:
-            sectors[m.group("sector")] = 0
-          sectors[m.group("sector")] += 1
+      with env.use() as envdata:
+        sectors = {}
+        for s in envdata.find_all_systems():
+          m = pgdata.pg_system_regex.match(s.name)
+          if m is not None:
+            if m.group("sector") not in sectors:
+              sectors[m.group("sector")] = 0
+            sectors[m.group("sector")] += 1
 
       for s in [k for (k, v) in sectors.items() if v > 0]:
         cls = pgnames._get_sector_class(s)
@@ -276,29 +276,28 @@ if __name__ == '__main__':
       log.info("Checked {} sectors, OK: {}, bad: {}".format(len(sectors), ok, bad))
 
     elif sys.argv[1] == "eddbspaff":
-      env.start()
-      
       with open("edsm_data.txt") as f:
         edsm_sectors = [s.strip() for s in f.readlines() if len(s) > 1]
 
       y_levels = {}
-      
-      for system in env.data.find_all_systems():
-        m = pgdata.pg_system_regex.match(system.name)
-        if m is not None and m.group("sector") in edsm_sectors:
-          sname = m.group("sector")
-          cls = pgnames._get_sector_class(m.group("sector"))
-          if cls != "2":
-            sect = pgnames.get_sector(system.position, allow_ha=False)
-            if sect.y not in y_levels:
-              y_levels[sect.y] = {}
-            if sect.z not in y_levels[sect.y]:
-              y_levels[sect.y][sect.z] = {}
-            if sect.x not in y_levels[sect.y][sect.z]:
-              y_levels[sect.y][sect.z][sect.x] = {}
-            if sname not in y_levels[sect.y][sect.z][sect.x]:
-              y_levels[sect.y][sect.z][sect.x][sname] = 0
-            y_levels[sect.y][sect.z][sect.x][sname] += 1
+     
+      with env.use() as envdata: 
+        for system in envdata.find_all_systems():
+          m = pgdata.pg_system_regex.match(system.name)
+          if m is not None and m.group("sector") in edsm_sectors:
+            sname = m.group("sector")
+            cls = pgnames._get_sector_class(m.group("sector"))
+            if cls != "2":
+              sect = pgnames.get_sector(system.position, allow_ha=False)
+              if sect.y not in y_levels:
+                y_levels[sect.y] = {}
+              if sect.z not in y_levels[sect.y]:
+                y_levels[sect.y][sect.z] = {}
+              if sect.x not in y_levels[sect.y][sect.z]:
+                y_levels[sect.y][sect.z][sect.x] = {}
+              if sname not in y_levels[sect.y][sect.z][sect.x]:
+                y_levels[sect.y][sect.z][sect.x][sname] = 0
+              y_levels[sect.y][sect.z][sect.x][sname] += 1
 
       xcount = sector.galaxy_size[0]
       zcount = sector.galaxy_size[2]

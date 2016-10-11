@@ -362,12 +362,8 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
       st = Station.none(s)
       sy = s
     else:
-      st = env.data.parse_station(s)
-      if st is not None:
-        sy = st.system
-      else:
-        log.error("Could not find system in list: \"{0}\"!".format(s))
-        continue
+      log.error("Object of type '{}' cannot be filtered with systems/stations".format(type(s)))
+      continue
 
     if ('allegiance' in filters and ((not hasattr(sy, 'allegiance')) or filters['allegiance'] != sy.allegiance)):
       continue

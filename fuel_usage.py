@@ -45,12 +45,13 @@ class Application(object):
 
   def run(self):
     systems = []
-    for y in self.args.systems:
-      s = env.data.parse_system(y)
-      if s is None:
-        log.error("Could not find system \"{0}\"!".format(y))
-        return
-      systems.append(s)
+    with env.use() as envdata:
+      for y in self.args.systems:
+        s = envdata.parse_system(y)
+        if s is None:
+          log.error("Could not find system \"{0}\"!".format(y))
+          return
+        systems.append(s)
 
     cur_fuel = self.args.starting_fuel
     output_data = [{'src': systems[0]}]

@@ -10,45 +10,61 @@ import sys
 import threading
 import time
 import util
-import db
 import system_internal as system
 import station
+import db_sqlite3
 
 log = logging.getLogger("env")
 
 default_path = '.'
-
+default_backend_name = 'db_sqlite3'
 
 def _make_known_system(s, keep_data=False):
-  sysobj = KnownSystem(s)
+  sysobj = system.KnownSystem(s)
   if keep_data:
     sysobj.data = s.copy()
   return sysobj
 
 def _make_station(sy, st, keep_data = False):
-  sysobj = _make_known_system(sy, keep_data) if not isinstance(sy, KnownSystem) else sy
-  stnobj = Station(st, sysobj)
+  sysobj = _make_known_system(sy, keep_data) if not isinstance(sy, system.KnownSystem) else sy
+  stnobj = station.Station(st, sysobj)
   if keep_data:
     stnobj.data = st
   return stnobj
 
 
+_registered_backends = {}
+
+def register_backend(name, fn):
+  _registered_backends[name] = fn
+
+def unregister_backend(name):
+  del _registered_backends[name]
+
+def _get_default_backend(path):
+  db_path = os.path.join(os.path.normpath(path), os.path.normpath(global_args.db_file))
+  if not os.path.isfile(db_path):
+    log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
+    return None
+  return db_sqlite3.open_db(db_path)
+
+register_backend(default_backend_name, _get_default_backend)
+
+
+
 class Env(object):
-  def __init__(self, path = '.'):
+  def __init__(self, backend):
     self.is_data_loaded = False
-    self._db_conn = None
-    self._data_path = os.path.normpath(path)
-
-    if not os.path.isfile(os.path.join(self._data_path, os.path.normpath(global_args.db_file))):
-      log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
-      return
-
-    self._load_lock = threading.RLock()
-    self.load_data(False)
+    self._backend = backend
+    self._load_data()
 
   def close(self):
-    if self._db_conn is not None:
-      self._db_conn.close()
+    if self._backend is not None:
+      self._backend.close()
+
+  @property
+  def backend_name(self):
+    return (self._backend.backend_name if self._backend else None)
 
   def parse_station(self, statstr):
     parts = statstr.split("/", 1)
@@ -61,7 +77,7 @@ class Env(object):
 
   def get_station(self, sysname, statname = None, keep_data = False):
     if statname is not None:
-      (sysdata, stndata) = self._db_conn.get_station_by_names(sysname, statname)
+      (sysdata, stndata) = self._backend.get_station_by_names(sysname, statname)
       if sysdata is not None and stndata is not None:
         return _make_station(sysdata, stndata, keep_data)
     else:
@@ -77,7 +93,7 @@ class Env(object):
       cx, cy, cz, name = coords_data
       return system.System(cx, cy, cz, name)
     else:
-      result = self._db_conn.get_system_by_name(sysname)
+      result = self._backend.get_system_by_name(sysname)
       if result is not None:
         return _make_known_system(result, keep_data)
       else:
@@ -86,7 +102,7 @@ class Env(object):
   def find_stations(self, args, filters = None, keep_station_data = False):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
     sysobjs = { s.id: s for s in sysobjs if s.id is not None }
-    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._db_conn.find_stations_by_system_id(list(sysobjs.keys()), filters=filters)]
+    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=filters)]
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
     min_x = min(vec_from.x, vec_to.x) - buffer_from
@@ -95,99 +111,85 @@ class Env(object):
     max_x = max(vec_from.x, vec_to.x) + buffer_to
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
-    return [KnownSystem(s) for s in self._db_conn.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=filters)]
+    return [KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=filters)]
  
   def find_all_systems(self, filters = None, keep_data = False):
-    for s in self._db_conn.find_all_systems(filters=filters):
+    for s in self._backend.find_all_systems(filters=filters):
       yield _make_known_system(s, keep_data=keep_data)
 
   def find_all_stations(self, filters = None, keep_data = False):
-    for sy,st in self._db_conn.find_all_stations(filters=filters):
+    for sy,st in self._backend.find_all_stations(filters=filters):
       yield _make_station(sy, st, keep_data=keep_data)
 
   def find_systems_by_glob(self, name, filters = None, keep_data=False):
-    for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_GLOB, filters=filters):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=db.FIND_GLOB, filters=filters):
       yield _make_known_system(s, keep_data)
 
   def find_systems_by_regex(self, name, filters = None, keep_data=False):
-    for s in self._db_conn.find_systems_by_name_unsafe(name, mode=db.FIND_REGEX, filters=filters):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=db.FIND_REGEX, filters=filters):
       yield _make_known_system(s, keep_data)
 
   def find_stations_by_glob(self, name, filters = None, keep_data=False):
-    for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_GLOB, filters=filters):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=db.FIND_GLOB, filters=filters):
       yield _make_station(sy, st, keep_data)
 
   def find_stations_by_regex(self, name, filters = None, keep_data=False):
-    for (sy, st) in self._db_conn.find_stations_by_name_unsafe(name, mode=db.FIND_REGEX, filters=filters):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=db.FIND_REGEX, filters=filters):
       yield _make_station(sy, st, keep_data)
 
   def _load_data(self):
-    with self._load_lock:
-      try:
-        self._db_conn = db.open_db(os.path.join(self._data_path, os.path.normpath(global_args.db_file)))
-        self._load_coriolis_data()
-        self.is_data_loaded = True
-        log.debug("Data loaded")
-      except Exception as ex:
-        self.is_data_loaded = False
-        log.error("Failed to open database: {}".format(ex))
-
-  def load_data(self, async):
-    if async:
-      self._load_thread = threading.Thread(name = "data_load", target = self._load_data)
-      self._load_thread.start()
-    else:
-      self._load_data()
+    try:
+      self._load_coriolis_data()
+      self.is_data_loaded = True
+      log.debug("Data loaded")
+    except Exception as ex:
+      self.is_data_loaded = False
+      log.error("Failed to load environment data: {}".format(ex))
 
   def _load_coriolis_data(self):
-    with self._load_lock:
-      self._coriolis_fsd_list = self._db_conn.retrieve_fsd_list()
-      self.is_coriolis_data_loaded = True
-      log.debug("Coriolis data loaded")
-
-  def _ensure_data_loaded(self):
-    if not self.is_data_loaded:
-      log.debug("Waiting for data to be loaded...")
-      self._load_lock.acquire()
-      self._load_lock.release()
-      log.debug("Finished waiting")
+    self._coriolis_fsd_list = self._backend.retrieve_fsd_list()
+    self.is_coriolis_data_loaded = True
+    log.debug("Coriolis data loaded")
 
   @property
   def coriolis_fsd_list(self):
-    self._ensure_data_loaded()
     return self._coriolis_fsd_list
 
 
 class EnvWrapper(object):
-  def __init__(self, path = default_path):
+  def __init__(self, path = default_path, backend = default_backend_name):
+    self._backend = backend
     self._path = path
 
   def __enter__(self):
     self._close_env = False
-    if not is_started():
-      start(self._path)
+    if not is_started(self._path, self._backend):
+      start(self._path, self._backend)
       self._close_env = True
-    if is_started():
-      global data
-      return data
+    if is_started(self._path, self._backend):
+      return _open_backends[(self._backend, self._path)]
     else:
       raise RuntimeError("Failed to load environment")
 
   def __exit__(self, typ, value, traceback):
     if self._close_env:
-      stop()
+      stop(self._path, self._backend)
 
 
 
-data = None
+_open_backends = {}
 
-
-def start(path = default_path):
-  if not is_started():
-    newdata = Env(path)
+def start(path = default_path, backend = default_backend_name):
+  if backend not in _registered_backends:
+    raise ValueError("Specified backend name '{}' is not registered".format(backend))
+  if not is_started(path, backend):
+    backend_obj = _registered_backends[backend](path)
+    if backend_obj is None:
+      log.error("Failed to start environment: backend name '{}' failed to create object".format(backend))
+      return False
+    newdata = Env(backend_obj)
     if newdata.is_data_loaded:
-      global data
-      data = newdata
+      _open_backends[(backend, path)] = newdata
       return True
     else:
       return False
@@ -195,21 +197,19 @@ def start(path = default_path):
     return True
 
 
-def is_started():
-  global data
-  return (data is not None and data.is_data_loaded)
+def is_started(path = default_path, backend = default_backend_name):
+  return ((backend, path) in _open_backends and _open_backends[(backend, path)].is_data_loaded)
 
 
-def stop():
-  global data
-  if data is not None:
-    data.close()
-    data = None
+def stop(path = default_path, backend = default_backend_name):
+  if (backend, path) in _open_backends:
+    _open_backends[(backend, path)].close()
+    del _open_backends[(backend, path)]
   return True
 
 
-def use(path = default_path):
-  return EnvWrapper(path)
+def use(path = default_path, backend = default_backend_name):
+  return EnvWrapper(path, backend)
 
 
 def set_verbosity(level):

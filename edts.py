@@ -74,28 +74,29 @@ class Application(object):
         self.ship = None
 
   def run(self):
-    start = env.data.parse_station(self.args.start)
-    end = env.data.parse_station(self.args.end)
+    with env.use() as envdata:
+      start = envdata.parse_station(self.args.start)
+      end = envdata.parse_station(self.args.end)
 
-    if start is None:
-      log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
-      return
-    if end is None:
-      log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
-      return
-
-    stations = []
-    # Locate all the systems/stations provided and ensure they're valid for our ship
-    for st in self.args.stations:
-      sobj = env.data.parse_station(st)
-      if sobj is not None and sobj.system is not None:
-        log.debug("Adding system/station: {0}".format(sobj.to_string()))
-        if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-          log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
-        stations.append(sobj)
-      else:
-        log.warning("Error: system/station {0} could not be found.".format(st))
+      if start is None:
+        log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
         return
+      if end is None:
+        log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
+        return
+
+      stations = []
+      # Locate all the systems/stations provided and ensure they're valid for our ship
+      for st in self.args.stations:
+        sobj = envdata.parse_station(st)
+        if sobj is not None and sobj.system is not None:
+          log.debug("Adding system/station: {0}".format(sobj.to_string()))
+          if self.args.pad_size == "L" and sobj.max_pad_size != "L":
+            log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
+          stations.append(sobj)
+        else:
+          log.warning("Error: system/station {0} could not be found.".format(st))
+          return
 
     # Prefer a static jump range if provided, to allow user to override ship's range
     if self.args.jump_range is not None:
@@ -106,7 +107,7 @@ class Application(object):
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
     calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, route_strategy=self.args.route_strategy, slf=self.args.slf)
-    r = rx.Routing(env.data, calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
+    r = rx.Routing(calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
     s = Solver(calc, r, jump_range, self.args.diff_limit)
 
     if self.args.ordered:

@@ -10,7 +10,7 @@ import logging
 import os
 import re
 import sys
-import db
+import db_sqlite3 as db
 import util
 
 log = logging.getLogger("update")

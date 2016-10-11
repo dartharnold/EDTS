@@ -1,6 +1,7 @@
 import collections
 import decimal
 import defs
+import env_backend as eb
 import filter
 import json
 import logging
@@ -56,7 +57,7 @@ def open_db(filename = defs.default_db_file, check_version = True):
       log.warning("DB file's schema version {0} does not match the expected version {1}.".format(db_version, schema_version))
       log.warning("This is likely to cause errors; you may wish to rebuild the database by running update.py")
     log.debug("DB connection opened")
-  return DBConnection(conn)
+  return SQLite3DBConnection(conn)
 
 
 def initialise_db(filename = defs.default_db_file):
@@ -65,8 +66,9 @@ def initialise_db(filename = defs.default_db_file):
   return dbc
 
 
-class DBConnection(object):
+class SQLite3DBConnection(eb.EnvBackend):
   def __init__(self, conn):
+    super(SQLite3DBConnection, self).__init__("db_sqlite3")
     self._conn = conn
 
   def close(self):
@@ -201,7 +203,15 @@ class DBConnection(object):
     log.debug("Done, {} results.".format(len(results)))
     return [_process_system_result(r) for r in results]
     
-  def find_systems_by_name(self, name, mode=FIND_EXACT, filters = None):
+  def find_systems_by_name(self, name, mode = FIND_EXACT, filters = None):
+    # return self.find_systems_by_name_safe(name, mode, filters)
+    return self.find_systems_by_name_unsafe(name, mode, filters)
+
+  def find_stations_by_name(self, name, mode = FIND_EXACT, filters = None):
+    # return self.find_stations_by_name_safe(name, mode, filters)
+    return self.find_stations_by_name_unsafe(name, mode, filters)
+
+  def find_systems_by_name_safe(self, name, mode = FIND_EXACT, filters = None):
     if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
@@ -220,7 +230,7 @@ class DBConnection(object):
       yield _process_system_result(result)
       result = c.fetchone()
 
-  def find_stations_by_name(self, name, mode=FIND_EXACT, filters = None):
+  def find_stations_by_name_safe(self, name, mode = FIND_EXACT, filters = None):
     if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
