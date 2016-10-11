@@ -17,10 +17,6 @@ log = logging.getLogger("db")
 
 schema_version = 6
 
-FIND_EXACT = 0
-FIND_GLOB = 1
-FIND_REGEX = 2
-
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
 _bad_char_regex = re.compile("[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -]")
@@ -203,16 +199,16 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done, {} results.".format(len(results)))
     return [_process_system_result(r) for r in results]
     
-  def find_systems_by_name(self, name, mode = FIND_EXACT, filters = None):
+  def find_systems_by_name(self, name, mode = eb.FIND_EXACT, filters = None):
     # return self.find_systems_by_name_safe(name, mode, filters)
     return self.find_systems_by_name_unsafe(name, mode, filters)
 
-  def find_stations_by_name(self, name, mode = FIND_EXACT, filters = None):
+  def find_stations_by_name(self, name, mode = eb.FIND_EXACT, filters = None):
     # return self.find_stations_by_name_safe(name, mode, filters)
     return self.find_stations_by_name_unsafe(name, mode, filters)
 
-  def find_systems_by_name_safe(self, name, mode = FIND_EXACT, filters = None):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_systems_by_name_safe(self, name, mode = eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
     cmd, params = _construct_query(
@@ -230,8 +226,8 @@ class SQLite3DBConnection(eb.EnvBackend):
       yield _process_system_result(result)
       result = c.fetchone()
 
-  def find_stations_by_name_safe(self, name, mode = FIND_EXACT, filters = None):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_stations_by_name_safe(self, name, mode = eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
     cmd, params = _construct_query(
@@ -255,8 +251,8 @@ class SQLite3DBConnection(eb.EnvBackend):
   # This significantly slows down searches (~500x at time of writing) due to doing full table scans
   # So, these methods are fast but vulnerable to SQL injection due to use of string literals
   # This will hopefully be unnecessary in Python 2.7.11+ / 3.6.0+ if porting of a newer pysqlite2 version is completed
-  def find_systems_by_name_unsafe(self, name, mode=FIND_EXACT, filters = None):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_systems_by_name_unsafe(self, name, mode=eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     name = _bad_char_regex.sub("", name)
     name = name.replace("'", r"''")
@@ -276,8 +272,8 @@ class SQLite3DBConnection(eb.EnvBackend):
       yield _process_system_result(result)
       result = c.fetchone()
 
-  def find_stations_by_name_unsafe(self, name, mode=FIND_EXACT, filters = None):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_stations_by_name_unsafe(self, name, mode=eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     name = _bad_char_regex.sub("", name)
     name = name.replace("'", r"''")

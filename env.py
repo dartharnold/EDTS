@@ -13,6 +13,8 @@ import util
 import system_internal as system
 import station
 import db_sqlite3
+import env_backend as eb
+import filter
 
 log = logging.getLogger("env")
 
@@ -65,6 +67,13 @@ class Env(object):
   @property
   def backend_name(self):
     return (self._backend.backend_name if self._backend else None)
+
+  @property
+  def filter_converters(self):
+    return {'system': self.get_system, 'station': self.get_station}
+
+  def parse_filter_string(self, s):
+    return filter.parse_filter_string(s, self.filter_converters)
 
   def parse_station(self, statstr):
     parts = statstr.split("/", 1)
@@ -122,19 +131,19 @@ class Env(object):
       yield _make_station(sy, st, keep_data=keep_data)
 
   def find_systems_by_glob(self, name, filters = None, keep_data=False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=db.FIND_GLOB, filters=filters):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=filters):
       yield _make_known_system(s, keep_data)
 
   def find_systems_by_regex(self, name, filters = None, keep_data=False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=db.FIND_REGEX, filters=filters):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=filters):
       yield _make_known_system(s, keep_data)
 
   def find_stations_by_glob(self, name, filters = None, keep_data=False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=db.FIND_GLOB, filters=filters):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=filters):
       yield _make_station(sy, st, keep_data)
 
   def find_stations_by_regex(self, name, filters = None, keep_data=False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=db.FIND_REGEX, filters=filters):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=filters):
       yield _make_station(sy, st, keep_data)
 
   def _load_data(self):
@@ -184,7 +193,7 @@ def start(path = default_path, backend = default_backend_name):
     raise ValueError("Specified backend name '{}' is not registered".format(backend))
   if not is_started(path, backend):
     backend_obj = _registered_backends[backend](path)
-    if backend_obj is None:
+    if backend_obj is None or not isinstance(backend_obj, eb.EnvBackend):
       log.error("Failed to start environment: backend name '{}' failed to create object".format(backend))
       return False
     newdata = Env(backend_obj)

@@ -1,13 +1,13 @@
 import argparse
 import collections
-import env
 import logging
 import math
 import random
 import re
 import vector3
-from station import Station
-from system import System
+import station
+import system_internal as system
+import util
 
 log = logging.getLogger("filter")
 
@@ -42,12 +42,6 @@ class Operator(object):
     return "{} {}".format(self.operator, self.value)
 
 _assumed_operators = {int: '<', float: '<'}
-
-def _parse_system(s):
-  if isinstance(s, System):
-    return s
-  with env.use() as data:
-    return data.parse_system(s)
 
 
 def _get_valid_ops(fn):
@@ -89,9 +83,9 @@ _conversions = {
                    'special': [],
                    'fn':
                    {
-                     PosArgs: _parse_system,
+                     PosArgs: 'system',
                      'distance':  {'max': None, 'special': [], 'fn': float},
-                     'direction': {'max': None, 'special': [], 'fn': _parse_system},
+                     'direction': {'max': None, 'special': [], 'fn': 'system'},
                      'angle':     {'max': None, 'special': [], 'fn': float}
                    }
                  },
@@ -120,7 +114,7 @@ def _global_conv(val, specials = []):
     return (val, True)
 
 
-def parse_filter_string(s):
+def parse_filter_string(s, extra_conv = {}):
   entries = s.split(entry_separator)
   output = {}
   # For each separate filter entry...
@@ -175,12 +169,18 @@ def parse_filter_string(s):
                 raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
               # Check the provided operator is valid in this scenario
               if ev.operator not in _get_valid_ops(conv):
-                raise KeyError("Invalid operator provided for filter subkey '{}'".format(ek))
+                raise KeyError("Invalid operator provided for filter subkey '{}/{}'".format(k, ek))
               # Do the conversions
               specials = _conversions[k]['fn'][ek]['special'] if (ek in _conversions[k]['fn'] and isinstance(_conversions[k]['fn'][ek], dict)) else []
               ev.value, continue_conv = _global_conv(ev.value, specials)
               if continue_conv:
-                ev.value = conv(ev.value)
+                if util.is_str(conv):
+                  if conv in extra_conv:
+                    ev.value = extra_conv[conv](ev.value)
+                  else:
+                    raise ValueError("Could not perform conversion for filter subkey '{}/{}' with custom converter '{}'".format(k, ek, conv))
+                else:
+                  ev.value = conv(ev.value)
       else:
         # For each entry associated with this key...
         for ovl in output[k]:
@@ -192,7 +192,13 @@ def parse_filter_string(s):
             # Do the conversions
             ov.value, continue_conv = _global_conv(ov.value, _conversions[k]['special'])
             if continue_conv:
-              ov.value = _conversions[k]['fn'](ov.value)
+              if util.is_str(_conversions[k]['fn']):
+                if _conversions[k]['fn'] in extra_conv:
+                  ov.value = extra_conv[_conversions[k]['fn']](ov.value)
+                else:
+                  raise ValueError("Could not perform conversion for special converter '{}'".format(_conversions[k]['fn']))
+              else:
+                ov.value = _conversions[k]['fn'](ov.value)
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
@@ -341,7 +347,7 @@ def generate_filter_sql(filters):
 def filter_list(s_list, filters, limit = None, p_src_list = None):
   src_list = None
   if p_src_list is not None:
-    src_list = [s if isinstance(s, Station) else Station.none(s) for s in p_src_list]
+    src_list = [s if isinstance(s, station.Station) else station.Station.none(s) for s in p_src_list]
 
   if (src_list is not None and 'direction' in filters):
     direction_obj = filters['direction']
@@ -355,11 +361,11 @@ def filter_list(s_list, filters, limit = None, p_src_list = None):
   maxdist = 0.0
 
   for s in s_list:
-    if isinstance(s, Station):
+    if isinstance(s, station.Station):
       st = s
       sy = s.system
-    elif isinstance(s, KnownSystem):
-      st = Station.none(s)
+    elif isinstance(s, system.KnownSystem):
+      st = station.Station.none(s)
       sy = s
     else:
       log.error("Object of type '{}' cannot be filtered with systems/stations".format(type(s)))
