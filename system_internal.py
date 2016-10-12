@@ -6,14 +6,30 @@ import vector3
 
 class System(object):
   def __init__(self, x, y, z, name = None):
-    self.position = vector3.Vector3(float(x), float(y), float(z))
-    self.name = name
+    self._position = vector3.Vector3(float(x), float(y), float(z))
+    self._name = name
+    self._id = None
     self.uses_sc = False
-    self.id = None
 
   @property
   def system_name(self):
     return self.name
+
+  @property
+  def position(self):
+    return self._position
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def id(self):
+    return self._id
+
+  @property
+  def sector(self):
+    return pgnames.get_sector(self.position)
 
   def to_string(self, use_long = False):
     if use_long:
@@ -44,7 +60,11 @@ class PGSystemPrototype(System):
   def __init__(self, x, y, z, name, sector, uncertainty):
     super(PGSystemPrototype, self).__init__(x, y, z, name)
     self.uncertainty = uncertainty
-    self.sector = sector
+    self._sector = sector
+
+  @property
+  def sector(self):
+    return self._sector
 
   def __repr__(self):
     return u"PGSystemPrototype({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
@@ -53,8 +73,6 @@ class PGSystemPrototype(System):
 class PGSystem(PGSystemPrototype):
   def __init__(self, x, y, z, name, sector, uncertainty):
     super(PGSystem, self).__init__(x, y, z, name, sector, uncertainty)
-    self.uncertainty = uncertainty
-    self.sector = sector
 
   def __repr__(self):
     return u"PGSystem({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
@@ -71,10 +89,17 @@ class PGSystem(PGSystemPrototype):
 class KnownSystem(System):
   def __init__(self, obj):
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'])
-    self.id = obj['id'] if 'id' in obj else None
-    self.needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
-    self.allegiance = obj['allegiance'] if 'allegiance' in obj else None
-    self.uses_sc = False
+    self._id = obj['id'] if 'id' in obj else None
+    self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
+    self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
+
+  @property
+  def needs_permit(self):
+    return self._needs_permit
+
+  @property
+  def allegiance(self):
+    return self._allegiance
 
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
