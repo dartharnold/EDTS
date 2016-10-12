@@ -128,7 +128,7 @@ class Env(object):
     max_x = max(vec_from.x, vec_to.x) + buffer_to
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
-    return [KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=self._get_as_filters(filters))]
+    return [system.KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=self._get_as_filters(filters))]
  
   def find_all_systems(self, filters = None, keep_data = False):
     for s in self._backend.find_all_systems(filters=self._get_as_filters(filters)):
