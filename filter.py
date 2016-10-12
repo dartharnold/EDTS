@@ -114,7 +114,7 @@ def _global_conv(val, specials = []):
     return (val, True)
 
 
-def parse_filter_string(s, extra_conv = {}):
+def parse_filter_string(s, extra_converters = {}):
   entries = s.split(entry_separator)
   output = {}
   # For each separate filter entry...
@@ -175,8 +175,8 @@ def parse_filter_string(s, extra_conv = {}):
               ev.value, continue_conv = _global_conv(ev.value, specials)
               if continue_conv:
                 if util.is_str(conv):
-                  if conv in extra_conv:
-                    ev.value = extra_conv[conv](ev.value)
+                  if conv in extra_converters:
+                    ev.value = extra_converters[conv](ev.value)
                   else:
                     raise ValueError("Could not perform conversion for filter subkey '{}/{}' with custom converter '{}'".format(k, ek, conv))
                 else:
@@ -193,8 +193,8 @@ def parse_filter_string(s, extra_conv = {}):
             ov.value, continue_conv = _global_conv(ov.value, _conversions[k]['special'])
             if continue_conv:
               if util.is_str(_conversions[k]['fn']):
-                if _conversions[k]['fn'] in extra_conv:
-                  ov.value = extra_conv[_conversions[k]['fn']](ov.value)
+                if _conversions[k]['fn'] in extra_converters:
+                  ov.value = extra_converters[_conversions[k]['fn']](ov.value)
                 else:
                   raise ValueError("Could not perform conversion for special converter '{}'".format(_conversions[k]['fn']))
               else:

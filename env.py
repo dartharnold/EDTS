@@ -75,6 +75,14 @@ class Env(object):
   def parse_filter_string(self, s):
     return filter.parse_filter_string(s, self.filter_converters)
 
+  def _get_as_filters(self, s):
+    if s is None:
+      return None
+    elif util.is_str(s):
+      return self.parse_filter_string(s)
+    else:
+      return s
+
   def parse_station(self, statstr):
     parts = statstr.split("/", 1)
     sysname = parts[0]
@@ -111,7 +119,7 @@ class Env(object):
   def find_stations(self, args, filters = None, keep_station_data = False):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
     sysobjs = { s.id: s for s in sysobjs if s.id is not None }
-    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=filters)]
+    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
     min_x = min(vec_from.x, vec_to.x) - buffer_from
@@ -120,30 +128,30 @@ class Env(object):
     max_x = max(vec_from.x, vec_to.x) + buffer_to
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
-    return [KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=filters)]
+    return [KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=self._get_as_filters(filters))]
  
   def find_all_systems(self, filters = None, keep_data = False):
-    for s in self._backend.find_all_systems(filters=filters):
+    for s in self._backend.find_all_systems(filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data=keep_data)
 
   def find_all_stations(self, filters = None, keep_data = False):
-    for sy,st in self._backend.find_all_stations(filters=filters):
+    for sy,st in self._backend.find_all_stations(filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data=keep_data)
 
   def find_systems_by_glob(self, name, filters = None, keep_data=False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=filters):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
   def find_systems_by_regex(self, name, filters = None, keep_data=False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=filters):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
   def find_stations_by_glob(self, name, filters = None, keep_data=False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=filters):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
   def find_stations_by_regex(self, name, filters = None, keep_data=False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=filters):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
   def _load_data(self):
