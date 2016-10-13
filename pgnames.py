@@ -23,14 +23,18 @@ log = logging.getLogger(app_name)
 """
 Check whether the given name is a valid PG system name, either in a PG or HA sector.
 
+Args:
+  name: A system name
+  strict: If True, will also check the sector name is a valid sector.
+
 Returns:
   True if the name is valid, False if not
 """
-def is_pg_system_name(name):
+def is_pg_system_name(name, strict = True):
   m = pgdata.pg_system_regex.match(name.strip())
   if m is None:
     return False
-  return (get_sector(m.group("sector")) is not None)
+  return (get_sector(m.group("sector")) is not None) if strict else True
 
 
 """
