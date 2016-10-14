@@ -395,4 +395,4 @@ class Vector3(object):
 
 
 def mean(points):
-    return sum(points, Vector3(0, 0, 0)) / len(points)
+    return sum(points, Vector3(0, 0, 0)) / max(len(points), 1)
