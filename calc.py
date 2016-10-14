@@ -27,19 +27,19 @@ class Calc(object):
     self.slf = slf
     self.route_strategy = route_strategy
 
-  def jump_count(self, a, b, route, allow_long = False, cargo = 0, jump_decay = 0.0):
-    _, maxjumps = self.jump_count_range(a, b, route, allow_long, cargo, jump_decay)
+  def jump_count(self, a, b, prev_jcount, allow_long = False, cargo = 0, jump_decay = 0.0):
+    _, maxjumps = self.jump_count_range(a, b, prev_jcount, allow_long, cargo, jump_decay)
     return maxjumps
 
   # Gets an estimated range of number of jumps required to jump from a to b
-  def jump_count_range(self, a, b, route, allow_long = False, cargo = 0, jump_decay = 0.0):
+  def jump_count_range(self, a, b, prev_jcount, allow_long = False, cargo = 0, jump_decay = 0.0):
     if self.jump_range is not None:
-      jumpdist = self.jump_range - (jump_decay * (len(route)-1))
+      jumpdist = self.jump_range - (jump_decay * prev_jcount)
     elif self.ship is not None:
       if allow_long:
-        jumpdist = self.ship.max_range(cargo = cargo * (len(route)-1))
+        jumpdist = self.ship.max_range(cargo = cargo * prev_jcount)
       else:
-        jumpdist = self.ship.range(cargo = cargo * (len(route)-1))
+        jumpdist = self.ship.range(cargo = cargo * prev_jcount)
     else:
       raise Exception("Tried to calculate jump counts without either valid ship or jump range")
 
@@ -72,7 +72,7 @@ class Calc(object):
 
   # The cost to go from a to b, as used in simple (non-routed) solving
   def solve_cost(self, a, b, route):
-    hs_jumps = self.time_for_jumps(self.jump_count(a, b, route))
+    hs_jumps = self.time_for_jumps(self.jump_count(a, b, len(route)-1))
     hs_jdist = a.distance_to(b)
     sc = self.sc_cost(b.distance if b.uses_sc else 0.0)
     return (hs_jumps + hs_jdist + sc)
@@ -134,7 +134,7 @@ class Calc(object):
 
   # Gets the route cost for an A* route
   def astar_cost(self, a, b, route, dist_threshold = None):
-    jcount = self.jump_count(a, b, route, (dist_threshold is not None))
+    jcount = self.jump_count(a, b, len(route)-1, (dist_threshold is not None))
     hs_jumps = self.time_for_jumps(jcount)
     hs_jdist = a.distance_to(b)
     var = self.route_variance(route, route[0].distance_to(route[-1]))
