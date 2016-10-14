@@ -10,7 +10,7 @@ import calc as c
 import ship
 import route as rx
 import util
-from solver import Solver
+import solver
 from station import Station
 from fsd import FSD
 
@@ -47,7 +47,7 @@ class Application(object):
     ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next legs. Not used by the 'astar' strategy.")
-    ap.add_argument("--allow-clustering", type=util.string_bool, default=True, choices=[True,False], help="Whether to allow clustering (used for solving routes with large numbers of stops)")
+    ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
 
@@ -108,13 +108,13 @@ class Application(object):
 
     calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, route_strategy=self.args.route_strategy, slf=self.args.slf)
     r = rx.Routing(calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
-    s = Solver(calc, r, jump_range, self.args.diff_limit)
+    s = solver.Solver(calc, r, jump_range, self.args.diff_limit)
 
     if self.args.ordered:
       route = [start] + stations + [end]
     else:
       # Add 2 to the jump count for start + end
-      route, is_definitive = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.allow_clustering)
+      route, is_definitive = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.solve_mode)
 
     if self.args.reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
@@ -143,7 +143,7 @@ class Application(object):
           full_max_jump = self.ship.range(cargo = self.args.cargo * (i-1))
           cur_max_jump = self.ship.max_range(cargo = self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
-        cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
+        cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], i-1, self.args.long_jumps)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:

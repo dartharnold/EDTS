@@ -1,14 +1,22 @@
 import logging
 import math
 import random
+import sys
 import vector3
 
 log = logging.getLogger("solver")
 
-max_single_solve_size = 20
-cluster_size_max = 12
+max_single_solve_size = 12
+cluster_size_max = 10
 cluster_size_min = 5
 cluster_divisor = 10
+cluster_iteration_limit = 1000
+
+
+CLUSTERED         = "clustered"
+BASIC             = "basic"
+NEAREST_NEIGHBOUR = "nearest-neighbour"
+modes = [CLUSTERED, BASIC, NEAREST_NEIGHBOUR]
 
 
 class Solver(object):
@@ -18,11 +26,18 @@ class Solver(object):
     self._diff_limit = diff_limit
     self._jump_range = jump_range
 
-  def solve(self, stations, start, end, maxstops, allow_clustering = True):
-    if allow_clustering and len(stations) > max_single_solve_size:
+
+  def solve(self, stations, start, end, maxstops, preferred_mode = CLUSTERED):
+    log.debug("Solving set using preferred mode '{}'".format(preferred_mode))
+    if preferred_mode == CLUSTERED and len(stations) > max_single_solve_size:
       return self.solve_clustered(stations, start, end, maxstops), False
-    else:
+    elif preferred_mode in [CLUSTERED, BASIC]:
       return self.solve_basic(stations, start, end, maxstops), True
+    elif preferred_mode == NEAREST_NEIGHBOUR:
+      return self.solve_nearest_neighbour(stations, start, end, maxstops), True
+    else:
+      raise ValueError("invalid preferred_mode flag passed to solve")
+
 
   def solve_basic(self, stations, start, end, maxstops):
     log.debug("Calculating viable routes...")
@@ -51,11 +66,30 @@ class Solver(object):
 
     return minroute
 
+
+  def solve_nearest_neighbour(self, stations, start, end, maxstops):
+    route = [start]
+    remaining = stations
+    while any(remaining) and len(route)+1 < maxstops:
+      cur_dist = sys.maxsize
+      cur_stop = None
+      for s in remaining:
+        dist = self._calc.solve_cost(route[-1], s, len(route)-1)
+        if dist < cur_dist:
+          cur_stop = s
+          cur_dist = dist
+      if cur_stop is not None:
+        route.append(cur_stop)
+        remaining.remove(cur_stop)
+    route.append(end)
+    return route
+
+
   def solve_clustered(self, stations, start, end, maxstops):
     cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
     log.debug("Splitting problem into {0} clusters...".format(cluster_count))
     iterations = 0
-    while iterations < 100:
+    while iterations < cluster_iteration_limit:
       iterations += 1
       means, clusters = find_centers(stations, cluster_count)
       lengths = [len(clusters[i]) for i in clusters]
@@ -72,18 +106,19 @@ class Solver(object):
     _, from_start = self.get_closest_points([start], clusters[indices[0]])
     to_end, _ = self.get_closest_points(clusters[indices[-1]], [end])
     # For each cluster...
-    for i in range(1, len(indices)):
-      from_cluster = clusters[indices[i-1]]
-      to_cluster = clusters[indices[i]]
+    for i in range(0, len(indices)-1):
+      log.debug("Solving for cluster at index {}...".format(indices[i]))
+      from_cluster = clusters[indices[i]]
+      to_cluster = clusters[indices[i+1]]
       # Get the closest points, disallowing using from_start or to_end
       from_end, to_start = self.get_closest_points(from_cluster, to_cluster, [from_start, to_end])
       # Work out how many of the stops we should be doing in this cluster
       cur_maxstops = min(len(from_cluster), int(round(float(maxstops) * len(from_cluster) / len(stations))))
       r_maxstops -= cur_maxstops
       # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
-      route += self.solve_basic(from_cluster, from_start, from_end, cur_maxstops)
+      route += self.solve_basic([c for c in from_cluster if c not in [from_start, from_end]], from_start, from_end, cur_maxstops)
       from_start = to_start
-    route += self.solve_basic(clusters[indices[-1]], from_start, to_end, r_maxstops)
+    route += self.solve_basic([c for c in clusters[indices[-1]] if c not in [from_start, to_end]], from_start, to_end, r_maxstops)
     route += [end]
     return route
 
@@ -120,7 +155,7 @@ class Solver(object):
           if route_matches >= stn_matches:
             continue
 
-        dist = self._calc.solve_cost(route[-1], stn, route)
+        dist = self._calc.solve_cost(route[-1], stn, len(route)-1)
         nexts[stn] = dist
 
       mindist = min(nexts.values())
@@ -169,7 +204,7 @@ class Solver(object):
       for n2 in cluster2:
         if n2 in disallowed:
           continue
-        cost = self._calc.solve_cost(n1, n2, [])
+        cost = self._calc.solve_cost(n1, n2, 1)
         if best is None or cost < bestcost:
           best = (n1, n2)
           bestcost = cost
@@ -205,11 +240,11 @@ def find_centers(X, K):
   # Initialize to K random centers
   oldmu = random.sample([x.position for x in X], K)
   mu = random.sample([x.position for x in X], K)
-  clusters = None
+  clusters = _cluster_points(X, mu)
   while not _has_converged(mu, oldmu):
     oldmu = mu
     # Assign all points in X to clusters
     clusters = _cluster_points(X, mu)
     # Reevaluate centers
     mu = _reevaluate_centers(oldmu, clusters)
-  return(mu, clusters)
+  return (mu, clusters)

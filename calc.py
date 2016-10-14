@@ -71,8 +71,8 @@ class Calc(object):
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
 
   # The cost to go from a to b, as used in simple (non-routed) solving
-  def solve_cost(self, a, b, route):
-    hs_jumps = self.time_for_jumps(self.jump_count(a, b, len(route)-1))
+  def solve_cost(self, a, b, prev_jcount):
+    hs_jumps = self.time_for_jumps(self.jump_count(a, b, prev_jcount))
     hs_jdist = a.distance_to(b)
     sc = self.sc_cost(b.distance if b.uses_sc else 0.0)
     return (hs_jumps + hs_jdist + sc)
@@ -81,7 +81,7 @@ class Calc(object):
   def solve_route_cost(self, route):
     cost = 0.0
     for i in range(0, len(route)-1):
-      cost += self.solve_cost(route[i], route[i+1], route)
+      cost += self.solve_cost(route[i], route[i+1], len(route)-1)
     return cost
 
   # Gets the route cost using the current route strategy
