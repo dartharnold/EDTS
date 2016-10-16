@@ -16,8 +16,8 @@ log = logging.getLogger("update")
 logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
 edsm_systems_url = "https://www.edsm.net/dump/systemsWithCoordinates.json"
-eddb_systems_url = "https://eddb.io/archive/v4/systems_populated.json"
-eddb_stations_url = "https://eddb.io/archive/v4/stations.json"
+eddb_systems_url = "https://eddb.io/archive/v5/systems_populated.json"
+eddb_stations_url = "https://eddb.io/archive/v5/stations.json"
 
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
