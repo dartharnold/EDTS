@@ -156,6 +156,18 @@ class SQLite3DBConnection(eb.EnvBackend):
     else:
       return None
 
+  def get_systems_by_name(self, names):
+    c = self._conn.cursor()
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name IN ({})'.format(','.join(['?'] * len(names)))
+    log.debug("Executing: {}; names = {}".format(cmd, names))
+    c.execute(cmd, names)
+    result = c.fetchall()
+    log.debug("Done.")
+    if result is not None:
+      return [_process_system_result(r) for r in result]
+    else:
+      return None
+
   def get_station_by_names(self, sysname, stnname):
     c = self._conn.cursor()
     cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
@@ -165,6 +177,19 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done.")
     if result is not None:
       return (_process_system_result(result), json.loads(result['stndata']))
+    else:
+      return (None, None)
+
+  def get_stations_by_names(self, names):
+    c = self._conn.cursor()
+    extra_cmd = ' OR '.join(['sy.name = ? AND st.name = ?'] * len(names))
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.eddb_id = st.eddb_system_id AND ({})'.format(extra_cmd)
+    log.debug("Executing: {}; names = {}".format(cmd, names))
+    c.execute(cmd, [n for sublist in names for n in sublist])
+    result = c.fetchall()
+    log.debug("Done.")
+    if result is not None:
+      return [(_process_system_result(r), json.loads(r['stndata'])) for r in result]
     else:
       return (None, None)
 
@@ -342,7 +367,7 @@ class SQLite3DBConnection(eb.EnvBackend):
 
 
 def _process_system_result(result):
-  if result['data'] is not None:
+  if 'data' in result and result['data'] is not None:
     return json.loads(result['data'])
   else:
     return {'name': result['name'], 'x': result['pos_x'], 'y': result['pos_y'], 'z': result['pos_z']}

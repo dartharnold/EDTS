@@ -89,8 +89,34 @@ class Env(object):
     statname = parts[1] if len(parts) > 1 else None
     return self.get_station(sysname, statname)
 
+  def parse_stations(self, statlist):
+    namelist = []
+    for statstr in statlist:
+      parts = statstr.split("/", 1)
+      sysname = parts[0]
+      statname = parts[1] if len(parts) > 1 else None
+      namelist.append((sysname, statname))
+    # Get the objects
+    tmpdata_stn = {(s.system.name.lower(), s.name.lower()): s for s in self.get_stations([n for n in namelist if n[1] is not None]).values()}
+    tmpdata_sys = {s.name.lower(): s for s in self.parse_systems([n[0] for n in namelist if n[1] is None]).values()}
+    # Now reorder the data to match the input list, and check if we lost any
+    outdata = collections.OrderedDict()
+    for i, (sy, st) in enumerate(namelist):
+      if st is not None:
+        sresult = tmpdata_stn.get((sy.lower(), st.lower()), None)
+        outdata[statlist[i]] = sresult
+      else:
+        if sy.lower() in tmpdata_sys and tmpdata_sys[sy.lower()] is not None:
+          outdata[statlist[i]] = station.Station.none(tmpdata_sys[sy.lower()])
+        else:
+          outdata[statlist[i]] = None
+    return outdata
+
   def parse_system(self, sysstr):
     return self.get_system(sysstr)
+
+  def parse_systems(self, sysstr):
+    return self.get_systems(sysstr)
 
   def get_station(self, sysname, statname = None, keep_data = False):
     if statname is not None:
@@ -115,6 +141,42 @@ class Env(object):
         return _make_known_system(result, keep_data)
       else:
         return None
+
+  def get_systems(self, sysnames, keep_data = False):
+    co_list = {}
+    db_list = []
+    output = collections.OrderedDict()
+    # Weed out fake systems first
+    for s in sysnames:
+      coords_data = util.parse_coords(s)
+      if coords_data is not None:
+        cx, cy, cz, name = coords_data
+        co_list[s] = system.System(cx, cy, cz, name)
+      else:
+        db_list.append(s)
+    # Now query for the real ones
+    db_result = {}
+    if any(db_list):
+      result = self._backend.get_systems_by_name(db_list)
+      db_result = {r.name.lower(): r for r in [_make_known_system(t, keep_data) for t in result]}
+    for s in sysnames:
+      if s.lower() in db_result:
+        output[s] = db_result[s.lower()]
+      elif s in co_list:
+        output[s] = co_list[s]
+      else:
+        output[s] = None
+    return output
+
+  def get_stations(self, names, keep_data = False):
+    output = collections.OrderedDict()
+    # Now query for the real ones
+    if any(names):
+      result = self._backend.get_stations_by_names(names)
+      result = {(r.system.name.lower(), r.name.lower()): r for r in [_make_station(t[0], t[1], keep_data) for t in result]}
+      for sy, st in names:
+        output[(sy, st)] = result.get((sy.lower(), st.lower()), None)
+    return output
 
   def find_stations(self, args, filters = None, keep_station_data = False):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]

@@ -85,18 +85,18 @@ class Application(object):
         log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
         return
 
-      stations = []
       # Locate all the systems/stations provided and ensure they're valid for our ship
-      for st in self.args.stations:
-        sobj = envdata.parse_station(st)
-        if sobj is not None and sobj.system is not None:
+      stations = envdata.parse_stations(self.args.stations)
+      for sname in self.args.stations:
+        if sname in stations and stations[sname] is not None:
+          sobj = stations[sname]
           log.debug("Adding system/station: {0}".format(sobj.to_string()))
           if self.args.pad_size == "L" and sobj.max_pad_size != "L":
             log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
-          stations.append(sobj)
         else:
-          log.warning("Error: system/station {0} could not be found.".format(st))
+          log.warning("Error: system/station {0} could not be found.".format(sname))
           return
+    stations = list(stations.values())
 
     # Prefer a static jump range if provided, to allow user to override ship's range
     if self.args.jump_range is not None:

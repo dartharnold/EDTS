@@ -13,8 +13,14 @@ class EnvBackend(object):
   def get_system_by_name(self, name):
     raise NotImplementedError("Invalid use of base EnvBackend get_system_by_name method")
 
+  def get_systems_by_name(self, names):
+    raise NotImplementedError("Invalid use of base EnvBackend get_systems_by_name method")
+
   def get_station_by_names(self, sysname, stnname):
     raise NotImplementedError("Invalid use of base EnvBackend get_station_by_names method")
+
+  def get_stations_by_names(self, names):
+    raise NotImplementedError("Invalid use of base EnvBackend get_stations_by_names method")
 
   def find_stations_by_system_id(self, args, filter = None):
     raise NotImplementedError("Invalid use of base EnvBackend get_stations_by_system_id method")
@@ -33,4 +39,3 @@ class EnvBackend(object):
 
   def find_all_stations(self, filter = None):
     raise NotImplementedError("Invalid use of base EnvBackend get_all_stations method")
-
