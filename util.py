@@ -1,14 +1,19 @@
 import defs
 import logging
+import os
 import platform
 import re
 import ssl
 import sys
 
 if sys.version_info >= (3, 0):
+  import urllib.parse
   import urllib.request
+  import urllib.error
 else:
   import urllib2
+  import urllib
+  import urlparse
 
 log = logging.getLogger("util")
 
@@ -72,6 +77,12 @@ def read_stream(stream, limit = None):
 
 def read_from_url(url):
   return read_stream(open_url(url))
+
+def path_to_url(path):
+  if sys.version_info >= (3, 0):
+    return urllib.parse.urljoin('file:', urllib.request.pathname2url(os.path.abspath(path)))
+  else:
+    return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
 
 
 def is_interactive():
