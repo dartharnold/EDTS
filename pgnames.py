@@ -62,7 +62,7 @@ def get_sector_name(pos, allow_ha=True, format_output=True):
     output = _c2_get_name(pos)
   
   if format_output:
-    return format_name(output)
+    return format_sector_name(output)
   else:
     return output
 
@@ -94,7 +94,7 @@ def get_sector(input, allow_ha = True, get_name = True):
     frags = None
     if get_name:
       frags = get_sector_name(input, allow_ha=allow_ha, format_output=False)
-    return sector.PGSector(int(x), int(y), int(z), format_name(frags), _get_sector_class(frags))
+    return sector.PGSector(int(x), int(y), int(z), format_sector_name(frags), _get_sector_class(frags))
   else:
     # Assume we have a string, call down to get it by name
     return _get_sector_from_name(input, allow_ha=allow_ha)
@@ -148,20 +148,20 @@ def get_canonical_name(name, sector_only = False):
     # get_sector_fragments converts to Title Case, so we don't need to
     frags = get_sector_fragments(sectname_raw)
     if frags is not None:
-      sectname = format_name(frags)
+      sectname = format_sector_name(frags)
 
   if sector_only:
     return sectname
 
   # Work out what we should be returning, and do it
   if m is not None and sectname is not None:
-    if m.group("n1") is not None and int(m.group("n1")) != 0:
-      sysid = "{}{}-{} {}{}-{}".format(m.group("l1").upper(), m.group("l2").upper(), m.group("l3").upper(), m.group("mcode").lower(), m.group("n1"), m.group("n2"))
-    else:
-      sysid = "{}{}-{} {}{}".format(m.group("l1").upper(), m.group("l2").upper(), m.group("l3").upper(), m.group("mcode").lower(), m.group("n2"))
-    return "{} {}".format(sectname, sysid)
+    return format_system_name({
+      'SectorName': sectname,
+      'L1': m.group('l1'), 'L2': m.group('l2'), 'L3': m.group('l3'),
+      'MCode': m.group('mcode'),
+      'N1': m.group('n1'), 'N2': m.group('n2')})
   else:
-    # This may be none if get_sector_fragments/format_name failed
+    # This may be none if get_sector_fragments/format_sector_name failed
     return sectname
 
 
@@ -243,7 +243,7 @@ Args:
 Returns:
   The sector name as a string
 """
-def format_name(input):
+def format_sector_name(input):
   frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
@@ -292,8 +292,26 @@ def get_system_fragments(input):
     return None
   return {
     'SectorName': m.group('sector'), 'L1': m.group('l1'), 'L2': m.group('l2'), 'L3': m.group('l3'),
-    'MCode': m.group('mcode'), 'N1': int(m.group('n1')) if m.group('n1') is not None else None, 'N2': int(m.group('n2'))
+    'MCode': m.group('mcode'), 'N1': int(m.group('n1')) if m.group('n1') is not None else 0, 'N2': int(m.group('n2'))
   }
+
+
+"""
+Format the given system data into a full name
+
+Args:
+  input: A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
+
+Returns: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
+"""
+def format_system_name(input):
+  if input is None:
+    return None
+  if input['N1'] is not None and int(input['N1']) != 0:
+    sysid = "{}{}-{} {}{}-{}".format(input['L1'].upper(), input['L2'].upper(), input['L3'].upper(), input['MCode'].lower(), input['N1'], input['N2'])
+  else:
+    sysid = "{}{}-{} {}{}".format(input['L1'].upper(), input['L2'].upper(), input['L3'].upper(), input['MCode'].lower(), input['N2'])
+  return "{} {}".format(input['SectorName'], sysid)
 
 
 # #
@@ -442,20 +460,8 @@ def _get_sector_pos_from_offset(offset, galsize):
 
 # Determines whether a given sector should be C1 or C2
 def _get_c1_or_c2(key):
-  # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
-  # Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
-  key += (key << 12)
-  key &= 0xFFFFFFFF
-  key ^= (key >> 22)
-  key += (key << 4)
-  key &= 0xFFFFFFFF
-  key ^= (key >> 9)
-  key += (key << 10)
-  key &= 0xFFFFFFFF
-  key ^= (key >> 2)
-  key += (key << 7)
-  key &= 0xFFFFFFFF
-  key ^= (key >> 12)
+  # Use Jenkins hash
+  key = util.jenkins32(key)
   # Key is now an even/odd number, depending on which scheme we use
   # Return 1 for a class 1 sector, 2 for a class 2
   return (key % 2) + 1
@@ -691,8 +697,8 @@ def _c1_get_sector(input):
 
   # Calculate the X/Y/Z positions from the offset
   spos = _get_sector_pos_from_offset(offset, sector.galaxy_size)
-  name = format_name(frags)
-  return sector.PGSector(spos[0], spos[1], spos[2], format_name(frags), _get_sector_class(frags))
+  name = format_sector_name(frags)
+  return sector.PGSector(spos[0], spos[1], spos[2], name, _get_sector_class(frags))
 
 
 def _c1_get_name(pos):
@@ -774,8 +780,8 @@ def _c2_get_sector(input):
 
   # Calculate the X/Y/Z positions from the offset
   spos = _get_sector_pos_from_offset(offset, sector.galaxy_size)
-  name = format_name(frags)
-  return sector.PGSector(spos[0], spos[1], spos[2], format_name(frags), _get_sector_class(frags))
+  name = format_sector_name(frags)
+  return sector.PGSector(spos[0], spos[1], spos[2], name, _get_sector_class(frags))
 
 
 def _c2_get_name_from_offset(offset, format_output=False):
@@ -791,7 +797,7 @@ def _c2_get_name_from_offset(offset, format_output=False):
   # Done!
   output = [p0, s0, p1, s1]
   if format_output:
-    output = format_name(output)
+    output = format_sector_name(output)
   return output
 
 

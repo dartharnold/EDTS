@@ -96,6 +96,24 @@ def string_bool(s):
   return s.lower() in ("yes", "true", "1")
 
 
+# 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
+# Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
+def jenkins32(key):
+  key += (key << 12)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 22)
+  key += (key << 4)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 9)
+  key += (key << 10)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 2)
+  key += (key << 7)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 12)
+  return key
+
+
 # Grabs the value from the first N bits, then return a right-shifted remainder
 def unpack_and_shift(value, bits):
   return (value >> bits, value & (2**bits-1))
