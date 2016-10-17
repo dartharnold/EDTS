@@ -1,8 +1,10 @@
 import defs
+import thirdparty.gzipinputstream as gzis
 import logging
 import os
 import platform
 import re
+import socket
 import ssl
 import sys
 
@@ -42,11 +44,12 @@ def parse_coords(sysname):
 
 
 def open_url(url):
+  response = None
   if sys.version_info >= (3, 0):
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+    request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip'})
     try:
-      return urllib.request.urlopen(request)
+      response = urllib.request.urlopen(request)
     except urllib.error.HTTPError as err:
       log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
       return None
@@ -56,24 +59,48 @@ def open_url(url):
     if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
       sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
+    request = urllib2.Request(url, headers={'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip'})
     try:
-      return urllib2.urlopen(request, context=sslctx)
+      response = urllib2.urlopen(request, context=sslctx)
     except urllib2.HTTPError as err:
       log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
       return None
+  if response.info().get('Content-Encoding') == 'gzip':
+    try:
+      return gzis.GzipInputStream(response)
+    except:
+      log.error("Error decompressing {0}".format(url))
+      return None
+  else:
+    return response
 
 def read_stream_line(stream):
-  if sys.version_info >= (3, 0):
-    return stream.readline().decode("utf-8")
-  else:
-    return stream.readline()
+  try:
+    if sys.version_info >= (3, 0):
+      return stream.readline().decode("utf-8")
+    else:
+      return stream.readline()
+  except socket.error as e:
+    if e.errno == socket.errno.ECONNRESET:
+      log.warning("Received ECONNRESET while reading line from socket-based stream")
+      return None
+    else:
+      raise
 
 def read_stream(stream, limit = None):
-  if sys.version_info >= (3, 0):
-    return stream.read(limit).decode("utf-8")
-  else:
-    return stream.read(-1 if limit is None else limit)
+  try:
+    if sys.version_info >= (3, 0):
+      return stream.read(limit).decode("utf-8")
+    else:
+      if limit is None and not isinstance(stream, gzis.GzipInputStream):
+        limit = -1
+      return stream.read(limit)
+  except socket.error as e:
+    if e.errno == socket.errno.ECONNRESET:
+      log.warning("Received ECONNRESET while reading from socket-based stream")
+      return None
+    else:
+      raise
 
 def read_from_url(url):
   return read_stream(open_url(url))
