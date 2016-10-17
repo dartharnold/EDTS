@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-import bottle
 import json
 import collections
 
 data_path = '..'
 
 sys.path.insert(0, data_path)
+import thirdparty.bottle as bottle
 import env
 import fsd
 import pgnames
