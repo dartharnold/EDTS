@@ -20,13 +20,12 @@ class Application(object):
 
   def run(self):
     maxlen = 0
-    systems = {}
     with env.use() as envdata:
+      systems = envdata.parse_systems(self.args.system)
       for name in self.args.system:
         maxlen = max(maxlen, len(name))
-        systems[name] = envdata.parse_system(name)
-        if systems[name] is None:
-          log.error("Could not find system \"{0}\"!".format(self.args.system))
+        if name not in systems or systems[name] is None:
+          log.error("Could not find system \"{0}\"!".format(name))
           return
 
     print("")

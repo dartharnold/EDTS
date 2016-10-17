@@ -58,10 +58,9 @@ class Application(object):
           log.error("Could not find start system \"{0}\"!".format(self.args.start))
           return
 
-      systems = {}
+      systems = envdata.parse_systems(self.args.systems)
       for y in self.args.systems:
-        systems[y] = envdata.parse_system(y)
-        if systems[y] is None:
+        if y not in systems or systems[y] is None:
           log.error("Could not find system \"{0}\"!".format(y))
           return
 

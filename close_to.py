@@ -65,8 +65,9 @@ class Application(object):
   def run(self):
     with env.use() as envdata:
       # Add the system object to each system arg
+      tmpsystems = envdata.parse_systems([d['system'] for d in self.args.system])
       for d in self.args.system:
-        d['sysobj'] = envdata.parse_system(d['system'])
+        d['sysobj'] = tmpsystems.get(d['system'], None)
         if d['sysobj'] is None:
           log.error("Could not find start system \"{0}\"!".format(d['system']))
           return
