@@ -26,7 +26,7 @@ eddb_systems_local_path  = "data/systems_populated.jsonl"
 eddb_stations_local_path = "data/stations.jsonl"
 coriolis_fsds_local_path = "data/frame_shift_drive.json"
 
-_re_json_line = re.compile(r'\s*(\{.*\})[\s,]*')
+_re_json_line = re.compile(r'^\s*(\{.*\})[\s,]*$')
 
 ap = argparse.ArgumentParser(description = 'Update local database')
 ap.add_argument_group("Processing options")
