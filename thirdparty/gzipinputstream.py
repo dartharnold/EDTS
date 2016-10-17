@@ -1,3 +1,5 @@
+"""Modified from https://gist.github.com/beaufour/4205533"""
+
 import zlib
 import string
 import sys
