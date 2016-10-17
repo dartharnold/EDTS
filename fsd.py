@@ -49,14 +49,13 @@ class FSD(object):
     return self.range(mass, self.maxfuel, cargo)
 
   def max_fuel_weight(self, dist, mass, cargo = 0):
-    _, wmax = self.fuel_weight_range(dist, mass, cargo)
-    return wmax
-
-  def fuel_weight_range(self, dist, mass, cargo = 0):
     # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
-    wmax = (math.pow(self.maxfuel / self.fuelmul, 1.0 / self.fuelpower) * self.optmass / float(dist)) - (float(mass) + float(cargo))
+    return (math.pow(self.maxfuel / self.fuelmul, 1.0 / self.fuelpower) * self.optmass / float(dist)) - (float(mass) + float(cargo))
+
+  def fuel_weight_range(self, dist, mass, cargo = 0):
+    wmax = self.max_fuel_weight(dist, mass, cargo)
 
     # Iterative check to narrow down the minimum fuel requirement
     clast = self.maxfuel
@@ -65,6 +64,9 @@ class FSD(object):
     for i in range(0, 15):
       c = self.cost(dist, mass, clast, cargo)
       clast = c + (clast - c) / 4.0
+      if clast > 10**10:
+        log.warning("Minimum fuel approximation became extremely high, stopping early.")
+        break
     wmin = c
 
     return wmin, wmax
