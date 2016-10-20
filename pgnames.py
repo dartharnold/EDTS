@@ -279,12 +279,14 @@ Parse the given PG system name and return the canonical versions of its individu
 
 Args:
   input: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
+  ensure_canonical: Whether to ensure that the name is in its canonical form before processing
 
 Returns:
   A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
 """
-def get_system_fragments(input):
-  input = get_canonical_name(input)
+def get_system_fragments(input, ensure_canonical = True):
+  if ensure_canonical:
+    input = get_canonical_name(input)
   if input is None:
     return None
   m = pgdata.pg_system_regex.match(input)
@@ -334,6 +336,10 @@ _expected_fragment_limit = 4
 # Original version by CMDR Jackie Silver
 # Note that in the form "Sector AB-C d3", the "3" is number2, NOT number1 (which is 0)
 def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
+  soffset = _get_soffset_from_sysid(prefix, centre, suffix, number1)
+  return _get_relpos_from_soffset(soffset, mcode)
+
+def _get_soffset_from_sysid(prefix, centre, suffix, number1):
   if number1 is None:
     number1 = 0
 
@@ -341,7 +347,9 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
   position += _srp_divisor2 * (ord(suffix.upper()) - ord('A'))
   position += _srp_divisor1 * (ord(centre.upper()) - ord('A'))
   position +=                 (ord(prefix.upper()) - ord('A'))
+  return position
 
+def _get_relpos_from_soffset(position, mcode):
   row = int(position // _srp_sidelength)
   position -= (row * _srp_sidelength)
 
@@ -361,6 +369,10 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
 
 
 def _get_sysid_from_relpos(pos, mcode, format_output=False):
+  soffset = _get_soffset_from_relpos(pos, mcode)
+  return _get_sysid_from_soffset(soffset, mcode, format_output)
+
+def _get_soffset_from_relpos(pos, mcode):
   pos = _get_as_position(pos)
   if pos is None:
     return None
@@ -370,7 +382,9 @@ def _get_sysid_from_relpos(pos, mcode, format_output=False):
   row    = int(pos.z // cubeside)
 
   position = column + (_srp_rowlength * stack) + (_srp_sidelength * row)
+  return position
 
+def _get_sysid_from_soffset(position, mcode, format_output=False):
   prefixn = int((position)                  % len(string.ascii_uppercase))
   centren = int((position // _srp_divisor1) % len(string.ascii_uppercase))
   suffixn = int((position // _srp_divisor2) % len(string.ascii_uppercase))
