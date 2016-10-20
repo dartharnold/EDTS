@@ -43,11 +43,14 @@ def parse_coords(sysname):
   return None
 
 
-def open_url(url):
+def open_url(url, allow_gzip = True):
   response = None
+  headers = {'User-Agent': USER_AGENT}
+  if allow_gzip:
+    headers['Accept-Encoding'] = 'gzip'
   if sys.version_info >= (3, 0):
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip'})
+    request = urllib.request.Request(url, headers=headers)
     try:
       response = urllib.request.urlopen(request)
     except urllib.error.HTTPError as err:
@@ -59,7 +62,7 @@ def open_url(url):
     if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
       sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib2.Request(url, headers={'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip'})
+    request = urllib2.Request(url, headers=headers)
     try:
       response = urllib2.urlopen(request, context=sslctx)
     except urllib2.HTTPError as err:
