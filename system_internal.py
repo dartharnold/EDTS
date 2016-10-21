@@ -10,6 +10,7 @@ class System(object):
     self._name = name
     self._id = None
     self.uses_sc = False
+    self._hash = u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
 
   @property
   def system_name(self):
@@ -53,7 +54,7 @@ class System(object):
       return NotImplemented
 
   def __hash__(self):
-    return u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+    return self._hash
 
 
 class PGSystemPrototype(System):
@@ -111,9 +112,9 @@ class KnownSystem(System):
       return super(KnownSystem, self).__eq__(other)
     else:
       return NotImplemented
-  
+
   def __hash__(self):
-    return u"{0}/{1},{2},{3}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+    return super(KnownSystem, self).__hash__()
 
 
     
