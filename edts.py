@@ -8,7 +8,7 @@ import sys
 import env
 import calc as c
 import ship
-import route as rx
+import routing as rx
 import util
 import solver
 from station import Station
