@@ -34,10 +34,10 @@ class Routing(object):
     return out_min + ((out_max - out_min) * (min(in_max, max(0, value - in_min)) / (in_max - in_min)))
 
   def cylinder(self, stars, vec_from, vec_to, buffer_both):
+    denominator = (vec_to - vec_from).length
     candidates = []
     for s in stars:
       numerator = ((s.position - vec_from).cross(s.position - vec_to)).length
-      denominator = (vec_to - vec_from).length
       dist = numerator / denominator
       if dist < buffer_both:
         candidates.append(s)
@@ -113,8 +113,7 @@ class Routing(object):
           came_from[neighbor] = current
           g_score[neighbor] = tentative_g_score
           f_score[neighbor] = self._calc.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor), full_range)
-          if neighbor not in openset:
-            openset.add(neighbor)
+          openset.add(neighbor)
 
     return None
 
