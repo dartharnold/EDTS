@@ -184,6 +184,10 @@ class Env(object):
     return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
+    vec_from = util.get_as_position(vec_from)
+    vec_to = util.get_as_position(vec_to)
+    if vec_from is None or vec_to is None:
+      raise ValueError("could not get a position from input AABB coords")
     min_x = min(vec_from.x, vec_to.x) - buffer_from
     min_y = min(vec_from.y, vec_to.y) - buffer_from
     min_z = min(vec_from.z, vec_to.z) - buffer_from

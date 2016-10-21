@@ -1,9 +1,7 @@
 from __future__ import print_function, division
 import logging
 import math
-import numbers
 import string
-import sys
 import time
 
 import pgdata
@@ -48,7 +46,7 @@ Returns:
   The name of the sector which contains the input position, either as a string or as a list of fragments
 """  
 def get_sector_name(pos, allow_ha=True, format_output=True):
-  pos = _get_as_position(pos)
+  pos = util.get_as_position(pos)
   if pos is None:
     return None
   if allow_ha:
@@ -79,7 +77,7 @@ Returns:
   A Sector object, or None if the input could not be looked up
 """
 def get_sector(input, allow_ha = True, get_name = True):
-  pos_input = _get_as_position(input)
+  pos_input = util.get_as_position(input)
   if pos_input is not None:
     input = pos_input
     if allow_ha:
@@ -111,7 +109,7 @@ Returns:
   A system or system prototype object
 """
 def get_system(input, mcode = None, allow_ha = True):
-  posinput = _get_as_position(input)
+  posinput = util.get_as_position(input)
   if posinput is not None:
     if mcode is not None:
       return _get_system_from_pos(posinput, mcode, allow_ha)
@@ -264,7 +262,7 @@ Returns:
   A Vector3 representing the origin of the boxel containing this position
 """
 def get_boxel_origin(position, mcode):
-  posinput = _get_as_position(position)
+  posinput = util.get_as_position(position)
   cube_width = sector.get_mcode_cube_width(mcode)
   if posinput is None or cube_width is None:
     return None
@@ -373,7 +371,7 @@ def _get_sysid_from_relpos(pos, mcode, format_output=False):
   return _get_sysid_from_soffset(soffset, mcode, format_output)
 
 def _get_soffset_from_relpos(pos, mcode):
-  pos = _get_as_position(pos)
+  pos = util.get_as_position(pos)
   if pos is None:
     return None
   cubeside = sector.get_mcode_cube_width(mcode)
@@ -534,7 +532,7 @@ def _get_coords_from_name(raw_system_name, allow_ha = True):
 
 
 def _get_system_from_pos(input, mcode, allow_ha = True):
-  input = _get_as_position(input)
+  input = util.get_as_position(input)
   if input is None:
     return None
   psect = get_sector(input, allow_ha=allow_ha)
@@ -618,7 +616,7 @@ def _c1_get_infix_total_run_length(frag):
 
 # Get the zero-based offset (counting from bottom-left of the galaxy) of the input sector name/position
 def _c1_get_offset(input):
-  pos_input = _get_as_position(input)
+  pos_input = util.get_as_position(input)
   if pos_input is not None:
     return _get_offset_from_pos(pos_input, sector.galaxy_size)
   else:
@@ -857,26 +855,6 @@ def _construct_offsets():
     ilen = _c1_get_infix_run_length(i)
     _c1_infix_offsets[i] = (cnt, ilen)
     cnt += ilen
-
-
-# #
-# Utility functions
-# #
-
-def _get_as_position(v):
-  # If it's already a vector, all is OK
-  if isinstance(v, vector3.Vector3):
-    return v
-  if isinstance(v, system.System):
-    return v.position
-  if isinstance(v, sector.Sector):
-    return v.centre
-  try:
-    if len(v) == 3 and all([isinstance(i, numbers.Number) for i in v]):
-      return vector3.Vector3(v[0], v[1], v[2])
-  except:
-    pass
-  return None
 
 
 # #
