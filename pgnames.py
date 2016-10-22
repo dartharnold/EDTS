@@ -208,7 +208,7 @@ Returns:
   True if the sector name is valid, False if not
 """
 def is_valid_sector_name(input):
-  frags = get_sector_fragments(input) if util.is_str(input) else frags
+  frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None or len(frags) == 0 or frags[0] not in pgdata.cx_prefixes:
     return False
   if len(frags) == 4 and frags[2] in pgdata.cx_prefixes:
