@@ -157,7 +157,7 @@ class Routing(object):
         if force_intermediate or self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
           factor = sldistance * (trunc_jcount / optimistic_count)
           # Work out the next position to get a circle of stars from
-          next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
+          next_pos = sys_cur.position + (sys_to.position - sys_cur.position).get_normalised() * factor
           # Get a circle of stars around the estimate
           c_next_stars = self.circle(stars, next_pos, search_radius)
           # Limit them to only ones where it's possible we'll get a valid route
@@ -273,7 +273,7 @@ class Routing(object):
     cur_dist = route[-1].distance_to(sys_to)
     if cur_dist > jump_range:
       # dir(current_pos --> sys_to) * jump_range
-      dir_vec = ((sys_to.position - route[-1].position).normalise() * jump_range)
+      dir_vec = ((sys_to.position - route[-1].position).get_normalised() * jump_range)
       # Start looking some way down the route, determined by jump count
       start_vec = route[-1].position + (dir_vec * vec_mult)
       end_vec = route[-1].position + dir_vec
