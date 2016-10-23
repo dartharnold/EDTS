@@ -307,6 +307,8 @@ Returns: A string containing a system name of the form "Sector AB-C d1-23" or "S
 def format_system_name(input):
   if input is None:
     return None
+  if not isinstance(input, dict) or not set(('SectorName','L1','L2','L3','MCode','N1','N2')).issubset(input):
+    raise ValueError("input dict to format_system_name must include keys SectorName, L1, L2, L3, MCode, N1, N2")
   if input['N1'] is not None and int(input['N1']) != 0:
     sysid = "{}{}-{} {}{}-{}".format(input['L1'].upper(), input['L2'].upper(), input['L3'].upper(), input['MCode'].lower(), input['N1'], input['N2'])
   else:
