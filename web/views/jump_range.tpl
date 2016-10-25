@@ -49,7 +49,7 @@
         alert("You must fill in all fields with appropriate values before submitting!");
         return;
       }
-      var query = sprintf("%s,%f,%f,%d,%s,%s,%s", fsd, mass, fuel, cargo, optmod, maxfmod, massmod);
+      var query = sprintf("%s,%f,%f,%d,%s,%s,%s", fsd, mass, fuel, cargo, encodeURIComponent(optmod), encodeURIComponent(maxfmod), encodeURIComponent(massmod));
       doXHR('jump_range', query, setJumpRange, failJumpRange);
     }
 
