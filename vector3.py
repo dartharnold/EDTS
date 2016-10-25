@@ -171,6 +171,10 @@ class Vector3(object):
         ox, oy, oz = lhs
         return Vector3(ox-x, oy-y, oz-z)
 
+    def __abs__(self):
+        x, y, z = self._v
+        return Vector3(abs(x), abs(y), abs(z))
+
     def scalar_mul(self, scalar):
         v = self._v
         v[0] *= scalar

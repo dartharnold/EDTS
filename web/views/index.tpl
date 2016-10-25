@@ -65,7 +65,6 @@
       var y = document.getElementById('input-systemname-y').value;
       var z = document.getElementById('input-systemname-z').value;
       var mcode = document.getElementById('input-systemname-m').value;
-      console.log("x = " + typeof(x) + ", y = " + typeof(y) + ", z = " + typeof(z) + ", m = " + typeof(mcode));
       if (isNaN(x) || isNaN(y) || isNaN(z) || x.length === 0 || y.length === 0 || z.length === 0 || !mcode.match(/^[a-h]$/i))
       {
         alert("You must fill in all fields with appropriate values (numeric for X,Y,Z; a-h for mcode) before submitting!");
@@ -124,7 +123,6 @@
 
     function setSystemName(data)
     {
-      console.log(data);
       var pos = sprintf("Position: [%.3f, %.3f, %.3f]", data.position.x, data.position.y, data.position.z);
       var names = [];
       data.names.forEach(function(t) { names.push(t.name + '?'); });
@@ -173,7 +171,7 @@
 <div class="wrap">
 Hello, friend! This is a simple demo of the procedurally-generated name magic.<br/>
 There is also a <a href="/api/v1">barebones API</a> (which this demo uses) that you can query yourself.<br/>
-Or, you could host/integrate it yourself by <a href="https://bitbucket.org/Esvandiary/edts/branch/feature/pgnames">grabbing it from BitBucket</a>.<br/>
+Or, you could host/integrate it yourself by <a href="https://bitbucket.org/Esvandiary/edts">grabbing it from BitBucket</a>.<br/>
 Please don't spam this site too much, it's only a little babby server. :)<br/>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- CMDR Alot<br/><br/>
 

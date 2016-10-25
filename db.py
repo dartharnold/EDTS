@@ -146,7 +146,7 @@ class DBConnection(object):
     c.execute(cmd, (name, ))
     result = c.fetchone()
     log.debug("Done.")
-    if result != None:
+    if result is not None:
       return _process_system_result(result)
     else:
       return None
@@ -158,7 +158,7 @@ class DBConnection(object):
     c.execute(cmd, (sysname, stnname))
     result = c.fetchone()
     log.debug("Done.")
-    if result != None:
+    if result is not None:
       return (_process_system_result(result), json.loads(result['stndata']))
     else:
       return (None, None)
@@ -170,7 +170,7 @@ class DBConnection(object):
     log.debug("Executing: {}; sysid = {}".format(cmd, sysids))
     c.execute(cmd, sysids)
     results = c.fetchall()
-    log.debug("Done.")
+    log.debug("Done, {} results.".format(len(results)))
     return [{ k: v for d in [{ 'eddb_system_id': r[0] }, json.loads(r[1])] for k, v in d.items()} for r in results]
 
   def get_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z):
@@ -179,7 +179,7 @@ class DBConnection(object):
     log.debug("Executing: {}; min_x = {}, max_x = {}, min_y = {}, max_y = {}, min_z = {}, max_z = {}".format(cmd, min_x, max_x, min_y, max_y, min_z, max_z))
     c.execute(cmd, (min_x, max_x, min_y, max_y, min_z, max_z))
     results = c.fetchall()
-    log.debug("Done.")
+    log.debug("Done, {} results.".format(len(results)))
     return [_process_system_result(r) for r in results]
 
   def find_systems_close_to(self, refs):
@@ -227,7 +227,7 @@ class DBConnection(object):
 
     c.execute(cmd, params)
     results = c.fetchall()
-    log.debug("Done")
+    log.debug("Done, {} results.".format(len(results)))
     return [_process_system_result(r) for r in results]
 
     
@@ -315,6 +315,17 @@ class DBConnection(object):
     log.debug("Done.")
     while result is not None:
       yield (_process_system_result(result), json.loads(result['stndata']))
+      result = c.fetchone()
+
+  def get_populated_systems(self):
+    c = self._conn.cursor()
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE allegiance IS NOT NULL'
+    log.debug("Executing: {}".format(cmd))
+    c.execute(cmd)
+    result = c.fetchone()
+    log.debug("Done.")
+    while result is not None:
+      yield _process_system_result(result)
       result = c.fetchone()
 
 

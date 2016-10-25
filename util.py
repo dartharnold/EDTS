@@ -1,14 +1,19 @@
 import defs
 import logging
+import os
 import platform
 import re
 import ssl
 import sys
 
 if sys.version_info >= (3, 0):
+  import urllib.parse
   import urllib.request
+  import urllib.error
 else:
   import urllib2
+  import urllib
+  import urlparse
 
 log = logging.getLogger("util")
 
@@ -40,7 +45,11 @@ def open_url(url):
   if sys.version_info >= (3, 0):
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
     request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-    return urllib.request.urlopen(request)
+    try:
+      return urllib.request.urlopen(request)
+    except urllib.error.HTTPError as err:
+      log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
+      return None
   else:
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
     # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
@@ -48,7 +57,17 @@ def open_url(url):
       sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
     request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
-    return urllib2.urlopen(request, context=sslctx)
+    try:
+      return urllib2.urlopen(request, context=sslctx)
+    except urllib2.HTTPError as err:
+      log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
+      return None
+
+def read_stream_line(stream):
+  if sys.version_info >= (3, 0):
+    return stream.readline().decode("utf-8")
+  else:
+    return stream.readline()
 
 def read_stream(stream, limit = None):
   if sys.version_info >= (3, 0):
@@ -58,6 +77,12 @@ def read_stream(stream, limit = None):
 
 def read_from_url(url):
   return read_stream(open_url(url))
+
+def path_to_url(path):
+  if sys.version_info >= (3, 0):
+    return urllib.parse.urljoin('file:', urllib.request.pathname2url(os.path.abspath(path)))
+  else:
+    return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
 
 
 def is_interactive():
@@ -80,3 +105,33 @@ def download_file(url, file):
 
 def string_bool(s):
   return s.lower() in ("yes", "true", "1")
+
+
+# Grabs the value from the first N bits, then return a right-shifted remainder
+def unpack_and_shift(value, bits):
+  return (value >> bits, value & (2**bits-1))
+
+# Shifts existing data left by N bits and adds a new value into the "empty" space
+def pack_and_shift(value, new_data, bits):
+  return (value << bits) + (new_data & (2**bits-1))
+
+# Interleaves two values, starting at least significant bit
+# e.g. (0b1111, 0b0000) --> (0b01010101)
+def interleave(val1, val2, maxbits):
+  output = 0
+  for i in range(0, maxbits//2 + 1):
+    output |= ((val1 >> i) & 1) << (i*2)
+  for i in range(0, maxbits//2 + 1):
+    output |= ((val2 >> i) & 1) << (i*2 + 1)
+  return output & (2**maxbits - 1)
+
+# Deinterleaves two values, starting at least significant bit
+# e.g. (0b00110010) --> (0b0100, 0b0101)
+def deinterleave(val, maxbits):
+  out1 = 0
+  out2 = 0
+  for i in range(0, maxbits, 2):
+    out1 |= ((val >> i) & 1) << (i//2)
+  for i in range(1, maxbits, 2):
+    out2 |= ((val >> i) & 1) << (i//2)
+  return (out1, out2)
