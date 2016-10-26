@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, '../..')
 import pgnames
+import pgdata
 import vector3 as v3
 del sys.path[0]
 
@@ -159,4 +160,9 @@ class TestPGNames(unittest.TestCase):
     self.assertIsNone(pgnames.format_system_name(None))
     self.assertRaises(ValueError, pgnames.format_system_name, {})
 
-  # def test_...:
+  def test_ha_sectors(self):
+    test1 = pgnames.get_ha_sectors()
+    self.assertEqual(len(test1), len(pgdata.ha_sectors))
+    self.assertEqual([s.lower() for s in test1.keys()], list(pgdata.ha_sectors.keys()))
+    # TODO: Further tests with reference points
+

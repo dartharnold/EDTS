@@ -1,4 +1,5 @@
 from __future__ import print_function, division
+import collections
 import logging
 import math
 import string
@@ -302,7 +303,8 @@ Format the given system data into a full name
 Args:
   input: A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
 
-Returns: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
+Returns:
+  A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
 """
 def format_system_name(input):
   if input is None:
@@ -315,6 +317,30 @@ def format_system_name(input):
     sysid = "{}{}-{} {}{}".format(input['L1'].upper(), input['L2'].upper(), input['L3'].upper(), input['MCode'].lower(), input['N2'])
   return "{} {}".format(input['SectorName'], sysid)
 
+
+"""
+Get hand-authored sectors, optionally in distance order around a reference point
+
+Args:
+  reference: Optional, position or System/Sector-like object. If provided, returned sectors will be ordered by distance from this point
+  max_distance: Optional, may only be provided with reference. A maximum distance from the reference point, in LY, to limit returned sectors to.
+
+Returns:
+  An OrderedDict object where keys are the names of the sectors, and values are the sector objects themselves.
+"""
+def get_ha_sectors(reference = None, max_distance = None):
+  if reference is not None:
+    pos_reference = util.get_as_position(reference)
+    if pos_reference is None:
+      raise ValueError("if provided, reference must be a position, or a System/Sector-like object")
+    result = [(s.name, s) for s in pgdata.ha_sectors.values() if (max_distance is None or (pos_reference - s.centre).length < max_distance)]
+    result.sort(key=lambda s: (pos_reference - s[1].centre).length)
+    return collections.OrderedDict(result)
+  else:
+    if max_distance is not None:
+      raise ValueError("cannot provide max_distance without a reference position")
+    return collections.OrderedDict([(s.name, s) for s in pgdata.ha_sectors.values()])
+  
 
 # #
 # Internal variables
