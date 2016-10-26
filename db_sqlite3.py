@@ -81,13 +81,6 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.execute('CREATE TABLE stations (eddb_id INTEGER, eddb_system_id INTEGER, name TEXT COLLATE NOCASE, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, data TEXT)')
     c.execute('CREATE TABLE coriolis_fsds (id TEXT, data TEXT)')
 
-    c.execute('CREATE INDEX idx_systems_name ON systems (name COLLATE NOCASE)')
-    c.execute('CREATE INDEX idx_systems_pos ON systems (pos_x, pos_y, pos_z)')
-    c.execute('CREATE INDEX idx_systems_edsm_id ON systems (edsm_id)')
-    c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
-    c.execute('CREATE INDEX idx_stations_name ON stations (name COLLATE NOCASE)')
-    c.execute('CREATE INDEX idx_stations_sysid ON stations (eddb_system_id)')
-
     self._conn.commit()
     log.debug("Done.")
 
@@ -113,6 +106,13 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', self._generate_systems(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
+    log.debug("Going to add indexes to systems for name, pos_x/pos_y/pos_z, edsm_id...")
+    c.execute('CREATE INDEX idx_systems_name ON systems (name COLLATE NOCASE)')
+    c.execute('CREATE INDEX idx_systems_pos ON systems (pos_x, pos_y, pos_z)')
+    c.execute('CREATE INDEX idx_systems_edsm_id ON systems (edsm_id)')
+    self._conn.commit()
+    log.debug("Indexes added.")
+
 
   def update_table_systems(self, many):
     c = self._conn.cursor()
@@ -120,6 +120,10 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=?', self._generate_systems_update(many))
     self._conn.commit()
     log.debug("Done, {} rows affected.".format(c.rowcount))
+    log.debug("Going to add indexes to systems for eddb_id...")
+    c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
+    self._conn.commit()
+    log.debug("Indexes added.")
 
   def populate_table_stations(self, many):
     c = self._conn.cursor()
@@ -127,6 +131,11 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', self._generate_stations(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
+    log.debug("Going to add indexes to stations for name, eddb_system_id...")
+    c.execute('CREATE INDEX idx_stations_name ON stations (name COLLATE NOCASE)')
+    c.execute('CREATE INDEX idx_stations_sysid ON stations (eddb_system_id)')
+    self._conn.commit()
+    log.debug("Indexes added.")
 
   def populate_table_coriolis_fsds(self, many):
     log.debug("Going for INSERT INTO coriolis_fsds...")
@@ -134,6 +143,10 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', self._generate_coriolis_fsds(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
+    log.debug("Going to add indexes to coriolis_fsds for id...")
+    c.execute('CREATE INDEX idx_coriolis_fsds_id ON coriolis_fsds (id)')
+    self._conn.commit()
+    log.debug("Indexes added.")
 
   def retrieve_fsd_list(self):
     c = self._conn.cursor()
