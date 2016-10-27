@@ -1,10 +1,10 @@
 import env
 import pgnames
-from system_internal import System, KnownSystem, PGSystem, PGSystemPrototype
+from system_internal import System, KnownSystem, PGSystem, PGSystemPrototype, _calculate_from_id64
 
 
 def from_id64(id, allow_ha = True):
-  coords, cube_width, n2 = system_internal._calculate_from_id64(id)
+  coords, cube_width, n2 = _calculate_from_id64(id)
   # Get a system prototype to steal its name
   sys_proto = pgnames.get_system(coords, cube_width, allow_ha)
   name = sys_proto.name + str(n2)

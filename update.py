@@ -3,13 +3,14 @@
 from __future__ import print_function, division
 from time import time
 import argparse
+import defs
 import gc
 import json
 import logging
 import os
 import re
 import sys
-import db
+import db_sqlite3 as db
 import util
 
 log = logging.getLogger("update")
@@ -25,7 +26,7 @@ eddb_systems_local_path  = "data/systems_populated.jsonl"
 eddb_stations_local_path = "data/stations.jsonl"
 coriolis_fsds_local_path = "data/frame_shift_drive.json"
 
-_re_json_line = re.compile(r'\s*(\{.*\})[\s,]*')
+_re_json_line = re.compile(r'^\s*(\{.*\})[\s,]*$')
 
 ap = argparse.ArgumentParser(description = 'Update local database')
 ap.add_argument_group("Processing options")
@@ -144,10 +145,10 @@ if __name__ == '__main__':
     sys.exit(0)
 
   # If the data directory doesn't exist, make it
-  if not os.path.exists(os.path.dirname(db.default_db_file)):
-    os.makedirs(os.path.dirname(db.default_db_file))
+  if not os.path.exists(os.path.dirname(defs.default_db_file)):
+    os.makedirs(os.path.dirname(defs.default_db_file))
 
-  db_tmp_filename = "{0}.tmp".format(db.default_db_file)
+  db_tmp_filename = "{0}.tmp".format(defs.default_db_file)
 
   log.info("Initialising database...")
   sys.stdout.flush()
@@ -177,8 +178,8 @@ if __name__ == '__main__':
 
   dbc.close()
 
-  if os.path.isfile(db.default_db_file):
-    os.unlink(db.default_db_file)
-  os.rename(db_tmp_filename, db.default_db_file)
+  if os.path.isfile(defs.default_db_file):
+    os.unlink(defs.default_db_file)
+  os.rename(db_tmp_filename, defs.default_db_file)
 
   log.info("All done.")

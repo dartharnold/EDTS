@@ -1,10 +1,14 @@
 import defs
+import thirdparty.gzipinputstream as gzis
 import logging
+import numbers
 import os
 import platform
 import re
+import socket
 import ssl
 import sys
+import vector3
 
 if sys.version_info >= (3, 0):
   import urllib.parse
@@ -41,12 +45,16 @@ def parse_coords(sysname):
   return None
 
 
-def open_url(url):
+def open_url(url, allow_gzip = True):
+  response = None
+  headers = {'User-Agent': USER_AGENT}
+  if allow_gzip:
+    headers['Accept-Encoding'] = 'gzip'
   if sys.version_info >= (3, 0):
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+    request = urllib.request.Request(url, headers=headers)
     try:
-      return urllib.request.urlopen(request)
+      response = urllib.request.urlopen(request)
     except urllib.error.HTTPError as err:
       log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
       return None
@@ -56,24 +64,48 @@ def open_url(url):
     if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
       sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib2.Request(url, headers={'User-Agent': USER_AGENT})
+    request = urllib2.Request(url, headers=headers)
     try:
-      return urllib2.urlopen(request, context=sslctx)
+      response = urllib2.urlopen(request, context=sslctx)
     except urllib2.HTTPError as err:
       log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
       return None
+  if response.info().get('Content-Encoding') == 'gzip':
+    try:
+      return gzis.GzipInputStream(response)
+    except:
+      log.error("Error decompressing {0}".format(url))
+      return None
+  else:
+    return response
 
 def read_stream_line(stream):
-  if sys.version_info >= (3, 0):
-    return stream.readline().decode("utf-8")
-  else:
-    return stream.readline()
+  try:
+    if sys.version_info >= (3, 0):
+      return stream.readline().decode("utf-8")
+    else:
+      return stream.readline()
+  except socket.error as e:
+    if e.errno == socket.errno.ECONNRESET:
+      log.warning("Received ECONNRESET while reading line from socket-based stream")
+      return None
+    else:
+      raise
 
 def read_stream(stream, limit = None):
-  if sys.version_info >= (3, 0):
-    return stream.read(limit).decode("utf-8")
-  else:
-    return stream.read(-1 if limit is None else limit)
+  try:
+    if sys.version_info >= (3, 0):
+      return stream.read(limit).decode("utf-8")
+    else:
+      if limit is None and not isinstance(stream, gzis.GzipInputStream):
+        limit = -1
+      return stream.read(limit)
+  except socket.error as e:
+    if e.errno == socket.errno.ECONNRESET:
+      log.warning("Received ECONNRESET while reading from socket-based stream")
+      return None
+    else:
+      raise
 
 def read_from_url(url):
   return read_stream(open_url(url))
@@ -107,6 +139,24 @@ def string_bool(s):
   return s.lower() in ("yes", "true", "1")
 
 
+# 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
+# Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
+def jenkins32(key):
+  key += (key << 12)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 22)
+  key += (key << 4)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 9)
+  key += (key << 10)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 2)
+  key += (key << 7)
+  key &= 0xFFFFFFFF
+  key ^= (key >> 12)
+  return key
+
+
 # Grabs the value from the first N bits, then return a right-shifted remainder
 def unpack_and_shift(value, bits):
   return (value >> bits, value & (2**bits-1))
@@ -135,3 +185,23 @@ def deinterleave(val, maxbits):
   for i in range(1, maxbits, 2):
     out2 |= ((val >> i) & 1) << (i//2)
   return (out1, out2)
+
+
+def get_as_position(v):
+  if v is None:
+    return None
+  # If it's already a vector, all is OK
+  if isinstance(v, vector3.Vector3):
+    return v
+  if hasattr(v, "position"):
+    return v.position
+  if hasattr(v, "centre"):
+    return v.centre
+  if hasattr(v, "system"):
+    return get_as_position(v.system)
+  try:
+    if len(v) == 3 and all([isinstance(i, numbers.Number) for i in v]):
+      return vector3.Vector3(v[0], v[1], v[2])
+  except:
+    pass
+  return None

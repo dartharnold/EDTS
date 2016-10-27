@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 
 import sys
-import bottle
 import json
 import collections
 
-sys.path.insert(0, '..')
+data_path = '..'
+
+sys.path.insert(0, data_path)
+import thirdparty.bottle as bottle
 import env
 import fsd
 import pgnames
@@ -123,7 +125,7 @@ def api_sector_position(name):
 
 @bottle.route('/api/v1/system/<name>')
 def api_system(name):
-  with env.use() as data:
+  with env.use(data_path) as data:
     syst = data.get_system(name, keep_data=True)
     if syst is not None:
       result = syst.data
@@ -133,7 +135,7 @@ def api_system(name):
 @bottle.route('/api/v1/system/<name>/stations')
 def api_system_stations(name):
   result = []
-  with env.use() as data:
+  with env.use(data_path) as data:
     syst = data.get_system(name, keep_data=True)
     if syst is not None:
       for stat in data.get_stations(syst, keep_station_data=True):
@@ -146,7 +148,7 @@ def api_system_stations(name):
 
 @bottle.route('/api/v1/system/<system_name>/station/<station_name>')
 def api_system_station(system_name, station_name):
-  with env.use() as data:
+  with env.use(data_path) as data:
     stat = data.get_station(system_name, station_name, keep_data=True)
     if stat is not None:
       result = stat.data
@@ -159,7 +161,7 @@ def api_system_station(system_name, station_name):
 @bottle.route('/api/v1/find_system/<glob>')
 def api_find_system(glob):
   result = []
-  with env.use() as data:
+  with env.use(data_path) as data:
     for syst in data.find_systems_by_glob(glob, keep_data=True):
       if syst is not None:
         result.append(syst.data)
@@ -171,7 +173,7 @@ def api_find_system(glob):
 @bottle.route('/api/v1/find_station/<glob>')
 def api_find_station(glob):
   result = []
-  with env.use() as data:
+  with env.use(data_path) as data:
     for stat in data.find_stations_by_glob(glob, keep_data=True):
       if stat is not None:
         stndata = stat.data
@@ -183,6 +185,6 @@ def api_find_station(glob):
   return {'result': result}
 
 if __name__ == '__main__':
-  env.start('..')
+  env.start(data_path)
   bottle.run(host='localhost', port=8080)
-  env.stop()
+  env.stop(data_path)

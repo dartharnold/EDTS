@@ -20,15 +20,17 @@ class Application(object):
 
   def run(self):
     maxlen = 0
-    for name in self.args.system:
-      maxlen = max(maxlen, len(name))
-      if env.data.parse_system(name) is None:
-        log.error("Could not find system \"{0}\"!".format(self.args.system))
-        return
+    with env.use() as envdata:
+      systems = envdata.parse_systems(self.args.system)
+      for name in self.args.system:
+        maxlen = max(maxlen, len(name))
+        if name not in systems or systems[name] is None:
+          log.error("Could not find system \"{0}\"!".format(name))
+          return
 
     print("")
     for name in self.args.system:
-      s = env.data.parse_system(name)
+      s = systems[name]
       fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>8.2f}, {2:>8.2f}, {3:>8.2f}]"
       print(fmtstr.format(name, s.position.x, s.position.y, s.position.z))
     print("")
@@ -40,3 +42,4 @@ if __name__ == '__main__':
   env.start()
   a = Application(env.local_args, False)
   a.run()
+  env.stop()

@@ -42,11 +42,6 @@ class Application(object):
       pad = (min(self.longest, max_len) if max_len is not None else self.longest) + self._padding_width - len(tname)
       sys.stdout.write('%s%s' % (' ' * pad, tname))
 
-  def distance(self, a, b):
-    start = env.data.parse_system(a)
-    end = env.data.parse_system(b)
-    return start.distance_to(end)
-
   def format_distance(self, dist):
     fmt = '{0:.2f}' if self.args.csv else '{0: >7.2f}'
     return fmt.format(dist)
@@ -55,43 +50,42 @@ class Application(object):
     if not self.args.csv:
       self.longest = max([len(s) for s in self.args.systems])
 
-    if self.args.start is not None and env.data.parse_system(self.args.start) is None:
-      log.error("Could not find start system \"{0}\"!".format(self.args.start))
-      return
-    for y in self.args.systems:
-      if env.data.parse_system(y) is None:
-        log.error("Could not find system \"{0}\"!".format(y))
-        return
+    with env.use() as envdata:
+      start_obj = None
+      if self.args.start is not None:
+        start_obj = envdata.parse_system(self.args.start)
+        if start_obj is None:
+          log.error("Could not find start system \"{0}\"!".format(self.args.start))
+          return
+
+      systems = envdata.parse_systems(self.args.systems)
+      for y in self.args.systems:
+        if y not in systems or systems[y] is None:
+          log.error("Could not find system \"{0}\"!".format(y))
+          return
 
     print('')
 
     if self.args.route:
-      systems = []
       distances = []
       d_max_len = 1.0
-      if len(self.args.systems) > 0:
-        systems.append(env.data.parse_system(self.args.systems[0]))
       for i in range(1, len(self.args.systems)):
-        sobj1 = systems[-1]
-        sobj2 = env.data.parse_system(self.args.systems[i])
+        sobj1 = systems[self.args.systems[i-1]]
+        sobj2 = systems[self.args.systems[i]]
         distances.append(sobj1.distance_to(sobj2))
         d_max_len = max(d_max_len, distances[-1])
-        systems.append(sobj2)
 
       d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
-      if len(systems) > 0:
-        print(systems[0].to_string())
+      if len(self.args.systems) > 0:
+        print(systems[self.args.systems[0]].to_string())
       for i in range(1, len(self.args.systems)):
-        print(('  === {0: >'+d_max_len+'.2f}Ly ===> {1}').format(distances[i-1], systems[i].to_string()))
+        print(('  === {0: >'+d_max_len+'.2f}Ly ===> {1}').format(distances[i-1], systems[self.args.systems[i]].to_string()))
 
-    elif self.args.start is not None:
-      start = env.data.parse_system(self.args.start)
-
+    elif self.args.start is not None and start_obj is not None:
       distances = {}
       d_max_len = 1.0
       for s in self.args.systems:
-        sobj = env.data.parse_system(s)
-        distances[s] = sobj.distance_to(start)
+        distances[s] = systems[s].distance_to(start_obj)
         d_max_len = max(d_max_len, distances[s])
 
       if not self.args.ordered:
@@ -99,8 +93,8 @@ class Application(object):
 
       d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
       for s in self.args.systems:
-        sobj = env.data.parse_system(s)
-        print((' {0} === {1: >'+d_max_len+'.2f}Ly ===> {2}').format(start.to_string(), sobj.distance_to(start), sobj.to_string()))
+        sobj = systems[s]
+        print((' {0} === {1: >'+d_max_len+'.2f}Ly ===> {2}').format(start_obj.to_string(), sobj.distance_to(start_obj), sobj.to_string()))
 
     else:
       # If we have many systems, generate a Raikogram
@@ -124,25 +118,27 @@ class Application(object):
         for x in self.args.systems:
           self.print_system(x, True)
           for y in self.args.systems:
-            self.print_system('-' if y == x else self.format_distance(self.distance(x.lower(), y.lower())), False, self._max_heading)
+            self.print_system('-' if y == x else self.format_distance(systems[x].distance_to(systems[y])), False, self._max_heading)
           print('')
 
         if self.args.ordered:
           print('')
           self.print_system('Total:', True)
-          total_dist = self._calc.route_dist([env.data.parse_system(x) for x in self.args.systems])
+          total_dist = self._calc.route_dist([systems[x] for x in self.args.systems])
           self.print_system(self.format_distance(total_dist), False, self._max_heading)
 
         print('')
 
       # Otherwise, just return the simple output
-      else:
-        start = env.data.parse_system(self.args.systems[0])
-        end = env.data.parse_system(self.args.systems[1])
+      elif len(self.args.systems) > 1:
+        start = systems[self.args.systems[0]]
+        end = systems[self.args.systems[1]]
 
         print(start.to_string())
         print('    === {0: >7.2f}Ly ===> {1}'.format(start.distance_to(end), end.to_string()))
-
+      else:
+        log.error("For a simple distance calculation, at least two system names must be provided!")
+        return
     print('')
 
 if __name__ == '__main__':
