@@ -8,13 +8,14 @@ import gc
 import json
 import logging
 import os
+import platform
 import re
 import sys
 import db_sqlite3 as db
 import util
+import env
 
 log = logging.getLogger("update")
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
 
 edsm_systems_url  = "https://www.edsm.net/dump/systemsWithCoordinates.json"
 eddb_systems_url  = "https://eddb.io/archive/v5/systems_populated.jsonl"
@@ -28,7 +29,7 @@ coriolis_fsds_local_path = "data/frame_shift_drive.json"
 
 _re_json_line = re.compile(r'^\s*(\{.*\})[\s,]*$')
 
-ap = argparse.ArgumentParser(description = 'Update local database')
+ap = argparse.ArgumentParser(description = 'Update local database', parents = [env.arg_parser], prog = "update")
 ap.add_argument_group("Processing options")
 bex = ap.add_mutually_exclusive_group()
 bex.add_argument('-b', '--batch', dest='batch', action='store_true', default=True, help='Import data in batches')
@@ -131,6 +132,9 @@ def import_json(url, description, batch_size, key = None):
 
 
 if __name__ == '__main__':
+  env.log_versions()
+  db.log_versions()
+
   if args.print_urls:
     if args.local:
       print(edsm_systems_local_path)
@@ -144,11 +148,13 @@ if __name__ == '__main__':
       print(coriolis_fsds_url)
     sys.exit(0)
 
-  # If the data directory doesn't exist, make it
-  if not os.path.exists(os.path.dirname(defs.default_db_file)):
-    os.makedirs(os.path.dirname(defs.default_db_file))
+  db_file = env.global_args.db_file
 
-  db_tmp_filename = "{0}.tmp".format(defs.default_db_file)
+  # If the data directory doesn't exist, make it
+  if not os.path.exists(os.path.dirname(db_file)):
+    os.makedirs(os.path.dirname(db_file))
+
+  db_tmp_filename = "{0}.tmp".format(db_file)
 
   log.info("Initialising database...")
   sys.stdout.flush()
@@ -178,8 +184,8 @@ if __name__ == '__main__':
 
   dbc.close()
 
-  if os.path.isfile(defs.default_db_file):
-    os.unlink(defs.default_db_file)
-  os.rename(db_tmp_filename, defs.default_db_file)
+  if os.path.isfile(db_file):
+    os.unlink(db_file)
+  os.rename(db_tmp_filename, db_file)
 
   log.info("All done.")

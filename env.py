@@ -1,11 +1,12 @@
 import logging
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-15s] [%(name)-6s] %(message)s")
+import defs
+logging.basicConfig(level = logging.INFO, format="[%(asctime)-8s.%(msecs)03d] [%(name)-10s] [%(levelname)7s] %(message)s", datefmt=defs.log_dateformat)
 
 import argparse
 import collections
-import defs
 import logging
 import os
+import platform
 import sys
 import threading
 import time
@@ -18,8 +19,34 @@ import filter
 
 log = logging.getLogger("env")
 
-default_path = '.'
+def log_versions(extra = []):
+  sep = ' / '
+  log.debug("Python: {} {}{}OS: {} {}{}".format(platform.python_version(), platform.architecture()[0], sep, platform.platform(), platform.machine(), sep + sep.join(extra) if extra else ''))
+
+
 default_backend_name = 'db_sqlite3'
+default_path = '.'
+
+_registered_backends = {}
+
+def register_backend(name, fn):
+  _registered_backends[name] = fn
+
+def unregister_backend(name):
+  del _registered_backends[name]
+
+def _get_default_backend(path):
+  db_path = os.path.join(os.path.normpath(path), os.path.normpath(global_args.db_file))
+  db_sqlite3.log_versions()
+  if not os.path.isfile(db_path):
+    log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
+    return None
+  return db_sqlite3.open_db(db_path)
+
+register_backend(default_backend_name, _get_default_backend)
+
+
+
 
 def _make_known_system(s, keep_data=False):
   sysobj = system.KnownSystem(s)
@@ -35,27 +62,9 @@ def _make_station(sy, st, keep_data = False):
   return stnobj
 
 
-_registered_backends = {}
-
-def register_backend(name, fn):
-  _registered_backends[name] = fn
-
-def unregister_backend(name):
-  del _registered_backends[name]
-
-def _get_default_backend(path):
-  db_path = os.path.join(os.path.normpath(path), os.path.normpath(global_args.db_file))
-  if not os.path.isfile(db_path):
-    log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
-    return None
-  return db_sqlite3.open_db(db_path)
-
-register_backend(default_backend_name, _get_default_backend)
-
-
-
 class Env(object):
   def __init__(self, backend):
+    log_versions(extra = ['Env Backend: {}'.format(backend.backend_name)])
     self.is_data_loaded = False
     self._backend = backend
     self._load_data()
@@ -302,8 +311,10 @@ def set_verbosity(level):
     logging.getLogger().setLevel(logging.INFO)
   elif level >= 1:
     logging.getLogger().setLevel(logging.WARN)
-  else:
+  elif level >= 0:
     logging.getLogger().setLevel(logging.ERROR)
+  else:
+    logging.getLogger().setLevel(logging.CRITICAL)
 
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Tools", fromfile_prefix_chars="@", add_help=False)
 arg_parser.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")

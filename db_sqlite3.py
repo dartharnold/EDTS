@@ -13,7 +13,7 @@ import time
 import util
 import vector3
 
-log = logging.getLogger("db")
+log = logging.getLogger("db_sqlite3")
 
 schema_version = 6
 
@@ -36,6 +36,10 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
 
 def _vec3_angle(x1, y1, z1, x2, y2, z2):
   return vector3.Vector3(x1, y1, z1).angle_to(vector3.Vector3(x2, y2, z2))
+
+
+def log_versions():
+  log.debug("SQLite3: {} / PySQLite: {}".format(sqlite3.sqlite_version, sqlite3.version))
 
 
 def open_db(filename = defs.default_db_file, check_version = True):
