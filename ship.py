@@ -5,12 +5,15 @@ log = logging.getLogger("ship")
 
 
 class Ship(object):
-  def __init__(self, fsd_info, mass, tank, cargo = 0):
+  def __init__(self, fsd_info, mass, tank, max_cargo = 0):
     # If we already have an FSD object, just use it as-is; otherwise assume a string and create a FSD object
     self.fsd = fsd_info if isinstance(fsd_info, FSD) else FSD(fsd_info)
     self.mass = mass
     self.tank_size = tank
-    self.cargo_capacity = cargo
+    self.cargo_capacity = max_cargo
+
+  def __str__(self):
+    return "Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}Ly ({4:.2f}Ly)".format(str(self.fsd), self.mass, self.tank_size, self.range(), self.max_range())
 
   def max_range(self, cargo = 0):
     return self.fsd.max_range(self.mass, cargo)
@@ -40,9 +43,9 @@ class Ship(object):
     elif optmass_percent is not None:
       s.fsd.optmass *= (1.0 + optmass_percent/100.0)
     if fsdmass is not None:
-      s.mass += (fsdmass - s.fsd.mass)
+      s.mass += (fsdmass - s.fsd.stock_mass)
     elif fsdmass_percent is not None:
-      s.mass += s.fsd.mass * (fsdmass_percent/100.0)
+      s.mass += s.fsd.stock_mass * (fsdmass_percent/100.0)
     if maxfuel is not None:
       s.fsd.maxfuel = maxfuel
     elif maxfuel_percent is not None:

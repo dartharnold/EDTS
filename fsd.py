@@ -32,11 +32,28 @@ class FSD(object):
       self.drive = classrating
       fsdobj = data.coriolis_fsd_list[self.drive]
 
-    self.optmass   = float(fsdobj['optmass'])
-    self.maxfuel   = float(fsdobj['maxfuel'])
-    self.fuelmul   = float(fsdobj['fuelmul'])
-    self.fuelpower = float(fsdobj['fuelpower'])
-    self.mass      = float(fsdobj['mass'])
+    self.optmass    = float(fsdobj['optmass'])
+    self.maxfuel    = float(fsdobj['maxfuel'])
+    self.fuelmul    = float(fsdobj['fuelmul'])
+    self.fuelpower  = float(fsdobj['fuelpower'])
+    self.stock_mass = float(fsdobj['mass'])
+    self.stock_optmass   = self.optmass
+    self.stock_maxfuel   = self.maxfuel
+    self.stock_fuelmul   = self.fuelmul
+    self.stock_fuelpower = self.fuelpower
+
+  def __str__(self):
+    return "{}{}".format(self.drive, " (modified)" if self.is_modified else "")
+
+  def __repr__(self):
+    return "FSD({}{})".format(self.drive, ", modified" if self.is_modified else "")
+
+  @property
+  def is_modified(self):
+    return (self.optmass != self.stock_optmass
+         or self.maxfuel != self.stock_maxfuel
+         or self.fuelmul != self.stock_fuelmul
+         or self.fuelpower != self.stock_fuelpower)
 
   def range(self, mass, fuel, cargo = 0):
     cur_maxfuel = min(self.maxfuel, float(fuel))
