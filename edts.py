@@ -72,6 +72,10 @@ class Application(object):
         sys.exit(1)
       else:
         self.ship = None
+    if self.ship is not None:
+      log.debug(str(self.ship))
+    else:
+      log.debug("Static jump range {0:.2f}Ly".format(self.args.jump_range))
 
   def run(self):
     with env.use() as envdata:
