@@ -186,7 +186,7 @@ class Application(object):
             if cur_fuel is not None:
               fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
               min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.cargo * (i-1))
-              if max_tank >= self.ship.tank_size:
+              if max_tank is not None and max_tank >= self.ship.tank_size:
                 max_tank = None
               total_fuel_cost += fuel_cost
               cur_fuel -= fuel_cost
@@ -312,7 +312,7 @@ class Application(object):
             fuel_str = ""
             if self.ship is not None:
               if od['jumpcount_min'] == od['jumpcount_max']:
-                fuel_str = " [{0:.2f}T+]".format(fuel_fewest)
+                fuel_str = " [{0:.2f}T{1}]".format(fuel_fewest, '+' if od['jumpcount_min'] > 1 else '')
               else:
                 fuel_str = " [{0:.2f}T+ - {1:.2f}T+]".format(min(fuel_fewest, fuel_most), max(fuel_fewest, fuel_most))
             print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}{3}").format(od['legsldist'], jumps_str, route_str, fuel_str))
