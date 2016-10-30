@@ -317,7 +317,7 @@ def set_verbosity(level):
     logging.getLogger().setLevel(logging.CRITICAL)
 
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Tools", fromfile_prefix_chars="@", add_help=False)
-arg_parser.add_argument("-v", "--verbose", type=int, default=1, help="Increases the logging output")
+arg_parser.add_argument("-v", "--verbose", type=int, default=2, help="Increases the logging output")
 arg_parser.add_argument("--db-file", type=str, default=defs.default_db_file, help="Specifies the database file to use")
 global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])    
 
