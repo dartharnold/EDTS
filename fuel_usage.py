@@ -64,7 +64,7 @@ class Application(object):
       is_long = False
       is_ok = True
       if self.args.refuel:
-        fmin, fmax = self.ship.fuel_weight_range(distance)
+        fmax = self.ship.max_fuel_weight(distance, allow_invalid=True)
         # Fudge factor to prevent cost coming out at exactly maxfuel (stupid floating point!)
         cur_fuel = min(fmax - 0.000001, self.ship.tank_size)
         is_long = (fmax >= 0.0 and fmax < self.ship.tank_size)
