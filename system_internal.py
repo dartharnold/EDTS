@@ -45,7 +45,11 @@ class System(object):
     return u"System({})".format(self.name)
 
   def distance_to(self, other):
-    return (self.position - other.position).length
+    other = util.get_as_position(other)
+    if other is not None:
+      return (self.position - other).length
+    else:
+      raise ValueError("distance_to argument must be position-like object")
 
   def __eq__(self, other):
     if isinstance(other, System):
