@@ -2,6 +2,7 @@ import unittest
 import sys
 
 sys.path.insert(0, '../..')
+import env
 import pgnames
 import pgdata
 import vector3 as v3
@@ -9,6 +10,9 @@ del sys.path[0]
 
 
 class TestPGNames(unittest.TestCase):
+  def setUp(self):
+    env.set_verbosity(0)
+
   def test_sector_names(self):
     self.assertEqual(pgnames.get_sector_name(v3.Vector3(34, 55, 18278)), "Dryau Aowsy")
     self.assertEqual(pgnames.get_sector_name(v3.Vector3(0.0, 0.0, 0.0)), "Jastreb Sector")
@@ -124,7 +128,7 @@ class TestPGNames(unittest.TestCase):
     self.assertEqual(test1['MCode'], 'd')
     self.assertEqual(test1['N1'], 0)
     self.assertEqual(test1['N2'], 456)
-    test2 = pgnames.get_system_fragments("wregoe xe-a f3-27", ensure_canonical=True)
+    test2 = pgnames.get_system_fragments("wregoe xe-a f3-0", ensure_canonical=True)
     self.assertIsNotNone(test2)
     self.assertEqual(test2['SectorName'], "Wregoe")
     self.assertEqual(test2['L1'], 'X')
@@ -132,7 +136,7 @@ class TestPGNames(unittest.TestCase):
     self.assertEqual(test2['L3'], 'A')
     self.assertEqual(test2['MCode'], 'f')
     self.assertEqual(test2['N1'], 3)
-    self.assertEqual(test2['N2'], 27)
+    self.assertEqual(test2['N2'], 0)
     test3 = pgnames.get_system_fragments("PIPE (STEM) SECTOR DE-F A119-3053", ensure_canonical=True)
     self.assertIsNotNone(test3)
     self.assertEqual(test3['SectorName'], "Pipe (stem) Sector")
@@ -164,5 +168,9 @@ class TestPGNames(unittest.TestCase):
     test1 = pgnames.get_ha_sectors()
     self.assertEqual(len(test1), len(pgdata.ha_sectors))
     self.assertEqual([s.lower() for s in test1.keys()], list(pgdata.ha_sectors.keys()))
-    # TODO: Further tests with reference points
-
+    test2 = pgnames.get_ha_sectors((4616.625, 1543.21875, 7331.09375), 50)
+    self.assertEqual(len(test2), 1)
+    self.assertTrue("NGC 5882 Sector" in test2)
+    test3 = pgnames.get_ha_sectors((616.52344, -446.42578, -1107.67383), 50)
+    self.assertEqual(len(test3), 4)
+    self.assertEqual(list(test3.keys()), ["Orion Sector", "Trapezium Sector", "Running Man Sector", "NGC 1981 Sector"])
