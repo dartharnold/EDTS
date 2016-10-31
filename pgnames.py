@@ -490,7 +490,9 @@ def _get_offset_from_pos(pos, galsize):
 def _get_sector_pos_from_offset(offset, galsize):
   x = (offset % galsize[0])
   y = (offset // galsize[0]) % galsize[1]
-  z = (offset // (galsize[0] * galsize[1])) % galsize[2]
+  z = (offset // (galsize[0] * galsize[1]))
+  if z >= galsize[2]:
+    log.warning("Sector position for offset {} is outside expected galaxy size!".format(offset))
   # Put it in "our" coordinate space
   x -= sector.base_sector_index[0]
   y -= sector.base_sector_index[1]
