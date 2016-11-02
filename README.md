@@ -58,4 +58,5 @@ There is also a [thread on the Frontier forums](https://forums.frontier.co.uk/sh
 
 ### Thanks ###
 
+* CMDR Jackie Silver - without whose excellent work the pgnames functionality wouldn't exist!
 * CMDR furrycat - for many patches and useful suggestions! :)
