@@ -1,5 +1,6 @@
 import pgnames
 import sector
+import system_id64
 import util
 import vector3
 
@@ -27,6 +28,18 @@ class System(object):
   @property
   def id(self):
     return self._id
+
+  @property
+  def id64(self):
+    ksid = system_id64.known_systems.get(self.name.lower(), None)
+    if ksid is not None:
+      return ksid
+    else:
+      m = pgnames.get_system_fragments(self.name)
+      if m is not None:
+        return _calculate_id64(self.position, m['MCode'], m['N2'])
+      else:
+        return None
 
   @property
   def sector(self):
@@ -81,14 +94,6 @@ class PGSystem(PGSystemPrototype):
 
   def __repr__(self):
     return u"PGSystem({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
-
-  @property
-  def id64(self):
-    m = pgnames.get_system_fragments(self.name)
-    if m is not None:
-      return _calculate_id64(self.position, m['MCode'], m['N2'])
-    else:
-      return None
 
 
 class KnownSystem(System):
