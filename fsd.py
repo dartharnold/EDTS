@@ -53,7 +53,7 @@ class FSD(object):
     # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
     result = math.pow(self.maxfuel / self.fuelmul, 1.0 / self.fuelpower) * (self.optmass / float(dist)) - (float(mass) + float(cargo))
-    if allow_invalid or (result >= 0.0 and result <= self.maxfuel):
+    if allow_invalid or result >= self.maxfuel:
       return result
     else:
       return None
