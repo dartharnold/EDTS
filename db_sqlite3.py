@@ -42,7 +42,7 @@ def log_versions():
   log.debug("SQLite3: {} / PySQLite: {}".format(sqlite3.sqlite_version, sqlite3.version))
 
 
-def open_db(filename = defs.default_db_file, check_version = True):
+def open_db(filename = defs.default_db_path, check_version = True):
   conn = sqlite3.connect(filename)
   conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
@@ -60,7 +60,7 @@ def open_db(filename = defs.default_db_file, check_version = True):
   return SQLite3DBConnection(conn)
 
 
-def initialise_db(filename = defs.default_db_file):
+def initialise_db(filename = defs.default_db_path):
   dbc = open_db(filename, check_version=False)
   dbc._create_tables()
   return dbc

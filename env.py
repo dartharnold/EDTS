@@ -25,7 +25,7 @@ def log_versions(extra = []):
 
 
 default_backend_name = 'db_sqlite3'
-default_path = '.'
+default_path = defs.default_path
 
 _registered_backends = {}
 
