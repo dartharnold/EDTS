@@ -213,19 +213,27 @@ class Env(object):
     for sy,st in self._backend.find_all_stations(filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data=keep_data)
 
-  def find_systems_by_glob(self, name, filters = None, keep_data=False):
+  def find_systems_by_name(self, name, filters = None, keep_data = False):
+    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
+      yield _make_known_system(s, keep_data)
+
+  def find_systems_by_glob(self, name, filters = None, keep_data = False):
     for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
-  def find_systems_by_regex(self, name, filters = None, keep_data=False):
+  def find_systems_by_regex(self, name, filters = None, keep_data = False):
     for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
-  def find_stations_by_glob(self, name, filters = None, keep_data=False):
+  def find_stations_by_name(self, name, filters = None, keep_data = False):
+    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
+      yield _make_station(sy, st, keep_data)
+
+  def find_stations_by_glob(self, name, filters = None, keep_data = False):
     for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
-  def find_stations_by_regex(self, name, filters = None, keep_data=False):
+  def find_stations_by_regex(self, name, filters = None, keep_data = False):
     for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
