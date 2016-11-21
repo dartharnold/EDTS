@@ -1,4 +1,5 @@
 import logging
+import calc
 import env
 import math
 import sys
@@ -78,51 +79,9 @@ class Routing(object):
     if sys_to not in stars:
       stars.append(sys_to)
 
-    closedset = set()          # The set of nodes already evaluated.
-    openset = set([sys_from])  # The set of tentative nodes to be evaluated, initially containing the start node
-    came_from = dict()
-
-    g_score = dict()
-    g_score[sys_from] = 0      # Cost from sys_from along best known path.
-    f_score = dict()
-    f_score[sys_from] = self._calc.astar_cost(sys_from, sys_to, [sys_from])
-
-    while len(openset) > 0:
-      current = min(openset, key=f_score.get)  # the node in openset having the lowest f_score[] value
-      if current == sys_to:
-        return self.astar_reconstruct_path(came_from, sys_to)
-
-      openset.remove(current)
-      closedset.add(current)
-
-      neighbor_nodes = [n for n in stars if n != current and n.distance_to(current) < jump_range]
-
-      path = self.astar_reconstruct_path(came_from, current)
-
-      for neighbor in neighbor_nodes:
-        if neighbor in closedset:
-          continue
-
-        # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
-        tentative_g_score = g_score[current] + self._calc.astar_cost(current, neighbor, path, full_range)
-
-        if neighbor not in g_score:
-          g_score[neighbor] = sys.float_info.max
-
-        if neighbor not in openset or tentative_g_score < g_score[neighbor]:
-          came_from[neighbor] = current
-          g_score[neighbor] = tentative_g_score
-          f_score[neighbor] = self._calc.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor), full_range)
-          openset.add(neighbor)
-
-    return None
-
-  def astar_reconstruct_path(self, came_from, current):
-    total_path = [current]
-    while current in came_from:
-        current = came_from[current]
-        total_path.append(current)
-    return list(reversed(total_path))
+    valid_neighbour_fn = lambda n, current: n != current and n.distance_to(current) < jump_range
+    cost_fn = lambda cur, neighbour, path: self._calc.astar_cost(cur, neighbour, path, full_range)
+    return calc.astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn)
 
   def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base

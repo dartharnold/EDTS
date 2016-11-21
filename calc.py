@@ -1,5 +1,6 @@
 import logging
 import math
+import sys
 import ship
 from station import Station
 
@@ -182,3 +183,52 @@ class Calc(object):
     log.debug("hs_time = {0:.2f}, sc_time = {1:.2f}, stn_time = {2:.2f}".format(hs_t, sc_t, stn_t))
 
     return (hs_t + sc_t + stn_t)
+
+
+def astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn):
+  closedset = set()          # The set of nodes already evaluated.
+  openset = set([sys_from])  # The set of tentative nodes to be evaluated, initially containing the start node
+  came_from = dict()
+
+  g_score = dict()
+  g_score[sys_from] = 0      # Cost from sys_from along best known path.
+  f_score = dict()
+  f_score[sys_from] = cost_fn(sys_from, sys_to, [sys_from])
+
+  while len(openset) > 0:
+    current = min(openset, key=f_score.get)  # the node in openset having the lowest f_score[] value
+    if current == sys_to:
+      return _astar_reconstruct_path(came_from, sys_to)
+
+    openset.remove(current)
+    closedset.add(current)
+
+    neighbor_nodes = [n for n in stars if valid_neighbour_fn(n, current)]
+
+    path = _astar_reconstruct_path(came_from, current)
+
+    for neighbor in neighbor_nodes:
+      if neighbor in closedset:
+        continue
+
+      # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
+      tentative_g_score = g_score[current] + cost_fn(current, neighbor, path)
+
+      if neighbor not in g_score:
+        g_score[neighbor] = sys.float_info.max
+
+      if neighbor not in openset or tentative_g_score < g_score[neighbor]:
+        came_from[neighbor] = current
+        g_score[neighbor] = tentative_g_score
+        f_score[neighbor] = cost_fn(neighbor, sys_to, _astar_reconstruct_path(came_from, neighbor))
+        openset.add(neighbor)
+
+  return None
+
+def _astar_reconstruct_path(came_from, current):
+  total_path = [current]
+  while current in came_from:
+      current = came_from[current]
+      total_path.append(current)
+  return list(reversed(total_path))
+
