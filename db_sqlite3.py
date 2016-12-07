@@ -3,10 +3,12 @@ import decimal
 import defs
 import env_backend as eb
 import filter
+import id64data
 import json
 import logging
 import math
 import os
+import pgnames
 import re
 import sqlite3
 import time
@@ -15,7 +17,7 @@ import vector3
 
 log = logging.getLogger("db_sqlite3")
 
-schema_version = 6
+schema_version = 7
 
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
@@ -81,16 +83,17 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.execute('CREATE TABLE edts_info (db_version INTEGER, db_mtime INTEGER)')
     c.execute('INSERT INTO edts_info VALUES (?, ?)', (schema_version, int(time.time())))
 
-    c.execute('CREATE TABLE systems (edsm_id INTEGER, eddb_id INTEGER, name TEXT COLLATE NOCASE, pos_x REAL, pos_y REAL, pos_z REAL, needs_permit BOOLEAN, allegiance TEXT, data TEXT)')
-    c.execute('CREATE TABLE stations (eddb_id INTEGER, eddb_system_id INTEGER, name TEXT COLLATE NOCASE, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, data TEXT)')
-    c.execute('CREATE TABLE coriolis_fsds (id TEXT, data TEXT)')
+    c.execute('CREATE TABLE systems (edsm_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, eddb_id INTEGER, id64 INTEGER, needs_permit BOOLEAN, allegiance TEXT, data TEXT)')
+    c.execute('CREATE TABLE stations (eddb_id INTEGER NOT NULL, eddb_system_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, data TEXT)')
+    c.execute('CREATE TABLE coriolis_fsds (id TEXT NOT NULL, data TEXT NOT NULL)')
 
     self._conn.commit()
     log.debug("Done.")
 
   def _generate_systems(self, systems):
     for s in systems:
-      yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
+      s_id64 = id64data.known_systems.get(s['name'].lower(), None)
+      yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']), s_id64)
 
   def _generate_systems_update(self, systems):
     for s in systems:
@@ -107,13 +110,14 @@ class SQLite3DBConnection(eb.EnvBackend):
   def populate_table_systems(self, many):
     c = self._conn.cursor()
     log.debug("Going for INSERT INTO systems...")
-    c.executemany('INSERT INTO systems VALUES (?, NULL, ?, ?, ?, ?, NULL, NULL, NULL)', self._generate_systems(many))
+    c.executemany('INSERT INTO systems VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL)', self._generate_systems(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.".format(c.rowcount))
     log.debug("Going to add indexes to systems for name, pos_x/pos_y/pos_z, edsm_id...")
     c.execute('CREATE INDEX idx_systems_name ON systems (name COLLATE NOCASE)')
     c.execute('CREATE INDEX idx_systems_pos ON systems (pos_x, pos_y, pos_z)')
     c.execute('CREATE INDEX idx_systems_edsm_id ON systems (edsm_id)')
+    c.execute('CREATE INDEX idx_systems_id64 ON systems (id64)')
     self._conn.commit()
     log.debug("Indexes added.")
 
@@ -161,9 +165,25 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done.")
     return dict([(k, json.loads(v)) for (k, v) in results])
 
+  def get_system_by_id64(self, id64, fallback_name = None):
+    c = self._conn.cursor()
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, id64, data FROM systems WHERE id64 = ?'
+    data = (id64, )
+    if fallback_name:
+      cmd += ' OR name = ?'
+      data = (id64, fallback_name)
+    log.debug("Executing: {}; id64 = {}, name = {}".format(cmd, id64, fallback_name))
+    c.execute(cmd, data)
+    result = c.fetchone()
+    log.debug("Done.")
+    if result is not None:
+      return _process_system_result(result)
+    else:
+      return None
+
   def get_system_by_name(self, name):
     c = self._conn.cursor()
-    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name = ?'
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, id64, data FROM systems WHERE name = ?'
     log.debug("Executing: {}; name = {}".format(cmd, name))
     c.execute(cmd, (name, ))
     result = c.fetchone()
@@ -175,7 +195,7 @@ class SQLite3DBConnection(eb.EnvBackend):
 
   def get_systems_by_name(self, names):
     c = self._conn.cursor()
-    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name IN ({})'.format(','.join(['?'] * len(names)))
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, id64, data FROM systems WHERE name IN ({})'.format(','.join(['?'] * len(names)))
     log.debug("Executing: {}; names = {}".format(cmd, names))
     c.execute(cmd, names)
     result = c.fetchall()
@@ -187,7 +207,7 @@ class SQLite3DBConnection(eb.EnvBackend):
 
   def get_station_by_names(self, sysname, stnname):
     c = self._conn.cursor()
-    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.id64 AS id64, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
     log.debug("Executing: {}; sysname = {}, stnname = {}".format(cmd, sysname, stnname))
     c.execute(cmd, (sysname, stnname))
     result = c.fetchone()
@@ -200,7 +220,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def get_stations_by_names(self, names):
     c = self._conn.cursor()
     extra_cmd = ' OR '.join(['sy.name = ? AND st.name = ?'] * len(names))
-    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.eddb_id = st.eddb_system_id AND ({})'.format(extra_cmd)
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.id64 AS id64, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.eddb_id = st.eddb_system_id AND ({})'.format(extra_cmd)
     log.debug("Executing: {}; names = {}".format(cmd, names))
     c.execute(cmd, [n for sublist in names for n in sublist])
     result = c.fetchall()
@@ -230,7 +250,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
       ['? <= systems.pos_x', 'systems.pos_x < ?', '? <= systems.pos_y', 'systems.pos_y < ?', '? <= systems.pos_z', 'systems.pos_z < ?'],
       [],
       [min_x, max_x, min_y, max_y, min_z, max_z],
@@ -255,7 +275,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
       ['systems.name {} ?'.format(_find_operators[mode])],
       [],
       [name],
@@ -274,7 +294,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems', 'stations'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data', 'stations.data AS stndata'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data', 'stations.data AS stndata'],
       ['stations.name {} ?'.format(_find_operators[mode])],
       [],
       [name],
@@ -301,7 +321,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
       ["systems.name {} '{}'".format(_find_operators[mode], name)],
       [],
       [],
@@ -321,7 +341,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     name = name.replace("'", r"''")
     cmd, params = _construct_query(
       ['systems', 'stations'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data', 'stations.data AS stndata'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data', 'stations.data AS stndata'],
       ["stations.name {} '{}'".format(_find_operators[mode], name)],
       [],
       [],
@@ -340,7 +360,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
       [],
       [],
       [],
@@ -358,7 +378,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems', 'stations'],
-      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data', 'stations.data AS stndata'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data', 'stations.data AS stndata'],
       [],
       [],
       [],
@@ -384,10 +404,12 @@ class SQLite3DBConnection(eb.EnvBackend):
 
 
 def _process_system_result(result):
-  if 'data' in result and result['data'] is not None:
-    return json.loads(result['data'])
+  if 'data' in result.keys() and result['data'] is not None:
+    data = json.loads(result['data'])
+    data['id64'] = result['id64']
+    return data
   else:
-    return {'name': result['name'], 'x': result['pos_x'], 'y': result['pos_y'], 'z': result['pos_z']}
+    return {'name': result['name'], 'x': result['pos_x'], 'y': result['pos_y'], 'z': result['pos_z'], 'id64': result['id64']}
 
 def _construct_query(qtables, select, qfilter, select_params = [], filter_params = [], filters = None):
   tables = qtables
