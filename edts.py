@@ -8,9 +8,9 @@ import sys
 import env
 import calc as c
 import ship
-import route as rx
+import routing as rx
 import util
-from solver import Solver
+import solver
 from station import Station
 from fsd import FSD
 
@@ -47,7 +47,7 @@ class Application(object):
     ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next legs. Not used by the 'astar' strategy.")
-    ap.add_argument("--allow-clustering", type=util.string_bool, default=True, choices=[True,False], help="Whether to allow clustering (used for solving routes with large numbers of stops)")
+    ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
 
@@ -74,28 +74,29 @@ class Application(object):
         self.ship = None
 
   def run(self):
-    start = env.data.parse_station(self.args.start)
-    end = env.data.parse_station(self.args.end)
+    with env.use() as envdata:
+      start = envdata.parse_station(self.args.start)
+      end = envdata.parse_station(self.args.end)
 
-    if start is None:
-      log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
-      return
-    if end is None:
-      log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
-      return
-
-    stations = []
-    # Locate all the systems/stations provided and ensure they're valid for our ship
-    for st in self.args.stations:
-      sobj = env.data.parse_station(st)
-      if sobj is not None and sobj.system is not None:
-        log.debug("Adding system/station: {0}".format(sobj.to_string()))
-        if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-          log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
-        stations.append(sobj)
-      else:
-        log.warning("Error: system/station {0} could not be found.".format(st))
+      if start is None:
+        log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
         return
+      if end is None:
+        log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
+        return
+
+      # Locate all the systems/stations provided and ensure they're valid for our ship
+      stations = envdata.parse_stations(self.args.stations)
+      for sname in self.args.stations:
+        if sname in stations and stations[sname] is not None:
+          sobj = stations[sname]
+          log.debug("Adding system/station: {0}".format(sobj.to_string()))
+          if self.args.pad_size == "L" and sobj.max_pad_size != "L":
+            log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
+        else:
+          log.warning("Error: system/station {0} could not be found.".format(sname))
+          return
+    stations = list(stations.values())
 
     # Prefer a static jump range if provided, to allow user to override ship's range
     if self.args.jump_range is not None:
@@ -106,14 +107,14 @@ class Application(object):
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
     calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, route_strategy=self.args.route_strategy, slf=self.args.slf)
-    r = rx.Routing(env.data, calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
-    s = Solver(calc, r, jump_range, self.args.diff_limit)
+    r = rx.Routing(calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
+    s = solver.Solver(calc, r, jump_range, self.args.diff_limit)
 
     if self.args.ordered:
       route = [start] + stations + [end]
     else:
       # Add 2 to the jump count for start + end
-      route, is_definitive = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.allow_clustering)
+      route, is_definitive = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.solve_mode)
 
     if self.args.reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
@@ -142,7 +143,7 @@ class Application(object):
           full_max_jump = self.ship.range(cargo = self.args.cargo * (i-1))
           cur_max_jump = self.ship.max_range(cargo = self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
-        cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], route[0:i-1], self.args.long_jumps)
+        cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], i-1, self.args.long_jumps)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
@@ -185,7 +186,7 @@ class Application(object):
             if cur_fuel is not None:
               fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
               min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.cargo * (i-1))
-              if max_tank >= self.ship.tank_size:
+              if max_tank is not None and max_tank >= self.ship.tank_size:
                 max_tank = None
               total_fuel_cost += fuel_cost
               cur_fuel -= fuel_cost
@@ -311,7 +312,7 @@ class Application(object):
             fuel_str = ""
             if self.ship is not None:
               if od['jumpcount_min'] == od['jumpcount_max']:
-                fuel_str = " [{0:.2f}T+]".format(fuel_fewest)
+                fuel_str = " [{0:.2f}T{1}]".format(fuel_fewest, '+' if od['jumpcount_min'] > 1 else '')
               else:
                 fuel_str = " [{0:.2f}T+ - {1:.2f}T+]".format(min(fuel_fewest, fuel_most), max(fuel_fewest, fuel_most))
             print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}{3}").format(od['legsldist'], jumps_str, route_str, fuel_str))

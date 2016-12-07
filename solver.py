@@ -1,14 +1,25 @@
 import logging
 import math
 import random
+import sys
 import vector3
 
 log = logging.getLogger("solver")
 
-max_single_solve_size = 20
-cluster_size_max = 12
-cluster_size_min = 5
+max_single_solve_size = 12
+cluster_size_max = 8
+cluster_size_min = 1
 cluster_divisor = 10
+cluster_iteration_limit = 10
+cluster_repeat_limit = 100
+cluster_route_search_limit = 4
+
+
+CLUSTERED         = "clustered"
+CLUSTERED_REPEAT  = "clustered-repeat"
+BASIC             = "basic"
+NEAREST_NEIGHBOUR = "nearest-neighbour"
+modes = [CLUSTERED, CLUSTERED_REPEAT, BASIC, NEAREST_NEIGHBOUR]
 
 
 class Solver(object):
@@ -18,15 +29,34 @@ class Solver(object):
     self._diff_limit = diff_limit
     self._jump_range = jump_range
 
-  def solve(self, stations, start, end, maxstops, allow_clustering = True):
-    if allow_clustering and len(stations) > max_single_solve_size:
+
+  def solve(self, stations, start, end, maxstops, preferred_mode = CLUSTERED):
+    log.debug("Solving set using preferred mode '{}'".format(preferred_mode))
+    if preferred_mode == CLUSTERED_REPEAT and len(stations) > max_single_solve_size:
+      return self.solve_clustered_repeat(stations, start, end, maxstops), False
+    if preferred_mode == CLUSTERED and len(stations) > max_single_solve_size:
       return self.solve_clustered(stations, start, end, maxstops), False
-    else:
+    elif preferred_mode in [CLUSTERED, BASIC]:
       return self.solve_basic(stations, start, end, maxstops), True
+    elif preferred_mode == NEAREST_NEIGHBOUR:
+      return self.solve_nearest_neighbour(stations, start, end, maxstops), True
+    else:
+      raise ValueError("invalid preferred_mode flag passed to solve")
+
 
   def solve_basic(self, stations, start, end, maxstops):
+    result, _ = self.solve_basic_with_cost(stations, start, end, maxstops)
+    return result
+
+  def solve_basic_with_cost(self, stations, start, end, maxstops):
+    if not any(stations):
+      if start == end:
+        return [start], 0.0
+      else:
+        return [start, end], self._calc.solve_cost(start, end, 0)
+
     log.debug("Calculating viable routes...")
-    vr = self.get_viable_routes([start], stations, end, maxstops)
+    vr = self._get_viable_routes([start], stations, end, maxstops)
     log.debug("Viable routes: {0}".format(len(vr)))
 
     count = 0
@@ -49,45 +79,104 @@ class Solver(object):
         mincost = cost
         minroute = route
 
-    return minroute
+    return minroute, mincost
+
+
+  def solve_nearest_neighbour(self, stations, start, end, maxstops):
+    result, _ = self.solve_nearest_neighbour_with_cost(stations, start, end, maxstops)
+    return result
+
+  def solve_nearest_neighbour_with_cost(self, stations, start, end, maxstops):
+    route = [start]
+    full_cost = 0
+    remaining = stations
+    while any(remaining) and len(route)+1 < maxstops:
+      cur_cost = sys.maxsize
+      cur_stop = None
+      for s in remaining:
+        cost = self._calc.solve_cost(route[-1], s, len(route)-1)
+        if cost < cur_cost:
+          cur_stop = s
+          cur_cost = cost
+      if cur_stop is not None:
+        route.append(cur_stop)
+        remaining.remove(cur_stop)
+        full_cost += cur_cost
+    route.append(end)
+    return route, cur_cost
+
 
   def solve_clustered(self, stations, start, end, maxstops):
+    result, _ = self.solve_clustered_with_cost(stations, start, end, maxstops)
+    return result
+
+  def solve_clustered_with_cost(self, stations, start, end, maxstops):
     cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
     log.debug("Splitting problem into {0} clusters...".format(cluster_count))
+    means, clusters = find_centers(stations, cluster_count)
     iterations = 0
-    while iterations < 100:
+    while iterations < cluster_iteration_limit:
       iterations += 1
-      means, clusters = find_centers(stations, cluster_count)
-      lengths = [len(clusters[i]) for i in clusters]
+      for i, c in enumerate(clusters):
+        if len(c) > cluster_size_max:
+          del clusters[i]
+          del means[i]
+          newmeans, newclusters = find_centers(c, 2)
+          means += newmeans
+          clusters += newclusters
+          break
+      lengths = [len(c) for c in clusters]
       if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max:
         break
-    log.debug("Using clusters of sizes {0} after {1} iterations".format(", ".join([str(len(clusters[i])) for i in clusters]), iterations))
+    log.debug("Using clusters of sizes {} after {} iterations".format(", ".join([str(len(c)) for c in clusters]), iterations))
 
-    indices, _ = self.get_best_cluster_route(means, start, end)
+    indices, _ = self._get_best_cluster_route(means, start, end)
 
     route = [start]
+    cost = 0
     r_maxstops = maxstops - 2
 
     # Get the closest points in the first/last clusters to the start/end
-    _, from_start = self.get_closest_points([start], clusters[indices[0]])
-    to_end, _ = self.get_closest_points(clusters[indices[-1]], [end])
+    _, from_start = self._get_closest_points([start], clusters[indices[0]])
+    to_end, _ = self._get_closest_points(clusters[indices[-1]], [end])
     # For each cluster...
-    for i in range(1, len(indices)):
-      from_cluster = clusters[indices[i-1]]
-      to_cluster = clusters[indices[i]]
+    for i in range(0, len(indices)-1):
+      log.debug("Solving for cluster at index {}...".format(indices[i]))
+      from_cluster = clusters[indices[i]]
+      to_cluster = clusters[indices[i+1]]
       # Get the closest points, disallowing using from_start or to_end
-      from_end, to_start = self.get_closest_points(from_cluster, to_cluster, [from_start, to_end])
+      from_end, to_start = self._get_closest_points(from_cluster, to_cluster, [from_start, to_end])
       # Work out how many of the stops we should be doing in this cluster
       cur_maxstops = min(len(from_cluster), int(round(float(maxstops) * len(from_cluster) / len(stations))))
       r_maxstops -= cur_maxstops
       # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
-      route += self.solve_basic(from_cluster, from_start, from_end, cur_maxstops)
+      newroute, newcost = self.solve_basic_with_cost([c for c in from_cluster if c not in [from_start, from_end]], from_start, from_end, cur_maxstops)
+      route += newroute
+      cost += newcost
       from_start = to_start
-    route += self.solve_basic(clusters[indices[-1]], from_start, to_end, r_maxstops)
+    newroute, newcost = self.solve_basic_with_cost([c for c in clusters[indices[-1]] if c not in [from_start, to_end]], from_start, to_end, r_maxstops)
+    route += newroute
+    cost += newcost
     route += [end]
-    return route
+    return route, cost
 
-  def get_route_legs(self, stations):
+
+  def solve_clustered_repeat(self, stations, start, end, maxstops, iterations = cluster_repeat_limit):
+    result, _ = self.solve_clustered_repeat_with_cost(stations, start, end, maxstops, iterations)
+    return result
+
+  def solve_clustered_repeat_with_cost(self, stations, start, end, maxstops, iterations = cluster_repeat_limit):
+    minroute = None
+    mincost = sys.float_info.max
+    for i in range(0, iterations):
+      route, cost = self.solve_clustered_with_cost(stations, start, end, maxstops)
+      if cost < mincost:
+        mincost = cost
+        minroute = route
+    return minroute, mincost
+
+
+  def _get_route_legs(self, stations):
     legs = {}
 
     for h in stations:
@@ -105,7 +194,7 @@ class Solver(object):
 
     return legs
 
-  def get_viable_routes(self, route, stations, end, maxstops):
+  def _get_viable_routes(self, route, stations, end, maxstops):
     # If we have more non-end stops to go...
     if len(route) + 1 < maxstops:
       nexts = {}
@@ -120,7 +209,7 @@ class Solver(object):
           if route_matches >= stn_matches:
             continue
 
-        dist = self._calc.solve_cost(route[-1], stn, route)
+        dist = self._calc.solve_cost(route[-1], stn, len(route)-1)
         nexts[stn] = dist
 
       mindist = min(nexts.values())
@@ -132,7 +221,7 @@ class Solver(object):
 
       vrnext = []
       for stn in vsnext:
-        vrnext = vrnext + self.get_viable_routes(route + [stn], stations, end, maxstops)
+        vrnext = vrnext + self._get_viable_routes(route + [stn], stations, end, maxstops)
 
       return vrnext
 
@@ -141,15 +230,16 @@ class Solver(object):
       route.append(end)
       return [route]
 
-  def get_best_cluster_route(self, means, start, end, route = []):
+  def _get_best_cluster_route(self, means, start, end, route = []):
     best = None
-    bestcost = 0.0
+    bestcost = sys.float_info.max
     if len(route) < len(means):
-      for i, m in enumerate(means):
-        if i in route:
-          continue
-        c_route, c_cost = self.get_best_cluster_route(means, start, end, route + [i])
-        if best is None or c_cost < bestcost:
+      startpt = means[route[-1]] if any(route) else start.position
+      smeans = sorted([(i, m) for i, m in enumerate(means) if i not in route], key=lambda t: (startpt - t[1]).length)
+      # print("route:", route, "smeans:", smeans)
+      for i in range(0, min(len(smeans), cluster_route_search_limit)):
+        c_route, c_cost = self._get_best_cluster_route(means, start, end, route + [smeans[i][0]])
+        if c_cost < bestcost:
           best = c_route
           bestcost = c_cost
       return best, bestcost
@@ -160,16 +250,16 @@ class Solver(object):
       cur_cost += (means[route[-1]] - end.position).length
       return route, cur_cost
 
-  def get_closest_points(self, cluster1, cluster2, disallowed = []):
+  def _get_closest_points(self, cluster1, cluster2, disallowed = []):
     best = None
     bestcost = None
     for n1 in cluster1:
-      if n1 in disallowed:
+      if n1 in disallowed and len(cluster1) > 1: # If len(cluster) is 1, start == end so allow it
         continue
       for n2 in cluster2:
-        if n2 in disallowed:
+        if n2 in disallowed and len(cluster2) > 1: # If len(cluster) is 1, start == end so allow it
           continue
-        cost = self._calc.solve_cost(n1, n2, [])
+        cost = self._calc.solve_cost(n1, n2, 1)
         if best is None or cost < bestcost:
           best = (n1, n2)
           bestcost = cost
@@ -180,20 +270,17 @@ class Solver(object):
 # K-means clustering
 #
 def _cluster_points(X, mu):
-  clusters = {}
+  clusters = [[] for i in range(len(mu))]
   for x in X:
     bestmukey = min([(i[0], (x.position - mu[i[0]]).length) for i in enumerate(mu)], key=lambda t: t[1])[0]
-    if bestmukey not in clusters:
-      clusters[bestmukey] = []
     clusters[bestmukey].append(x)
   return clusters
 
 
 def _reevaluate_centers(mu, clusters):
   newmu = []
-  keys = sorted(clusters.keys())
-  for k in keys:
-    newmu.append(vector3.mean([x.position for x in clusters[k]]))
+  for c in clusters:
+    newmu.append(vector3.mean([x.position for x in c]))
   return newmu
 
 
@@ -205,11 +292,11 @@ def find_centers(X, K):
   # Initialize to K random centers
   oldmu = random.sample([x.position for x in X], K)
   mu = random.sample([x.position for x in X], K)
-  clusters = None
+  clusters = _cluster_points(X, mu)
   while not _has_converged(mu, oldmu):
     oldmu = mu
     # Assign all points in X to clusters
     clusters = _cluster_points(X, mu)
     # Reevaluate centers
     mu = _reevaluate_centers(oldmu, clusters)
-  return(mu, clusters)
+  return (mu, clusters)

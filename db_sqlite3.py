@@ -1,5 +1,8 @@
 import collections
 import decimal
+import defs
+import env_backend as eb
+import filter
 import json
 import logging
 import math
@@ -8,15 +11,11 @@ import re
 import sqlite3
 import time
 import util
+import vector3
 
-log = logging.getLogger("db")
+log = logging.getLogger("db_sqlite3")
 
-default_db_file = os.path.normpath('data/edts.db')
 schema_version = 6
-
-FIND_EXACT = 0
-FIND_GLOB = 1
-FIND_REGEX = 2
 
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
@@ -35,11 +34,20 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
   return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
 
 
-def open_db(filename = default_db_file, check_version = True):
+def _vec3_angle(x1, y1, z1, x2, y2, z2):
+  return vector3.Vector3(x1, y1, z1).angle_to(vector3.Vector3(x2, y2, z2))
+
+
+def log_versions():
+  log.debug("SQLite3: {} / PySQLite: {}".format(sqlite3.sqlite_version, sqlite3.version))
+
+
+def open_db(filename = defs.default_db_path, check_version = True):
   conn = sqlite3.connect(filename)
   conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
   conn.create_function("vec3_len", 6, _vec3_len)
+  conn.create_function("vec3_angle", 6, _vec3_angle)
  
   if check_version:
     c = conn.cursor()
@@ -49,17 +57,18 @@ def open_db(filename = default_db_file, check_version = True):
       log.warning("DB file's schema version {0} does not match the expected version {1}.".format(db_version, schema_version))
       log.warning("This is likely to cause errors; you may wish to rebuild the database by running update.py")
     log.debug("DB connection opened")
-  return DBConnection(conn)
+  return SQLite3DBConnection(conn)
 
 
-def initialise_db(filename = default_db_file):
+def initialise_db(filename = defs.default_db_path):
   dbc = open_db(filename, check_version=False)
   dbc._create_tables()
   return dbc
 
 
-class DBConnection(object):
+class SQLite3DBConnection(eb.EnvBackend):
   def __init__(self, conn):
+    super(SQLite3DBConnection, self).__init__("db_sqlite3")
     self._conn = conn
 
   def close(self):
@@ -164,6 +173,18 @@ class DBConnection(object):
     else:
       return None
 
+  def get_systems_by_name(self, names):
+    c = self._conn.cursor()
+    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name IN ({})'.format(','.join(['?'] * len(names)))
+    log.debug("Executing: {}; names = {}".format(cmd, names))
+    c.execute(cmd, names)
+    result = c.fetchall()
+    log.debug("Done.")
+    if result is not None:
+      return [_process_system_result(r) for r in result]
+    else:
+      return None
+
   def get_station_by_names(self, sysname, stnname):
     c = self._conn.cursor()
     cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
@@ -176,130 +197,138 @@ class DBConnection(object):
     else:
       return (None, None)
 
-  def get_stations_by_system_id(self, args):
+  def get_stations_by_names(self, names):
+    c = self._conn.cursor()
+    extra_cmd = ' OR '.join(['sy.name = ? AND st.name = ?'] * len(names))
+    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.eddb_id = st.eddb_system_id AND ({})'.format(extra_cmd)
+    log.debug("Executing: {}; names = {}".format(cmd, names))
+    c.execute(cmd, [n for sublist in names for n in sublist])
+    result = c.fetchall()
+    log.debug("Done.")
+    if result is not None:
+      return [(_process_system_result(r), json.loads(r['stndata'])) for r in result]
+    else:
+      return (None, None)
+
+  def find_stations_by_system_id(self, args, filters = None):
     sysids = args if isinstance(args, collections.Iterable) else [args]
     c = self._conn.cursor()
-    cmd = 'SELECT eddb_system_id, data FROM stations WHERE eddb_system_id IN ({})'.format(','.join(['?'] * len(sysids)))
-    log.debug("Executing: {}; sysid = {}".format(cmd, sysids))
-    c.execute(cmd, sysids)
+    cmd, params = _construct_query(
+      ['stations'],
+      ['stations.eddb_system_id', 'stations.data'],
+      ['eddb_system_id IN ({})'.format(','.join(['?'] * len(sysids)))],
+      [],
+      sysids,
+      filters)
+    log.debug("Executing: {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     results = c.fetchall()
     log.debug("Done, {} results.".format(len(results)))
     return [{ k: v for d in [{ 'eddb_system_id': r[0] }, json.loads(r[1])] for k, v in d.items()} for r in results]
 
-  def get_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z):
+  def find_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z, filters = None):
     c = self._conn.cursor()
-    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE ? <= pos_x AND pos_x < ? AND ? <= pos_y AND pos_y < ? AND ? <= pos_z AND pos_z < ?'
-    log.debug("Executing: {}; min_x = {}, max_x = {}, min_y = {}, max_y = {}, min_z = {}, max_z = {}".format(cmd, min_x, max_x, min_y, max_y, min_z, max_z))
-    c.execute(cmd, (min_x, max_x, min_y, max_y, min_z, max_z))
-    results = c.fetchall()
-    log.debug("Done, {} results.".format(len(results)))
-    return [_process_system_result(r) for r in results]
-
-  def find_systems_close_to(self, refs):
-    c = self._conn.cursor()
-    params = []
-    select = ["other.name, other.pos_x, other.pos_y, other.pos_z, other.data"]
-    tables = ["systems other"]
-    where = []
-    debug = []
-    debug_params = []
-    idx = 1
-    for ref in refs:
-      name, min_dist, max_dist = ref
-      coords_data = util.parse_coords(name)
-      # Check if this system name is actually coords, and use them if so
-      if coords_data is not None:
-        cx, cy, cz, name = coords_data
-        select.append("(((? - other.pos_x) * (? - other.pos_x)) + ((? - other.pos_y) * (? - other.pos_y)) + ((? - other.pos_z) * (? - other.pos_z))) as diff{0}".format(idx))
-        params += [cx, cx, cy, cy, cz, cz]
-        debug_clause = "x{0} = {1}, y{0} = {1}, z{0} = {1}".format(idx, '{}')
-        debug_params += [cx, cy, cz]
-      else:
-        # Search against system name directly
-        select.append("(((ref{0}.pos_x - other.pos_x) * (ref{0}.pos_x - other.pos_x)) + ((ref{0}.pos_y - other.pos_y) * (ref{0}.pos_y - other.pos_y)) + ((ref{0}.pos_z - other.pos_z) * (ref{0}.pos_z - other.pos_z))) as diff{0}".format(idx))
-        tables.append("systems ref{0}".format(idx))
-        where.append("ref{0}.name = ? AND other.edsm_id != ref{0}.edsm_id".format(idx))
-        params.append(name)
-        debug_clause = "name{0} = {1}".format(idx, '{}')
-        debug_params.append(name)
-      # Now see if we should restrict by distance
-      if min_dist is not None:
-        where.append("diff{0} >= ? * ?".format(idx))
-        params += [min_dist, min_dist]
-        debug_clause += ", min_dist{0} = {1}".format(idx, '{}')
-        debug_params.append(min_dist)
-      if max_dist is not None:
-        where.append("diff{0} <= ? * ?".format(idx))
-        params += [max_dist, max_dist]
-        debug_clause += ", max_dist{0} = {1}".format(idx, '{}')
-        debug_params.append(max_dist)
-      debug.append(debug_clause)
-      idx += 1
-    cmd = "SELECT {0} FROM {1} WHERE {2}".format(', '.join(select), ', '.join(tables), ' AND '.join(where))
-    log.debug("Executing: {}; {}".format(cmd, ', '.join(debug).format(*debug_params)))
-
+    cmd, params = _construct_query(
+      ['systems'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ['? <= systems.pos_x', 'systems.pos_x < ?', '? <= systems.pos_y', 'systems.pos_y < ?', '? <= systems.pos_z', 'systems.pos_z < ?'],
+      [],
+      [min_x, max_x, min_y, max_y, min_z, max_z],
+      filters)
+    log.debug("Executing: {}; params = {}".format(cmd, params))
     c.execute(cmd, params)
     results = c.fetchall()
     log.debug("Done, {} results.".format(len(results)))
     return [_process_system_result(r) for r in results]
-
     
-  def find_systems_by_name(self, name, mode=FIND_EXACT):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_systems_by_name(self, name, mode = eb.FIND_EXACT, filters = None):
+    # return self.find_systems_by_name_safe(name, mode, filters)
+    return self.find_systems_by_name_unsafe(name, mode, filters)
+
+  def find_stations_by_name(self, name, mode = eb.FIND_EXACT, filters = None):
+    # return self.find_stations_by_name_safe(name, mode, filters)
+    return self.find_stations_by_name_unsafe(name, mode, filters)
+
+  def find_systems_by_name_safe(self, name, mode = eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
-    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name {0} ?'.format(_find_operators[mode])
-    log.debug("Executing: {}; name = {}".format(cmd, name))
-    c.execute(cmd, (name, ))
+    cmd, params = _construct_query(
+      ['systems'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ['systems.name {} ?'.format(_find_operators[mode])],
+      [],
+      [name],
+      filters)
+    log.debug("Executing: {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
       yield _process_system_result(result)
       result = c.fetchone()
 
-  def find_stations_by_name(self, name, mode=FIND_EXACT):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_stations_by_name_safe(self, name, mode = eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     c = self._conn.cursor()
-    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE st.name {0} ? AND sy.eddb_id = st.eddb_system_id'.format(_find_operators[mode])
-    log.debug("Executing: {}; name = {}".format(cmd, name))
-    c.execute(cmd, (name, ))
+    cmd, params = _construct_query(
+      ['systems', 'stations'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data', 'stations.data AS stndata'],
+      ['stations.name {} ?'.format(_find_operators[mode])],
+      [],
+      [name],
+      filters)
+    log.debug("Executing: {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
       yield (_process_system_result(result), json.loads(result['stndata']))
       result = c.fetchone()
-  
+
   # WARNING: VERY UNSAFE, USE WITH CARE
   # These methods exist due to a bug in the Python sqlite3 module
   # Using bound parameters as the safe versions do results in indexes being ignored
   # This significantly slows down searches (~500x at time of writing) due to doing full table scans
   # So, these methods are fast but vulnerable to SQL injection due to use of string literals
   # This will hopefully be unnecessary in Python 2.7.11+ / 3.6.0+ if porting of a newer pysqlite2 version is completed
-  def find_systems_by_name_unsafe(self, name, mode=FIND_EXACT):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_systems_by_name_unsafe(self, name, mode=eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     name = _bad_char_regex.sub("", name)
     name = name.replace("'", r"''")
     c = self._conn.cursor()
-    cmd = "SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE name {0} '{1}'".format(_find_operators[mode], name)
-    log.debug("Executing (U): {}".format(cmd))
-    c.execute(cmd)
+    cmd, params = _construct_query(
+      ['systems'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      ["systems.name {} '{}'".format(_find_operators[mode], name)],
+      [],
+      [],
+      filters)
+    log.debug("Executing (U): {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
       yield _process_system_result(result)
       result = c.fetchone()
 
-  def find_stations_by_name_unsafe(self, name, mode=FIND_EXACT):
-    if mode == FIND_GLOB and _find_operators[mode] == 'LIKE':
+  def find_stations_by_name_unsafe(self, name, mode=eb.FIND_EXACT, filters = None):
+    if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
       name = name.replace('*','%').replace('?','_')
     name = _bad_char_regex.sub("", name)
     name = name.replace("'", r"''")
+    cmd, params = _construct_query(
+      ['systems', 'stations'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data', 'stations.data AS stndata'],
+      ["stations.name {} '{}'".format(_find_operators[mode], name)],
+      [],
+      [],
+      filters)
     c = self._conn.cursor()
-    cmd = "SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE st.name {0} '{1}' AND sy.eddb_id = st.eddb_system_id".format(_find_operators[mode], name)
-    log.debug("Executing (U): {}".format(cmd))
-    c.execute(cmd)
+    log.debug("Executing (U): {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
@@ -307,11 +336,17 @@ class DBConnection(object):
       result = c.fetchone()
 
   # Slow as sin; avoid if at all possible
-  def get_all_systems(self):
+  def find_all_systems(self, filters = None):
     c = self._conn.cursor()
-    cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems'
-    log.debug("Executing: {}".format(cmd))
-    c.execute(cmd)
+    cmd, params = _construct_query(
+      ['systems'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data'],
+      [],
+      [],
+      [],
+      filters)
+    log.debug("Executing: {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
@@ -319,11 +354,17 @@ class DBConnection(object):
       result = c.fetchone()
 
   # Slow as sin; avoid if at all possible
-  def get_all_stations(self):
+  def find_all_stations(self, filters = None):
     c = self._conn.cursor()
-    cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.data AS data, st.data AS stndata FROM stations st, systems sy WHERE st.eddb_system_id = sy.eddb_id'
-    log.debug("Executing: {}".format(cmd))
-    c.execute(cmd)
+    cmd, params = _construct_query(
+      ['systems', 'stations'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.data AS data', 'stations.data AS stndata'],
+      [],
+      [],
+      [],
+      filters) 
+    log.debug("Executing: {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
     while result is not None:
@@ -343,7 +384,48 @@ class DBConnection(object):
 
 
 def _process_system_result(result):
-  if result['data'] is not None:
+  if 'data' in result and result['data'] is not None:
     return json.loads(result['data'])
   else:
     return {'name': result['name'], 'x': result['pos_x'], 'y': result['pos_y'], 'z': result['pos_z']}
+
+def _construct_query(qtables, select, qfilter, select_params = [], filter_params = [], filters = None):
+  tables = qtables
+  qmodifier = []
+  qmodifier_params = []
+  # Apply any user-defined filters
+  if filters:
+    fsql = filter.generate_filter_sql(filters)
+    tables = set(qtables + fsql['tables'])
+    select = select + fsql['select'][0]
+    qfilter = qfilter + fsql['filter'][0]
+    select_params += fsql['select'][1]
+    filter_params += fsql['filter'][1]
+    group = fsql['group'][0]
+    group_params = fsql['group'][1]
+    # Hack, since we can't really know this before here :(
+    if 'stations' in tables and 'systems' in tables:
+      qfilter.append("systems.eddb_id=stations.eddb_system_id")
+      # More hack: if we weren't originally joining on stations, group results by system
+      if 'stations' not in qtables:
+        group.append('systems.eddb_id')
+    # If we have any groups/ordering/limiting, set it up
+    if any(group):
+      qmodifier.append('GROUP BY {}'.format(', '.join(group)))
+      qmodifier_params += group_params
+    if any(fsql['order'][0]):
+      qmodifier.append('ORDER BY {}'.format(', '.join(fsql['order'][0])))
+      qmodifier_params += fsql['order'][1]
+    if fsql['limit']:
+      qmodifier.append('LIMIT {}'.format(fsql['limit']))
+  else:
+    # Still need to check this
+    if 'stations' in tables and 'systems' in tables:
+      qfilter.append("systems.eddb_id=stations.eddb_system_id")
+
+  q1 = 'SELECT {} FROM {}'.format(','.join(select), ','.join(tables))
+  q2 = 'WHERE {}'.format(' AND '.join(qfilter)) if any(qfilter) else ''
+  q3 = ' '.join(qmodifier)
+  query = '{} {} {}'.format(q1, q2, q3)
+  params = select_params + filter_params + qmodifier_params
+  return (query, params)

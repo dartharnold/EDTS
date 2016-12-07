@@ -1,4 +1,5 @@
 import logging
+import env
 import math
 import sys
 
@@ -12,8 +13,7 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, envdata, calc, rbuf_base, hbuf_base, route_strategy):
-    self._envdata = envdata
+  def __init__(self, calc, rbuf_base, hbuf_base, route_strategy):
     self._calc = calc
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base
@@ -34,10 +34,10 @@ class Routing(object):
     return out_min + ((out_max - out_min) * (min(in_max, max(0, value - in_min)) / (in_max - in_min)))
 
   def cylinder(self, stars, vec_from, vec_to, buffer_both):
+    denominator = (vec_to - vec_from).length
     candidates = []
     for s in stars:
       numerator = ((s.position - vec_from).cross(s.position - vec_to)).length
-      denominator = (vec_to - vec_from).length
       dist = numerator / denominator
       if dist < buffer_both:
         candidates.append(s)
@@ -71,7 +71,8 @@ class Routing(object):
 
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
-    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    with env.use() as envdata:
+      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
@@ -112,8 +113,7 @@ class Routing(object):
           came_from[neighbor] = current
           g_score[neighbor] = tentative_g_score
           f_score[neighbor] = self._calc.astar_cost(neighbor, sys_to, self.astar_reconstruct_path(came_from, neighbor), full_range)
-          if neighbor not in openset:
-            openset.add(neighbor)
+          openset.add(neighbor)
 
     return None
 
@@ -127,7 +127,8 @@ class Routing(object):
   def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
-    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    with env.use() as envdata:
+      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
     best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
@@ -156,7 +157,7 @@ class Routing(object):
         if force_intermediate or self.best_jump_count(sys_cur, sys_to, jump_range) > trunc_jcount:
           factor = sldistance * (trunc_jcount / optimistic_count)
           # Work out the next position to get a circle of stars from
-          next_pos = sys_cur.position + (sys_to.position - sys_cur.position).normalise() * factor
+          next_pos = sys_cur.position + (sys_to.position - sys_cur.position).get_normalised() * factor
           # Get a circle of stars around the estimate
           c_next_stars = self.circle(stars, next_pos, search_radius)
           # Limit them to only ones where it's possible we'll get a valid route
@@ -180,7 +181,7 @@ class Routing(object):
       # This prevents getting stuck if we think we can get to sys_to in N, but actually need N+1
       jlimit = max(0, trunc_jcount - best_jcount) if next_star != sys_to else None
       # Use trundle to try and calculate a route
-      next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, jlimit)
+      next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, jlimit, starcache = stars_tmp)
       # If our route was invalid or too long, check the next star
       if next_route is None or (next_star != sys_to and len(next_route)-1 > trunc_jcount):
         next_stars = next_stars[1:]
@@ -218,13 +219,17 @@ class Routing(object):
     log.debug("No full-route found")
     return None
 
-  def plot_trundle(self, sys_from, sys_to, jump_range, full_range, addj_limit = None):
+  def plot_trundle(self, sys_from, sys_to, jump_range, full_range, addj_limit = None, starcache = None):
     if sys_from == sys_to:
       return [sys_from]
 
     rbuffer_ly = self._rbuffer_base
     hbuffer_ly = self._hbuffer_base
-    stars_tmp = self._envdata.get_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+    if starcache is not None:
+      stars_tmp = starcache
+    else:
+      with env.use() as envdata:
+        stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
     log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
@@ -268,7 +273,7 @@ class Routing(object):
     cur_dist = route[-1].distance_to(sys_to)
     if cur_dist > jump_range:
       # dir(current_pos --> sys_to) * jump_range
-      dir_vec = ((sys_to.position - route[-1].position).normalise() * jump_range)
+      dir_vec = ((sys_to.position - route[-1].position).get_normalised() * jump_range)
       # Start looking some way down the route, determined by jump count
       start_vec = route[-1].position + (dir_vec * vec_mult)
       end_vec = route[-1].position + dir_vec

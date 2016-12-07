@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 import env
+import filter
 import logging
 import math
 import sys
@@ -62,104 +63,81 @@ class Application(object):
       self.args = ap.parse_args(arg)
 
   def run(self):
-    # Add the system object to each system arg
-    for d in self.args.system:
-      d['sysobj'] = env.data.parse_system(d['system'])
-      if d['sysobj'] is None:
-        log.error("Could not find start system \"{0}\"!".format(d['system']))
-        return
-    # Create a list of names for quick checking in the main loop
-    start_names = [d['system'].lower() for d in self.args.system]
+    with env.use() as envdata:
+      # Add the system object to each system arg
+      tmpsystems = envdata.parse_systems([d['system'] for d in self.args.system])
+      for d in self.args.system:
+        d['sysobj'] = tmpsystems.get(d['system'], None)
+        if d['sysobj'] is None:
+          log.error("Could not find start system \"{0}\"!".format(d['system']))
+          return
+      # Create a list of names for quick checking in the main loop
+      start_names = [d['system'].lower() for d in self.args.system]
 
-    if self.args.direction is not None:
-      direction_obj = env.data.parse_system(self.args.direction)
-      max_angle = self.args.direction_angle * math.pi / 180.0
-      if direction_obj is None:
-        log.error("Could not find direction system \"{0}\"!".format(self.args.direction))
-        return
+      if self.args.direction is not None:
+        direction_obj = envdata.parse_system(self.args.direction)
+        if direction_obj is None:
+          log.error("Could not find direction system \"{0}\"!".format(self.args.direction))
+          return
 
     asys = []
 
-    maxdist = 0.0
     close_to_list = []
     for s in self.args.system:
-      min_dist = s['min_dist'] if 'min_dist' in s else None
-      max_dist = s['max_dist'] if 'max_dist' in s else None
-      close_to_list.append([s['system'], min_dist, max_dist])
-    if not any([x[2] for x in close_to_list]):
+      min_dist = [filter.Operator('>=', s['min_dist'])] if 'min_dist' in s else []
+      max_dist = [filter.Operator('<',  s['max_dist'])] if 'max_dist' in s else []
+      close_to_list.append({filter.PosArgs: [filter.Operator('=', s['sysobj'])], 'distance': min_dist + max_dist})
+    if not any([('max_dist' in s) for s in self.args.system]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
-    stations_are_relevant = (self.args.pad_size is not None or self.args.max_sc_distance is not None)
-    allow_outposts = (self.args.pad_size != "L")
+    filters = {}
+    filters['close_to'] = close_to_list
+    if self.args.pad_size is not None:
+      # Retain previous behaviour: 'M' counts as 'any'
+      filters['pad'] = [{filter.PosArgs: [filter.Operator('=', 'L' if self.args.pad_size == 'L' else filter.Any)]}]
+    if self.args.max_sc_distance is not None:
+      filters['sc_distance'] = [{filter.PosArgs: [filter.Operator('<', self.args.max_sc_distance)]}]
+    if self.args.allegiance is not None:
+      filters['allegiance'] = [{filter.PosArgs: [filter.Operator('=', self.args.allegiance)]}]
+    if self.args.num is not None:
+      filters['limit'] = self.args.num
+    if self.args.direction is not None:
+      for entry in filters['close_to']:
+        entry['direction'] = [filter.Operator('=', direction_obj)]
+        entry['angle'] = [filter.Operator('<', self.args.direction_angle)]
 
-    close_systems = list(env.data.find_systems_close_to(close_to_list))
-    close_stations = []
-    if any(close_systems) and stations_are_relevant:
-      close_stations = env.data.get_stations(close_systems)
-    for s in close_systems:
-      # If we don't care about allegiance, or we do and it matches...
-      if s.name.lower() not in start_names and (self.args.allegiance is None or s.allegiance == self.args.allegiance):
-        has_stns = (s.allegiance is not None)
-        # If we have stations, or we don't care...
-        if has_stns or self.args.pad_size is None:
-          # Check if the direction matches, if we care
-          if self.args.direction is None or self.all_angles_within(self.args.system, s, direction_obj, max_angle):
-            # Check whether we even want to look for stations
-            matching_stns = []
-            if stations_are_relevant:
-              # If we *don't* have stations (because we don't care), or the stations match the requirements...
-              matching_stns = [st for st in close_stations if st.system == s]
-              if not allow_outposts:
-                matching_stns = [st for st in matching_stns if st.max_pad_size == "L"]
-              if self.args.max_sc_distance is not None:
-                matching_stns = [st for st in matching_stns if (st.distance is not None and st.distance < self.args.max_sc_distance)]
-            if not has_stns or not stations_are_relevant or len(matching_stns) > 0:
-              dist = 0.0  # The total distance from this system to ALL start systems
-              is_ok = True
-              for d in self.args.system:
-                start = d['sysobj']
-                dist += s.distance_to(start)
+    with env.use() as envdata:
+      names = [d['sysobj'].name for d in self.args.system]
+      asys = [s for s in envdata.find_all_systems(filters=filters) if s.name not in names]
 
-              if not is_ok:
-                continue
-
-              if len(asys) < self.args.num or dist < maxdist:
-                # We have a new contender; add it, sort by distance, chop to length and set the new max distance
-                asys.append(s)
-                # Sort the list by distance to ALL start systems
-                asys.sort(key=lambda t: math.fsum([t.distance_to(e['sysobj']) for e in self.args.system]))
-
-                asys = asys[0:self.args.num]
-                maxdist = max(dist, maxdist)
-
-    if not len(asys):
-      print("")
-      print("No matching systems")
-      print("")
-    else:
-      print("")
-      print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
-      print("")
-      for i in range(0, len(asys)):
-        if len(self.args.system) == 1:
-          print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
-        else:
-          print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format(asys[i].distance_to(self.args.system[0]['sysobj']))))
-        if self.args.list_stations:
-          stlist = env.data.get_stations(asys[i])
-          stlist.sort(key=lambda t: t.distance)
-          for stn in stlist:
-            print("        {0}".format(stn.to_string(False)))
-      print("")
-      if len(self.args.system) > 1:
-        for d in self.args.system:
-          print("  Distance from {0}:".format(d['system']))
-          print("")
-          asys.sort(key=lambda t: t.distance_to(d['sysobj']))
-          for i in range(0, len(asys)):
-            # Print distance from the current candidate system to the current start system
-            print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
-          print("")
+      if not len(asys):
+        print("")
+        print("No matching systems")
+        print("")
+      else:
+        print("")
+        print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
+        print("")
+        for i in range(0, len(asys)):
+          if len(self.args.system) == 1:
+            print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
+          else:
+            print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format(asys[i].distance_to(self.args.system[0]['sysobj']))))
+          if self.args.list_stations:
+            stlist = envdata.find_stations(asys[i])
+            stlist.sort(key=lambda t: t.distance)
+            for stn in stlist:
+              print("        {0}".format(stn.to_string(False)))
+        print("")
+        if len(self.args.system) > 1:
+          for d in self.args.system:
+            print("  Distance from {0}:".format(d['system']))
+            print("")
+            asys.sort(key=lambda t: t.distance_to(d['sysobj']))
+            for i in range(0, len(asys)):
+              # Print distance from the current candidate system to the current start system
+              print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
+            print("")
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
     for d in starts:
@@ -174,3 +152,4 @@ if __name__ == '__main__':
   env.start()
   a = Application(env.local_args, False)
   a.run()
+  env.stop()

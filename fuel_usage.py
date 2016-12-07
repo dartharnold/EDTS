@@ -44,23 +44,27 @@ class Application(object):
       self.args.starting_fuel = self.ship.tank_size
 
   def run(self):
-    systems = []
-    for y in self.args.systems:
-      s = env.data.parse_system(y)
-      if s is None:
-        log.error("Could not find system \"{0}\"!".format(y))
-        return
-      systems.append(s)
+    with env.use() as envdata:
+      systems = envdata.parse_systems(self.args.systems)
+      for y in self.args.systems:
+        if y not in systems or systems[y] is None:
+          log.error("Could not find system \"{0}\"!".format(y))
+          return
 
     cur_fuel = self.args.starting_fuel
-    output_data = [{'src': systems[0]}]
+    output_data = [{'src': systems[self.args.systems[0]]}]
 
-    for i in range(1, len(systems)):
-      distance = systems[i-1].distance_to(systems[i])
+    prev = None
+    for s in systems.values():
+      if prev is None:
+        # First iteration
+        prev = s
+        continue
+      distance = prev.distance_to(s)
       is_long = False
       is_ok = True
       if self.args.refuel:
-        fmin, fmax = self.ship.fuel_weight_range(distance)
+        fmax = self.ship.max_fuel_weight(distance, allow_invalid=True)
         # Fudge factor to prevent cost coming out at exactly maxfuel (stupid floating point!)
         cur_fuel = min(fmax - 0.000001, self.ship.tank_size)
         is_long = (fmax >= 0.0 and fmax < self.ship.tank_size)
@@ -70,7 +74,7 @@ class Application(object):
       cur_fuel -= fuel_cost
       is_ok = (is_ok and fuel_cost <= self.ship.fsd.maxfuel and cur_fuel >= 0.0)
       output_data.append({
-          'src': systems[i-1], 'dst': systems[i],
+          'src': prev, 'dst': s,
           'distance': distance, 'cost': fuel_cost,
           'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
 
