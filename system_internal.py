@@ -106,6 +106,14 @@ class KnownSystem(System):
   def allegiance(self):
     return self._allegiance
 
+  @property
+  def id64(self):
+    m = pgnames.get_system_fragments(self.name)
+    if m is not None:
+      return _calculate_id64(self.position, m['MCode'], m['N2'])
+    else:
+      return None
+
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
 
