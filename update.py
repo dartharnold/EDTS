@@ -148,7 +148,7 @@ if __name__ == '__main__':
       print(coriolis_fsds_url)
     sys.exit(0)
 
-  db_file = env.global_args.db_file
+  db_file = os.path.join(defs.default_path, env.global_args.db_file)
 
   # If the data directory doesn't exist, make it
   if not os.path.exists(os.path.dirname(db_file)):

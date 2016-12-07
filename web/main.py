@@ -6,7 +6,7 @@ import collections
 
 data_path = '..'
 
-sys.path.insert(0, data_path)
+sys.path.insert(1, data_path)
 import thirdparty.bottle as bottle
 import env
 import fsd
@@ -14,7 +14,7 @@ import pgnames
 import pgdata
 import sector
 import vector3
-del sys.path[0]
+del sys.path[1]
 
 
 def vec3_to_dict(v):
