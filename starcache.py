@@ -33,3 +33,38 @@ def create_import_lists(data):
       if (idx & (2**i)) == (2**i):
         lists[i].append(s)
   return lists
+
+
+def create_import_list_files(data, output_format = 'ImportStars{}.txt'):
+  with open(output_format.format('Full'), 'w') as f:
+    f.writelines(['{}\n'.format(d) for d in data])
+  for i, l in enumerate(create_import_lists(data)):
+    with open(output_format.format(i), 'w') as f:
+      f.writelines(['{}\n'.format(d) for d in l])
+
+
+def calculate_id64s_from_lists(names, full, lists):
+  if len(names) == 0 or len(full) == 0 or len(lists) == 0:
+    return {}
+  if len(names) != len(full):
+    return {}
+  count = 2**len(lists)
+  output = {}
+  for n in full:
+    idx = 0
+    for i in range(len(lists)):
+      if n in lists[i]:
+        idx += (2**i)
+    output[names[idx]] = n
+  return output
+
+
+def calculate_id64s_from_list_files(names_file, full_file, list_files):
+  with open(names_file, 'r') as f:
+    names = [n.strip() for n in names_file]
+  full = parse_visited_stars_cache(full_file)
+  lists = []
+  for i, fname in enumerate(list_files):
+    lists[i] = parse_visited_stars_cache(fname)
+  return calculate_id64s_from_lists(names, full, lists)
+
