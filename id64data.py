@@ -62458,8 +62458,10 @@ known_systems = {
   "hip 79006": 4460118637,
   "hip 8286": 422827723115,
   "hip 79621": 9900664020,
+  
+  # Manually added
+  "m centauri": 84188074738,
 }
 
 known_missing = [
-  "M Centauri",
 ]
