@@ -17,7 +17,7 @@ def from_id64(id, allow_ha = True, allow_known = True):
   sys_proto = pgnames.get_system(coords, cube_width, allow_ha)
   name = sys_proto.name + str(n2)
   x, y, z = sys_proto.position
-  return PGSystem(x, y, z, name, sys_proto.sector, sys_proto.uncertainty)
+  return PGSystem(x, y, z, name, sector=sys_proto.sector, uncertainty=cube_width/2.0)
 
 
 def from_name(name, allow_ha = True, allow_known = True):
