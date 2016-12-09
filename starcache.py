@@ -46,7 +46,7 @@ def create_import_list_files(data, output_format = 'ImportStars{}.txt'):
 def calculate_id64s_from_lists(names, full, lists):
   if len(names) == 0 or len(full) == 0 or len(lists) == 0:
     return {}
-  if len(names) != len(full):
+  if len(names) < len(full):
     return {}
   count = 2**len(lists)
   output = {}
@@ -58,13 +58,13 @@ def calculate_id64s_from_lists(names, full, lists):
     output[names[idx]] = n
   return output
 
-
+# {18:25:39} ImportStars: unknown star: 'M Centauri'
 def calculate_id64s_from_list_files(names_file, full_file, list_files):
   with open(names_file, 'r') as f:
-    names = [n.strip() for n in names_file]
-  full = parse_visited_stars_cache(full_file)
+    names = [n.strip() for n in f]
+  full = list(parse_visited_stars_cache(full_file))
   lists = []
-  for i, fname in enumerate(list_files):
-    lists[i] = parse_visited_stars_cache(fname)
+  for fname in list_files:
+    lists.append(list(parse_visited_stars_cache(fname)))
   return calculate_id64s_from_lists(names, full, lists)
 
