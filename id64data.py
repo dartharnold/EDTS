@@ -1,6 +1,6 @@
-# Data provided by CMDR Bravada Cadelanne
 # Created by importing systems into the VisitedStarsCache
 known_systems = {
+  # Original data provided by Bravada Cadelanne
   "hip 13044": 12034131899,
   "psr j0024-7204x": 140849701,
   "psr j0024-7204y": 677720613,
@@ -61661,6 +61661,12 @@ known_systems = {
   "kv ursae majoris": 82112057554,
   "csi+40-16027": 9337916011,
   "bd+12 2966": 2398415,
+
+  # Manually added
+  "sol": 10477373803,
+  "cemiess": 1522322606443,
+  "pepper": 2209500629347,
+  "alpha centauri": 1178708478315,
 }
 
 known_missing = [
@@ -61683,7 +61689,6 @@ known_missing = [
   "Gliese 3043",
   "d Velorum",
   "HD 53003",
-  "Sol",
   "HIP 56379",
   "HIP 99931",
   "M Centauri",
@@ -62252,7 +62257,6 @@ known_missing = [
   "HIP 44417",
   "HIP 102200",
   "HIP 98009",
-  "Pepper",
   "HD 237021",
   "HIP 72918",
   "HR 5607",
@@ -62443,7 +62447,6 @@ known_missing = [
   "HIP 9571",
   "HIP 78941",
   "V374 Pegasi",
-  "Alpha Centauri",
   "HIP 39338",
   "HD 239731",
   "HD 63868",
@@ -62453,7 +62456,6 @@ known_missing = [
   "HIP 29722",
   "n Puppis",
   "HIP 2466",
-  "Cemiess",
   "HIP 38074",
   "HIP 76394",
   "PCYC 411",
