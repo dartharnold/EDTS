@@ -9,7 +9,7 @@ def from_id64(id, allow_ha = True, allow_known = True):
     id = int(id, 16)
   if allow_known:
     with env.use() as data:
-      ks = data.get_system(id)
+      ks = data.get_system_by_id64(id)
       if ks is not None:
         return ks
   coords, cube_width, n2 = _calculate_from_id64(id)
