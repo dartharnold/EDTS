@@ -1,3 +1,4 @@
+import math
 import os
 import struct
 import sys
@@ -6,6 +7,7 @@ import util
 _vscache_entry_len = 8 # bytes / 64 bits
 _vscache_header_len = 6 * _vscache_entry_len
 _vscache_eof_marker = 0x5AFEC0DE5AFEC0DE
+
 
 def parse_visited_stars_cache(filename):
   with open(filename, 'rb') as f:
@@ -21,3 +23,13 @@ def parse_visited_stars_cache(filename):
       # Return this ID
       yield cur_id
       cur_entry = f.read(_vscache_entry_len)
+
+
+def create_import_lists(data):
+  count = int(math.ceil(math.log(len(data), 2)))
+  lists = [[] for _ in range(count)]
+  for idx, s in enumerate(data):
+    for i in range(count):
+      if (idx & (2**i)) == (2**i):
+        lists[i].append(s)
+  return lists
