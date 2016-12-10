@@ -128,20 +128,43 @@ class KnownSystem(System):
 # System ID calculations
 #
 
-def _calculate_from_id64(input):
+def mask_id64_as_system(input):
+  result = input
+  if util.is_str(input):
+    result = int(result, 16)
+  result &= (2**55-1)
+  if util.is_str(input):
+    result = '{0:016X}'.format(result)
+  return result
+
+
+def mask_id64_as_body(input):
+  result = input
+  if util.is_str(input):
+    result = int(result, 16)
+  result >>= 55
+  result &= (2**9)-1
+  if util.is_str(input):
+    result = '{0:X}'.format(result)
+  return result
+
+
+def calculate_from_id64(input):
   # If input is a string, assume hex
   if util.is_str(input):
     input = int(input, 16)
   # Calculate the shifts we need to do to get the individual fields out
   # Can't tell how long N2 field is (or if the start moves!), assuming ~16 for now
-  input, mc       = util.unpack_and_shift(input, 3) # mc = 0-7 for a-h
-  input, boxel_z  = util.unpack_and_shift(input, 7-mc)
-  input, sector_z = util.unpack_and_shift(input, 7)
-  input, boxel_y  = util.unpack_and_shift(input, 7-mc)
-  input, sector_y = util.unpack_and_shift(input, 6)
-  input, boxel_x  = util.unpack_and_shift(input, 7-mc)
-  input, sector_x = util.unpack_and_shift(input, 7)
-  input, n2       = util.unpack_and_shift(input, 16)  # Could be the whole rest of the input, not sure
+  len_used = 0
+  input, mc       = util.unpack_and_shift(input, 3);    len_used += 3    # mc = 0-7 for a-h
+  input, boxel_z  = util.unpack_and_shift(input, 7-mc); len_used += 7-mc
+  input, sector_z = util.unpack_and_shift(input, 7);    len_used += 7
+  input, boxel_y  = util.unpack_and_shift(input, 7-mc); len_used += 7-mc
+  input, sector_y = util.unpack_and_shift(input, 6);    len_used += 6
+  input, boxel_x  = util.unpack_and_shift(input, 7-mc); len_used += 7-mc
+  input, sector_x = util.unpack_and_shift(input, 7);    len_used += 7
+  input, n2       = util.unpack_and_shift(input, 55-len_used)
+  input, body_id  = util.unpack_and_shift(input, 9)
   # Multiply each X/Y/Z value by the cube width to get actual coords
   boxel_size = 10 * (2**mc)
   coord_x = (sector_x * sector.sector_size) + (boxel_x * boxel_size) + (boxel_size / 2)
@@ -150,10 +173,10 @@ def _calculate_from_id64(input):
   coords_internal = vector3.Vector3(coord_x, coord_y, coord_z)
   # Shift the coords to be the origin we know and love
   coords = coords_internal + sector.internal_origin_offset
-  return (coords, boxel_size, n2)
+  return (coords, boxel_size, n2, body_id)
 
 
-def _calculate_id64(pos, mcode, n2):
+def calculate_id64(pos, mcode, n2):
   # Get the data we need to start with (mc as 0-7, cube width, boxel X/Y/Z coords)
   mc = ord(sector.get_mcode(mcode)) - ord('a')
   cube_width = sector.get_mcode_cube_width(mcode)

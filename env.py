@@ -157,7 +157,7 @@ class Env(object):
   def get_system_by_id64(self, id64, keep_data = False):
     if util.is_str(id64):
       id64 = int(id64, 16)
-    coords, cube_width, n2 = system._calculate_from_id64(id64)
+    coords, cube_width, n2, _ = system.calculate_from_id64(id64)
     # Get a system prototype to steal its name
     sys_proto = pgnames.get_system(coords, cube_width)
     pname = sys_proto.name + str(n2)

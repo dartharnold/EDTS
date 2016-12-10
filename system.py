@@ -1,7 +1,7 @@
 import env
 import pgnames
 import util
-from system_internal import System, KnownSystem, PGSystem, PGSystemPrototype, _calculate_from_id64
+from system_internal import System, KnownSystem, PGSystem, PGSystemPrototype, calculate_from_id64, mask_id64_as_system, mask_id64_as_body
 
 
 def from_id64(id, allow_ha = True, allow_known = True):
@@ -9,10 +9,10 @@ def from_id64(id, allow_ha = True, allow_known = True):
     id = int(id, 16)
   if allow_known:
     with env.use() as data:
-      ks = data.get_system_by_id64(id)
+      ks = data.get_system_by_id64(mask_id64_as_system(id))
       if ks is not None:
         return ks
-  coords, cube_width, n2 = _calculate_from_id64(id)
+  coords, cube_width, n2, _ = calculate_from_id64(id)
   # Get a system prototype to steal its name
   sys_proto = pgnames.get_system(coords, cube_width, allow_ha)
   name = sys_proto.name + str(n2)
