@@ -106,17 +106,17 @@ class Env(object):
       statname = parts[1] if len(parts) > 1 else None
       namelist.append((sysname, statname))
     # Get the objects
-    tmpdata_stn = {(s.system.name.lower(), s.name.lower()): s for s in self.get_stations([n for n in namelist if n[1] is not None]).values()}
-    tmpdata_sys = {s.name.lower(): s for s in self.parse_systems([n[0] for n in namelist if n[1] is None]).values()}
+    tmpdata_stn = self.get_stations([n for n in namelist if n[1] is not None])
+    tmpdata_sys = self.parse_systems([n[0] for n in namelist if n[1] is None])
     # Now reorder the data to match the input list, and check if we lost any
     outdata = collections.OrderedDict()
     for i, (sy, st) in enumerate(namelist):
       if st is not None:
-        sresult = tmpdata_stn.get((sy.lower(), st.lower()), None)
+        sresult = tmpdata_stn.get((sy, st), None)
         outdata[statlist[i]] = sresult
       else:
-        if sy.lower() in tmpdata_sys and tmpdata_sys[sy.lower()] is not None:
-          outdata[statlist[i]] = station.Station.none(tmpdata_sys[sy.lower()])
+        if sy in tmpdata_sys and tmpdata_sys[sy] is not None:
+          outdata[statlist[i]] = station.Station.none(tmpdata_sys[sy])
         else:
           outdata[statlist[i]] = None
     return outdata
