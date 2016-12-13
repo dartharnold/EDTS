@@ -73,7 +73,7 @@ class Calc(object):
 
   # The cost to go from a to b, as used in simple (non-routed) solving
   def solve_cost(self, a, b, prev_jcount):
-    hs_jumps = self.time_for_jumps(self.jump_count(a, b, prev_jcount))
+    hs_jumps = self.time_for_jumps(self.jump_count(a, b, prev_jcount)) * 2
     hs_jdist = a.distance_to(b)
     sc = self.sc_cost(b.distance if b.uses_sc else 0.0)
     return (hs_jumps + hs_jdist + sc)

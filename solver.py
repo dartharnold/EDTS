@@ -10,9 +10,10 @@ max_single_solve_size = 12
 cluster_size_max = 8
 cluster_size_min = 1
 cluster_divisor = 10
-cluster_iteration_limit = 10
+cluster_iteration_limit = 50
 cluster_repeat_limit = 100
 cluster_route_search_limit = 4
+supercluster_size_max = 8
 
 
 CLUSTERED         = "clustered"
@@ -20,6 +21,35 @@ CLUSTERED_REPEAT  = "clustered-repeat"
 BASIC             = "basic"
 NEAREST_NEIGHBOUR = "nearest-neighbour"
 modes = [CLUSTERED, CLUSTERED_REPEAT, BASIC, NEAREST_NEIGHBOUR]
+
+
+class _Cluster(object):
+  def __init__(self, objs, mean):
+    self.position = mean
+    self.systems = objs
+
+  @property
+  def is_supercluster(self):
+    return any(isinstance(s, _Cluster) for s in self.systems)
+
+  def get_closest(self, target):
+    best = None
+    bestdist = sys.float_info.max
+    for s in self.systems:
+      if isinstance(s, _Cluster) and s.is_supercluster:
+        newsys, newdist = s.get_closest(target)
+        if newdist < bestdist:
+          best = newsys
+          bestdist = newdist
+      else:
+        newdist = (s.position - target.position).length
+        if newdist < bestdist:
+          best = s
+          bestdist = newdist
+    return best, bestdist
+
+  def __repr__(self):
+    return "Cluster(size={}, pos={})".format(len(self.systems), self.position)
 
 
 class Solver(object):
@@ -47,6 +77,7 @@ class Solver(object):
   def solve_basic(self, stations, start, end, maxstops):
     result, _ = self.solve_basic_with_cost(stations, start, end, maxstops)
     return result
+
 
   def solve_basic_with_cost(self, stations, start, end, maxstops):
     if not any(stations):
@@ -113,48 +144,34 @@ class Solver(object):
   def solve_clustered_with_cost(self, stations, start, end, maxstops):
     cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
     log.debug("Splitting problem into {0} clusters...".format(cluster_count))
-    means, clusters = find_centers(stations, cluster_count)
-    iterations = 0
-    while iterations < cluster_iteration_limit:
-      iterations += 1
-      for i, c in enumerate(clusters):
-        if len(c) > cluster_size_max:
-          del clusters[i]
-          del means[i]
-          newmeans, newclusters = find_centers(c, 2)
-          means += newmeans
-          clusters += newclusters
-          break
-      lengths = [len(c) for c in clusters]
-      if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max:
-        break
-    log.debug("Using clusters of sizes {} after {} iterations".format(", ".join([str(len(c)) for c in clusters]), iterations))
+    clusters = find_centers(stations, cluster_count)
+    clusters = self._resolve_cluster_sizes(clusters)
 
-    indices, _ = self._get_best_cluster_route(means, start, end)
+    sclusters = self._get_best_supercluster_route(clusters, start, end)
 
     route = [start]
     cost = 0
     r_maxstops = maxstops - 2
 
     # Get the closest points in the first/last clusters to the start/end
-    _, from_start = self._get_closest_points([start], clusters[indices[0]])
-    to_end, _ = self._get_closest_points(clusters[indices[-1]], [end])
+    _, from_start = self._get_closest_points([start], sclusters[0].systems)
+    to_end, _ = self._get_closest_points(sclusters[-1].systems, [end])
     # For each cluster...
-    for i in range(0, len(indices)-1):
-      log.debug("Solving for cluster at index {}...".format(indices[i]))
-      from_cluster = clusters[indices[i]]
-      to_cluster = clusters[indices[i+1]]
+    for i in range(0, len(sclusters)-1):
+      log.debug("Solving for cluster at index {}...".format(i))
+      from_cluster = sclusters[i]
+      to_cluster = sclusters[i+1]
       # Get the closest points, disallowing using from_start or to_end
-      from_end, to_start = self._get_closest_points(from_cluster, to_cluster, [from_start, to_end])
+      from_end, to_start = self._get_closest_points(from_cluster.systems, to_cluster.systems, [from_start, to_end])
       # Work out how many of the stops we should be doing in this cluster
-      cur_maxstops = min(len(from_cluster), int(round(float(maxstops) * len(from_cluster) / len(stations))))
+      cur_maxstops = min(len(from_cluster.systems), int(round(float(maxstops) * len(from_cluster.systems) / len(stations))))
       r_maxstops -= cur_maxstops
       # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
-      newroute, newcost = self.solve_basic_with_cost([c for c in from_cluster if c not in [from_start, from_end]], from_start, from_end, cur_maxstops)
+      newroute, newcost = self.solve_basic_with_cost([c for c in from_cluster.systems if c not in [from_start, from_end]], from_start, from_end, cur_maxstops)
       route += newroute
       cost += newcost
       from_start = to_start
-    newroute, newcost = self.solve_basic_with_cost([c for c in clusters[indices[-1]] if c not in [from_start, to_end]], from_start, to_end, r_maxstops)
+    newroute, newcost = self.solve_basic_with_cost([c for c in sclusters[-1].systems if c not in [from_start, to_end]], from_start, to_end, r_maxstops)
     route += newroute
     cost += newcost
     route += [end]
@@ -176,12 +193,42 @@ class Solver(object):
     return minroute, mincost
 
 
+  def _resolve_cluster_sizes(self, pclusters):
+    clusters = list(pclusters)
+    iterations = 0
+    while iterations < cluster_iteration_limit:
+      iterations += 1
+      for i,c in enumerate(clusters):
+        if c.is_supercluster:
+          c.systems = self._resolve_cluster_sizes(c.systems)
+        if len(c.systems) > cluster_size_max:
+          log.debug("Splitting oversized cluster {} into two".format(c))
+          del clusters[i]
+          newclusters = find_centers(c.systems, 2)
+          clusters += newclusters
+          break
+      lengths = [len(c.systems) for c in clusters]
+      # If the current state is good, check supercluster size
+      if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max:
+        if len(clusters) <= supercluster_size_max:
+          break
+        else:
+          # Too many clusters, consolidate
+          subdiv = int(math.ceil(float(len(clusters)) / supercluster_size_max))
+          log.debug("Consolidating from {} to {} superclusters".format(len(clusters), subdiv))
+          clusters = find_centers(clusters, subdiv)
+          lengths = [len(c.systems) for c in clusters]
+          # If everything is now valid...
+          if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max and len(clusters) <= supercluster_size_max:
+              break
+    log.debug("Using clusters of sizes {} after {} iterations".format(", ".join([str(len(c.systems)) for c in clusters]), iterations))
+    return clusters
+
+
   def _get_route_legs(self, stations):
     legs = {}
-
     for h in stations:
       legs[h] = {}
-
     for s in stations:
       for t in stations:
         if s.to_string() != t.to_string() and t not in legs[s]:
@@ -230,25 +277,53 @@ class Solver(object):
       route.append(end)
       return [route]
 
-  def _get_best_cluster_route(self, means, start, end, route = []):
+
+  def _get_best_supercluster_route(self, clusters, start, end):
+    if len(clusters) == 1:
+      return list(clusters)
+    first = min(clusters, key=lambda t: t.get_closest(start)[1])
+    last = min([c for c in clusters if c != first], key=lambda t: t.get_closest(end)[1])
+    log.debug("Calculating supercluster route from {} --> {}".format(first, last))
+    log.debug("Clusters: {}".format(clusters))
+    if len(clusters) > 3:
+      log.debug("Calculating cluster route for {}".format(clusters))
+      inter, _ = self._get_best_cluster_route([c for c in clusters if c not in [first, last]], first, last)
+    else:
+      inter = [c for c in clusters if c not in [first, last]]
+    proute = [first] + inter + [last]
+    route = []
+    for i,c in enumerate(proute):
+      if isinstance(c, _Cluster) and c.is_supercluster:
+        log.debug("Going deeper... i={}, c={}".format(i, c))
+        route += self._get_best_supercluster_route(c.systems, start if i == 0 else route[i-1], end if i >= len(route)-1 else route[i+1])
+      else:
+        route.append(c)
+    return route
+
+
+  def _get_best_cluster_route(self, clusters, start, end, route = []):
     best = None
     bestcost = sys.float_info.max
-    if len(route) < len(means):
-      startpt = means[route[-1]] if any(route) else start.position
-      smeans = sorted([(i, m) for i, m in enumerate(means) if i not in route], key=lambda t: (startpt - t[1]).length)
+    if not route:
+      log.debug("In get_best_cluster_route, input = {}, start = {}, end = {}".format(clusters, start, end))
+    if len(route) < len(clusters):
+      startpt = route[-1].position if any(route) else start.position
+      sclusters = sorted([c for c in clusters if c not in route], key=lambda t: (startpt - t.position).length)
       # print("route:", route, "smeans:", smeans)
-      for i in range(0, min(len(smeans), cluster_route_search_limit)):
-        c_route, c_cost = self._get_best_cluster_route(means, start, end, route + [smeans[i][0]])
+      for i in range(0, min(len(sclusters), cluster_route_search_limit)):
+        c_route, c_cost = self._get_best_cluster_route(clusters, start, end, route + [sclusters[i]])
         if c_cost < bestcost:
           best = c_route
           bestcost = c_cost
-      return best, bestcost
     else:
-      cur_cost = (start.position - means[route[0]]).length
+      cur_cost = (start.position - route[0].position).length
       for i in range(1, len(route)):
-        cur_cost += (means[route[i-1]] - means[route[i]]).length
-      cur_cost += (means[route[-1]] - end.position).length
-      return route, cur_cost
+        cur_cost += (route[i-1].position - route[i].position).length
+      cur_cost += (route[-1].position - end.position).length
+      best = route
+      bestcost = cur_cost
+    return (best, bestcost)
+
 
   def _get_closest_points(self, cluster1, cluster2, disallowed = []):
     best = None
@@ -299,4 +374,4 @@ def find_centers(X, K):
     clusters = _cluster_points(X, mu)
     # Reevaluate centers
     mu = _reevaluate_centers(oldmu, clusters)
-  return (mu, clusters)
+  return [_Cluster(clusters[i], mu[i]) for i in range(len(mu))]
