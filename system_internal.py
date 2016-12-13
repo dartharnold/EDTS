@@ -106,6 +106,14 @@ class KnownSystem(System):
   def allegiance(self):
     return self._allegiance
 
+  @property
+  def id64(self):
+    m = pgnames.get_system_fragments(self.name)
+    if m is not None:
+      return _calculate_id64(self.position, m['MCode'], m['N2'])
+    else:
+      return None
+
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
 
@@ -142,9 +150,9 @@ def _calculate_from_id64(input):
   input, n2       = util.unpack_and_shift(input, 16)  # Could be the whole rest of the input, not sure
   # Multiply each X/Y/Z value by the cube width to get actual coords
   boxel_size = 10 * (2**mc)
-  coord_x = (sector_x * sector.sector_size) + (boxel_x * boxel_size)
-  coord_y = (sector_y * sector.sector_size) + (boxel_y * boxel_size)
-  coord_z = (sector_z * sector.sector_size) + (boxel_z * boxel_size)
+  coord_x = (sector_x * sector.sector_size) + (boxel_x * boxel_size) + (boxel_size / 2)
+  coord_y = (sector_y * sector.sector_size) + (boxel_y * boxel_size) + (boxel_size / 2)
+  coord_z = (sector_z * sector.sector_size) + (boxel_z * boxel_size) + (boxel_size / 2)
   coords_internal = vector3.Vector3(coord_x, coord_y, coord_z)
   # Shift the coords to be the origin we know and love
   coords = coords_internal + sector.internal_origin_offset
