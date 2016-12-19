@@ -100,15 +100,19 @@ class Application(object):
     if self.args.allegiance is not None:
       filters['allegiance'] = [{filter.PosArgs: [filter.Operator('=', self.args.allegiance)]}]
     if self.args.num is not None:
-      filters['limit'] = self.args.num
+      # Get extras, in case we get our reference systems as a result
+      filters['limit'] = self.args.num + len(self.args.system)
     if self.args.direction is not None:
       for entry in filters['close_to']:
         entry['direction'] = [filter.Operator('=', direction_obj)]
         entry['angle'] = [filter.Operator('<', self.args.direction_angle)]
 
     with env.use() as envdata:
+      # Filter out our reference systems from the results
       names = [d['sysobj'].name for d in self.args.system]
       asys = [s for s in envdata.find_all_systems(filters=filters) if s.name not in names]
+      if self.args.num:
+        asys = asys[0:self.args.num]
 
       if not len(asys):
         print("")
