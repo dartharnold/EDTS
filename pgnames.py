@@ -363,7 +363,10 @@ _expected_fragment_limit = 4
 # Note that in the form "Sector AB-C d3", the "3" is number2, NOT number1 (which is 0)
 def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
   soffset = _get_soffset_from_sysid(prefix, centre, suffix, number1)
-  return _get_relpos_from_soffset(soffset, mcode)
+  pos, uncertainty = _get_relpos_from_soffset(soffset, mcode)
+  if any(v < 0 or v > (sector.sector_size + uncertainty*2) for v in (pos.x, pos.y, pos.z)):
+    log.warning("Identifier '{}{}-{} {}{}-{}' generated out-of-range coords {}; bad input?".format(prefix, centre, suffix, mcode, number1, number2, pos))
+  return (pos, uncertainty)
 
 def _get_soffset_from_sysid(prefix, centre, suffix, number1):
   if number1 is None:

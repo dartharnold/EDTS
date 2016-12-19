@@ -11,6 +11,7 @@ import sys
 import threading
 import time
 import util
+import pgnames
 import system_internal as system
 import station
 import db_sqlite3
@@ -127,7 +128,7 @@ class Env(object):
   def parse_systems(self, sysstr):
     return self.get_systems(sysstr)
 
-  def get_station(self, sysname, statname = None, keep_data = False):
+  def get_station_by_names(self, sysname, statname = None, keep_data = False):
     if statname is not None:
       (sysdata, stndata) = self._backend.get_station_by_names(sysname, statname)
       if sysdata is not None and stndata is not None:
@@ -137,8 +138,9 @@ class Env(object):
       if sys is not None:
         return station.Station.none(sys)
     return None
+  get_station = get_station_by_names
 
-  def get_system(self, sysname, keep_data = False):
+  def get_system_by_name(self, sysname, keep_data = False):
     # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
     coords_data = util.parse_coords(sysname)
     if coords_data is not None:
@@ -150,8 +152,22 @@ class Env(object):
         return _make_known_system(result, keep_data)
       else:
         return None
+  get_system = get_system_by_name
 
-  def get_systems(self, sysnames, keep_data = False):
+  def get_system_by_id64(self, id64, keep_data = False):
+    if util.is_str(id64):
+      id64 = int(id64, 16)
+    coords, cube_width, n2, _ = system.calculate_from_id64(id64)
+    # Get a system prototype to steal its name
+    sys_proto = pgnames.get_system(coords, cube_width)
+    pname = sys_proto.name + str(n2)
+    result = self._backend.get_system_by_id64(id64, fallback_name=pname)
+    if result is not None:
+      return _make_known_system(result, keep_data)
+    else:
+      return None
+
+  def get_systems_by_name(self, sysnames, keep_data = False):
     co_list = {}
     db_list = []
     output = collections.OrderedDict()
@@ -176,8 +192,9 @@ class Env(object):
       else:
         output[s] = None
     return output
+  get_systems = get_systems_by_name
 
-  def get_stations(self, names, keep_data = False):
+  def get_stations_by_names(self, names, keep_data = False):
     output = collections.OrderedDict()
     # Now query for the real ones
     if any(names):
@@ -186,6 +203,7 @@ class Env(object):
       for sy, st in names:
         output[(sy, st)] = result.get((sy.lower(), st.lower()), None)
     return output
+  get_stations = get_stations_by_names
 
   def find_stations(self, args, filters = None, keep_station_data = False):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]

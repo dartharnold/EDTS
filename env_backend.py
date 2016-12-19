@@ -10,6 +10,9 @@ class EnvBackend(object):
   def retrieve_fsd_list(self):
     raise NotImplementedError("Invalid use of base EnvBackend retrieve_fsd_list method")
 
+  def get_system_by_id64(self, id64, fallback_name = None):
+    raise NotImplementedError("Invalid use of base EnvBackend get_system_by_id64 method")
+
   def get_system_by_name(self, name):
     raise NotImplementedError("Invalid use of base EnvBackend get_system_by_name method")
 
