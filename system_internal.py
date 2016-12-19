@@ -35,7 +35,7 @@ class System(object):
       if self.name is not None:
         m = pgnames.get_system_fragments(self.name)
         if m is not None:
-          self._id64 = _calculate_id64(self.position, m['MCode'], m['N2'])
+          self._id64 = calculate_id64(self.position, m['MCode'], m['N2'])
     return self._id64
 
   @property
