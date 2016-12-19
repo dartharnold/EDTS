@@ -139,6 +139,10 @@ def string_bool(s):
   return s.lower() in ("yes", "true", "1")
 
 
+def hex2str(s):
+  return ''.join(chr(int(s[i:i+2], 16)) for i in range(0, len(s), 2))
+
+
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
 # Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
 def jenkins32(key):
