@@ -4,9 +4,9 @@ The **close_to** tool allows you to find out which systems and stations are clos
 ## Examples ##
 After the [First Run Setup](firstrun.md) is complete, the script can be run:
 
-`python close_to.py Sol`
+`python close_to.py Sol -m 25`
 
-This finds the closest 10 systems to Sol:
+This finds the closest 10 systems to Sol within a max distance of 25LY:
 
 ```
 #!text
@@ -24,11 +24,13 @@ Matching systems close to Sol:
     Yin Sector CL-Y d127 (9.86Ly)
 ```
 
-You can also put certain requirements on the results (more info below):
+Use of the `-m` flag is highly recommended - it specifies the maximum distance from the reference system(s) to search at, which can significantly speed up searching.
 
-`python close_to.py Sol -p L -n 3 -l`
+You can also put certain other requirements on the results (more info below):
 
-This specifies that all returned systems must have at least one station with a large landing pad, that only three results should be shown, and also returns info on those stations:
+`python close_to.py Sol -m 25 -p L -n 3 -l`
+
+This specifies that all returned systems must have at least one station with a large landing pad (`-p L`), that only three results should be shown (`-n 3`), and also returns info on stations within those systems:
 
 ```
 #!text
@@ -36,14 +38,20 @@ Matching systems close to Sol:
 
     Barnard's Star (5.95Ly)
         Levi-Strauss Installation (7Ls, Civilian Outpost)
+        Haller City (37Ls, Planetary Port)
+        Kuttner's Pride (37Ls, Planetary Outpost)
         Miller Depot (38Ls, Orbis Starport)
         Boston Base (63Ls, Coriolis Starport)
+        Silves' Claim (63Ls, Planetary Outpost)
+    Luhman 16 (6.57Ly)
+        Jenner Orbital (10Ls, Civilian Outpost)
+        Heisenberg Colony (14Ls, Civilian Outpost)
+        Edison Hub (14Ls, Planetary Outpost)
     Wolf 359 (7.78Ly)
-        Lomas Orbiter (51Ls, Unknown Starport)
+        Lomas Orbiter (53Ls, Orbis Starport)
+        Cayley Enterprise (53Ls, Planetary Outpost)
         Powell High (99Ls, Coriolis Starport)
-    Sirius (8.59Ly)
-        Patterson Enterprise (1028Ls, Coriolis Starport)
-        O'Brien Vision (11706Ls, Civilian Outpost)
+        Tryggvason Installation (99Ls, Planetary Port)
 ```
 
 You can also specify multiple systems; this will result in a list of systems which are closest to all the named systems.
