@@ -340,7 +340,45 @@ def get_ha_sectors(reference = None, max_distance = None):
     if max_distance is not None:
       raise ValueError("cannot provide max_distance without a reference position")
     return collections.OrderedDict([(s.name, s) for s in pgdata.ha_sectors.values()])
-  
+
+
+"""
+Get the grid (1/32LY) coordinates for the given position.
+
+Args:
+  pos: The position to get the grid position for.
+  is_global: If true, gives the galaxy-wide grid position. Otherwise, gives the grid position within this sector.
+
+Returns:
+  A tuple of the grid position in (x, y, z) form.
+"""
+def get_grid_coords(pos, is_global = False):
+  pos = util.get_as_position(pos)
+  if pos is None:
+    return None
+  origin = sector.internal_origin_offset if is_global else get_sector(pos, allow_ha=False, get_name=False)
+  mx = int(round((pos.x - origin.x) * 32))
+  my = int(round((pos.y - origin.y) * 32))
+  mz = int(round((pos.z - origin.z) * 32))
+  return (mx, my, mz)
+
+
+"""
+Get the closest point on the PG (1/32LY) grid to the given position.
+
+Args:
+  pos: The position to map
+
+Returns:
+  The closest valid point on the grid
+"""
+def get_closest_grid_position(pos):
+  pos = util.get_as_position(pos)
+  if pos is None:
+    return None
+  mx, my, mz = get_grid_coords(pos)
+  return vector3.Vector3(mx/32.0, my/32.0, mz/32.0)
+
 
 # #
 # Internal variables
