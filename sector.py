@@ -1,5 +1,6 @@
 import math
 import numbers
+import sys
 import util
 import vector3
 
@@ -103,10 +104,28 @@ class HASector(Sector):
 
 
 class HASectorCluster(HASector):
-  def __init__(self, centre, radius, size, name, sectors):
-    super(HASectorCluster, self).__init__(centre, radius, name)
-    self._size = size
-    self.sectors = sectors
+  def __init__(self, size, name, sectors):
+    centre = vector3.mean([s.centre for s in sectors])
+    super(HASectorCluster, self).__init__(centre, size, name)
+    self._sectors = sectors
+
+  def get_origin(self, cube_width):
+    o = [sys.float_info.max, sys.float_info.max, sys.float_info.max]
+    for s in self.sectors:
+      sorigin = s.get_origin(cube_width)
+      o[0] = min(o[0], sorigin.x)
+      o[1] = min(o[1], sorigin.y)
+      o[2] = min(o[2], sorigin.z)
+    o = [int(math.floor(v)) for v in o]
+    o[0] -= (o[0] - int(base_coords.x)) % cube_width
+    o[1] -= (o[1] - int(base_coords.y)) % cube_width
+    o[2] -= (o[2] - int(base_coords.z)) % cube_width
+    o = [float(v) for v in o]
+    return vector3.Vector3(o)
+
+  @property
+  def sectors(self):
+    return self._sectors
 
   def contains(self, pos):
     return any([s.contains(pos) for s in self.sectors])
