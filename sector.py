@@ -53,23 +53,11 @@ class Sector(object):
     raise NotImplementedError("Invalid call to base Sector get_origin method")
 
 
-class HASector(Sector):
-  def __init__(self, centre, radius, name = None):
-    super(HASector, self).__init__(name)
+class HASphere(object):
+  def __init__(self, centre, radius):
     self._centre = centre
     self._radius = radius
-    self._size = radius
-
-  def get_origin(self, cube_width):
-    cube_width = get_mcode_cube_width(cube_width)
-    sector_origin = self.centre - vector3.Vector3(self.radius, self.radius, self.radius)
-    sox = math.floor(sector_origin.x)
-    soy = math.floor(sector_origin.y)
-    soz = math.floor(sector_origin.z)
-    sox -= (sox - int(base_coords.x)) % cube_width
-    soy -= (soy - int(base_coords.y)) % cube_width
-    soz -= (soz - int(base_coords.z)) % cube_width
-    return vector3.Vector3(float(sox), float(soy), float(soz))
+    self._origin = vector3.Vector3(centre.x - radius, centre.y - radius, centre.z - radius)
 
   @property
   def centre(self):
@@ -80,18 +68,14 @@ class HASector(Sector):
     return self._radius
 
   @property
-  def size(self):
-    return self._size
-
-  @property
-  def sector_class(self):
-    return 'ha'
+  def origin(self):
+    return self._origin
 
   def contains(self, pos):
     return ((self.centre - pos).length <= self.radius)
   
   def __str__(self):
-    return "HASector({})".format(self.name)
+    return "HASphere({} ± {}LY)".format(self.centre, self.radius)
 
   def __repr__(self):
     return self.__str__()
@@ -103,19 +87,21 @@ class HASector(Sector):
     return not self.__eq__(rhs)
 
 
-class HASectorCluster(HASector):
-  def __init__(self, size, name, sectors):
-    centre = vector3.mean([s.centre for s in sectors])
-    super(HASectorCluster, self).__init__(centre, size, name)
-    self._sectors = sectors
+class HARegion(Sector):
+  def __init__(self, name, size, spheres):
+    super(HARegion, self).__init__(name)
+    self._centre = vector3.mean([s.centre for s in spheres])
+    self._radius = size
+    self._spheres = list(spheres)
+    o = [sys.float_info.max, sys.float_info.max, sys.float_info.max]
+    for s in self.spheres:
+      o[0] = min(o[0], s.origin.x)
+      o[1] = min(o[1], s.origin.y)
+      o[2] = min(o[2], s.origin.z)
+    self._origin = vector3.Vector3(o)
 
   def get_origin(self, cube_width):
-    o = [sys.float_info.max, sys.float_info.max, sys.float_info.max]
-    for s in self.sectors:
-      sorigin = s.get_origin(cube_width)
-      o[0] = min(o[0], sorigin.x)
-      o[1] = min(o[1], sorigin.y)
-      o[2] = min(o[2], sorigin.z)
+    o = self._origin
     o = [int(math.floor(v)) for v in o]
     o[0] -= (o[0] - int(base_coords.x)) % cube_width
     o[1] -= (o[1] - int(base_coords.y)) % cube_width
@@ -124,14 +110,30 @@ class HASectorCluster(HASector):
     return vector3.Vector3(o)
 
   @property
-  def sectors(self):
-    return self._sectors
+  def centre(self):
+    return self._centre
+
+  @property
+  def radius(self):
+    return self._radius
+
+  @property
+  def size(self):
+    return self._radius
+
+  @property
+  def sector_class(self):
+    return 'ha'
+
+  @property
+  def spheres(self):
+    return self._spheres
 
   def contains(self, pos):
-    return any([s.contains(pos) for s in self.sectors])
+    return any([s.contains(pos) for s in self.spheres])
 
   def __str__(self):
-    return "HASectorCluster({})".format(self.name)
+    return "HARegion({})".format(self.name)
 
   def __repr__(self):
     return self.__str__()
