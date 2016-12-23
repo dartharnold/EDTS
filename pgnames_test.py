@@ -72,16 +72,15 @@ def run_test(it):
               else:
                 log.info("BadHAName: {} ({}Ly) was predicted to not be in an HA sector".format(system.name, sect.size))
         else:
-          start = time.clock()
+          cls = pgnames._get_sector_class(m.group("sector"))
+          if isinstance(cls, int):
+            cls = "c{}".format(cls)
           sect = pgnames.get_sector(m.group("sector"))
-          tm = time.clock() - start
           if sect is not None:
             cls = sect.sector_class
             pos_sect = pgnames.get_sector(system.position, allow_ha=False)
             if sect == pos_sect:
-              start = time.clock()
               coords, dist = pgnames._get_coords_from_name(system.name)
-              tm = time.clock() - start
               if coords is None or dist is None:
                 log.warning("BadName: could not get coords for {0}".format(system.name))
                 if cls == 'c2':
@@ -220,6 +219,12 @@ if __name__ == '__main__':
       
       with env.use() as envdata:
         run_test(envdata.find_all_systems())
+
+    elif sys.argv[1] == "icztest":
+      env.set_verbosity(2)
+
+      with env.use() as envdata:
+        run_test(envdata.find_systems_by_glob("ICZ *"))
 
     elif sys.argv[1] == "nametest":
       env.set_verbosity(2)
