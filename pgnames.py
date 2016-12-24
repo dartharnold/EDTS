@@ -84,7 +84,7 @@ def get_sector(input, allow_ha = True, get_name = True):
     if allow_ha:
       ha_name = _ha_get_name(input)
       if ha_name is not None:
-        return pgdata.ha_sectors[ha_name.lower()]
+        return pgdata.ha_regions[ha_name.lower()]
     # If we're not checking HA or it's not in such a sector, do PG
     x = (input.x - sector.base_coords.x) // sector.sector_size
     y = (input.y - sector.base_coords.y) // sector.sector_size
@@ -140,9 +140,9 @@ def get_canonical_name(name, sector_only = False):
   else:
     sectname_raw = name
 
-  # Check if this sector name appears in ha_sectors, pass it through the fragment process if not
-  if sectname_raw.lower() in pgdata.ha_sectors:
-    sectname = pgdata.ha_sectors[sectname_raw.lower()].name
+  # Check if this sector name appears in ha_regions, pass it through the fragment process if not
+  if sectname_raw.lower() in pgdata.ha_regions:
+    sectname = pgdata.ha_regions[sectname_raw.lower()].name
   else:
     # get_sector_fragments converts to Title Case, so we don't need to
     frags = get_sector_fragments(sectname_raw)
@@ -328,18 +328,20 @@ Args:
 Returns:
   An OrderedDict object where keys are the names of the sectors, and values are the sector objects themselves.
 """
-def get_ha_sectors(reference = None, max_distance = None):
+def get_ha_regions(reference = None, max_distance = None):
   if reference is not None:
     pos_reference = util.get_as_position(reference)
     if pos_reference is None:
       raise ValueError("if provided, reference must be a position, or a System/Sector-like object")
-    result = [(s.name, s) for s in pgdata.ha_sectors.values() if (max_distance is None or (pos_reference - s.centre).length < max_distance)]
+    result = [(s.name, s) for s in pgdata.ha_regions.values() if (max_distance is None or (pos_reference - s.centre).length < max_distance)]
     result.sort(key=lambda s: (pos_reference - s[1].centre).length)
     return collections.OrderedDict(result)
   else:
     if max_distance is not None:
       raise ValueError("cannot provide max_distance without a reference position")
-    return collections.OrderedDict([(s.name, s) for s in pgdata.ha_sectors.values()])
+    return collections.OrderedDict([(s.name, s) for s in pgdata.ha_regions.values()])
+# Alias for backwards compatibility
+get_ha_sectors = get_ha_regions
 
 
 """
@@ -473,7 +475,7 @@ def _get_sysid_from_soffset(position, mcode, format_output=False):
 # Get the class of the sector from its name
 # e.g. Froawns = 1, Froadue = 1, Eos Aowsy = 2
 def _get_sector_class(sect):
-  if util.is_str(sect) and sect.lower() in pgdata.ha_sectors:
+  if util.is_str(sect) and sect.lower() in pgdata.ha_regions:
     return "ha"
   frags = get_sector_fragments(sect) if util.is_str(sect) else sect
   if frags is not None and len(frags) == 4 and frags[0] in pgdata.cx_prefixes and frags[2] in pgdata.cx_prefixes:
@@ -554,8 +556,8 @@ def _get_sector_from_name(sector_name, allow_ha = True):
   sector_name = get_canonical_name(sector_name, sector_only=True)
   if sector_name is None:
     return None
-  if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_sectors:
-    return pgdata.ha_sectors[sector_name.lower()]
+  if allow_ha and util.is_str(sector_name) and sector_name.lower() in pgdata.ha_regions:
+    return pgdata.ha_regions[sector_name.lower()]
   else:
     frags = get_sector_fragments(sector_name) if util.is_str(sector_name) else sector_name
     if frags is not None:
@@ -639,7 +641,7 @@ def _get_system_from_name(input, allow_ha = True):
 
 # Get which HA sector this position would be part of, if any
 def _ha_get_name(pos):
-  for (sname, s) in pgdata.ha_sectors.items():
+  for (sname, s) in pgdata.ha_regions.items():
     if s.contains(pos):
       return s.name
   return None

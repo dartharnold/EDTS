@@ -32,8 +32,8 @@ def run_test(it):
     if sysname is not None:
       m = pgdata.pg_system_regex.match(sysname)
       if m is not None:
-        if m.group("sector").lower() in pgdata.ha_sectors:
-          sect = pgdata.ha_sectors[m.group("sector").lower()]
+        if m.group("sector").lower() in pgdata.ha_regions:
+          sect = pgdata.ha_regions[m.group("sector").lower()]
           is_noneha = False
           if sect.contains(system.position):
             rp, rpe = pgnames._get_relpos_from_sysid(*m.group("l1", "l2", "l3", "mcode", "n1", "n2"))
@@ -68,7 +68,7 @@ def run_test(it):
             else:
               badhaname += 1
               if ha_name is not None:
-                log.info("BadHAName: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sect.size, ha_name, pgdata.ha_sectors[ha_name.lower()].size))
+                log.info("BadHAName: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sect.size, ha_name, pgdata.ha_regions[ha_name.lower()].size))
               else:
                 log.info("BadHAName: {} ({}Ly) was predicted to not be in an HA sector".format(system.name, sect.size))
         else:

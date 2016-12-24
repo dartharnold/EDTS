@@ -183,7 +183,7 @@ c1_infix_s2_total_run_length = sum([c1_infix_length_overrides.get(p, c1_infix_s2
 
 
 # Hand-authored sectors
-ha_sectors = collections.OrderedDict([
+ha_regions = collections.OrderedDict([
   ("trianguli sector", sector.HARegion("Trianguli Sector", 50.0, [sector.HASphere(vector3.Vector3(60.85156, -47.94922, -81.32031), 50.0)])),
   ("crucis sector", sector.HARegion("Crucis Sector", 60.0, [sector.HASphere(vector3.Vector3(75.91016, 8.32812, 44.83984), 60.0)])),
   ("tascheter sector", sector.HARegion("Tascheter Sector", 50.0, [sector.HASphere(vector3.Vector3(1.46094, -22.39844, -62.74023), 50.0)])),
@@ -673,5 +673,6 @@ ha_sectors = collections.OrderedDict([
 # Sort by increasing size for checks, so smaller sectors are checked first
 # NOTE: This relies on behaviour of OrderedDict whereby if the sort key is
 # equal (i.e. sectors of identical size) the existing order is retained
-ha_sectors = collections.OrderedDict(sorted(ha_sectors.items(), key=lambda t: t[1].size))
-
+ha_regions = collections.OrderedDict(sorted(ha_regions.items(), key=lambda t: t[1].size))
+# Also define this for backwards compatibility
+ha_sectors = ha_regions
