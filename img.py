@@ -31,8 +31,8 @@ _default_min_ly_per_px = 50.0
 permit_sectors = ["Bleia1", "Bleia2", "Bleia3", "Bleia4", "Bleia5",
                   "Praei1", "Praei2", "Praei3", "Praei4", "Praei5", "Praei6",
                   "Bovomit", "Hyponia", "Froadik", "Dryman", "Sidgoir", 
-                  "Col 70 Sector", "IC 4673 Sector", "Regor Sector", "Barnard's Loop Sector",
-                  "Horsehead Dark Sector", "Col 121 Sector", "M41 Sector", "NGC 2264 Sector", 
+                  "Col 70 Sector", "IC 4673 Sector", "Regor Sector",
+                  "Horsehead Dark Region", "Col 121 Sector", "M41 Sector", "NGC 2264 Sector", 
                   "Col 97 Sector", "NGC 1647 Sector", "NGC 2286 Sector", "NGC 3603 Sector", 
                   ]
 
