@@ -32,7 +32,15 @@ def get_mcode(input):
 
 class Sector(object):
   def __init__(self, name):
-    self.name = name
+    self._name = name
+
+  @property
+  def name(self):
+    return self._name
+
+  @property
+  def needs_permit(self):
+    return False
 
   @property
   def centre(self):
@@ -88,11 +96,12 @@ class HASphere(object):
 
 
 class HARegion(Sector):
-  def __init__(self, name, size, spheres):
+  def __init__(self, name, size, spheres, needs_permit = False):
     super(HARegion, self).__init__(name)
     self._centre = vector3.mean([s.centre for s in spheres])
-    self._radius = size
+    self._size = size
     self._spheres = list(spheres)
+    self._needs_permit = needs_permit
     o = [sys.float_info.max, sys.float_info.max, sys.float_info.max]
     for s in self.spheres:
       o[0] = min(o[0], s.origin.x)
@@ -115,11 +124,11 @@ class HARegion(Sector):
 
   @property
   def radius(self):
-    return self._radius
+    return self._size
 
   @property
   def size(self):
-    return self._radius
+    return self._size
 
   @property
   def sector_class(self):
@@ -128,6 +137,10 @@ class HARegion(Sector):
   @property
   def spheres(self):
     return self._spheres
+
+  @property
+  def needs_permit(self):
+    return self._needs_permit
 
   def contains(self, pos):
     return any([s.contains(pos) for s in self.spheres])
@@ -140,8 +153,6 @@ class HARegion(Sector):
 
 
 class PGSector(Sector):
-  __slots__ = ('_v','name')
-
   def __init__(self, x, y, z, name = None, sc = None):
     super(PGSector, self).__init__(name)
     self._v = [int(x), int(y), int(z)]
