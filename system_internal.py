@@ -42,6 +42,14 @@ class System(object):
   def sector(self):
     return pgnames.get_sector(self.position)
 
+  @property
+  def needs_permit(self):
+    return self.sector.needs_permit
+
+  @property
+  def needs_system_permit(self):
+    return False
+
   def to_string(self, use_long = False):
     if use_long:
       return u"{0} ({1:.2f}, {2:.2f}, {3:.2f})".format(self.name, self.position.x, self.position.y, self.position.z)
@@ -102,6 +110,10 @@ class KnownSystem(System):
 
   @property
   def needs_permit(self):
+    return (self._needs_permit or self.sector.needs_permit)
+
+  @property
+  def needs_system_permit(self):
     return self._needs_permit
 
   @property
