@@ -1,3 +1,5 @@
+# coding=utf-8
+
 import math
 import numbers
 import sys
