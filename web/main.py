@@ -1,4 +1,10 @@
 #!/usr/bin/env python
+from __future__ import print_function, division
+from wand.color import Color
+from wand.drawing import Drawing
+from wand.image import Image
+from wand.display import display
+import io
 
 import sys
 import json
@@ -13,8 +19,10 @@ import fsd
 import pgnames
 import pgdata
 import sector
+import system
 import vector3
 del sys.path[1]
+
 
 
 def vec3_to_dict(v):
@@ -29,6 +37,67 @@ def strip_path():
 @bottle.route('/')
 def index():
   return bottle.template('index')
+
+
+@bottle.route('/img')
+def img_index():
+  return bottle.template('img')
+
+
+_default_centre = vector3.Vector3(0, 0, 25000)
+_px_scale = 1.0
+_width_ly = 90000
+_height_ly = 90000
+_circle_radius = 7
+_font_size = 14
+_font_name = 'Droid Sans Mono'
+_color = 'rgb(0,0,224)'
+
+@bottle.route('/mkimg/<systems>')
+def img_make(systems):
+  sl = list(systems.split(','))
+  with env.use() as data:
+    syslist = data.get_systems_by_name(sl)
+  for i,s in syslist.items():
+    if s is None:
+      syslist[i] = system.from_name(i)
+
+  cnt = 0
+  output = io.BytesIO()
+  with Drawing() as draw:
+    with Image(filename='edgalaxy_1500.png') as img:
+      width_px = img.width
+      height_px = img.height
+      color = Color(_color)
+      # Draw lines - make this optional/different one day?
+      draw.fill_color = Color('#888')
+      draw.fill_opacity = 0.5
+      draw.line((0,img.size[1]/2), (img.size[0], img.size[1]/2))
+      draw.line((img.size[0]/2,0), (img.size[0]/2, img.size[1]))
+      draw(img)
+      draw.fill_color = color
+      draw.fill_opacity = 1.0
+      draw.font_size = _font_size
+      draw.font_family = _font_name
+      text_offset_x = _circle_radius * 1.5
+      text_offset_y = _circle_radius * 0.8
+      for s in syslist.values():
+        if s is None:
+          continue
+        draw.text_alignment = 'left' if (cnt % 2) == 0 else 'right'
+        pos = s.position
+        coord_x = int( (pos.x - _default_centre.x) * (width_px // _px_scale) / _width_ly + ((width_px / 2) // _px_scale))
+        coord_y = int(-(pos.z - _default_centre.z) * (height_px // _px_scale) / _height_ly + ((height_px / 2) // _px_scale))
+        draw.circle((coord_x, coord_y), (coord_x + _circle_radius, coord_y))
+        draw.text(int(coord_x + text_offset_x), int(coord_y + text_offset_y), s.name)
+        text_offset_x = -text_offset_x
+        cnt += 1
+      draw(img)
+      img.save(file=output)
+      bottle.response.content_type = 'image/png'
+      output.seek(0)
+      output_data = output.read()
+      return output_data
 
 
 @bottle.route('/jump_range')
