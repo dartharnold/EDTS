@@ -49,7 +49,7 @@ _px_scale = 1.0
 _width_ly = 90000
 _height_ly = 90000
 _circle_radius = 7
-_font_size = 14
+_font_size = 16
 _font_name = 'DejaVu Sans Mono'
 _color = 'rgb(0,64,255)'
 
@@ -69,6 +69,7 @@ def img_make(systems):
       width_px = img.width
       height_px = img.height
       color = Color(_color)
+      black = Color('#000')
       # Draw lines - make this optional/different one day?
       draw.fill_color = Color('#888')
       draw.fill_opacity = 0.5
@@ -76,20 +77,28 @@ def img_make(systems):
       draw.line((img.size[0]/2,0), (img.size[0]/2, img.size[1]))
       draw(img)
       draw.fill_color = color
-      draw.fill_opacity = 1.0
       draw.font_size = _font_size
       draw.font_family = _font_name
       draw.font_weight = 900
+      draw.stroke_color = Color('#000')
+      draw.stroke_opacity = 0.75
+      draw.stroke_width = 1.0
       text_offset_x = _circle_radius * 1.5
       text_offset_y = _circle_radius * 0.8
-      for s in syslist.values():
-        if s is None:
-          continue
+      for s in sorted([t for t in syslist.values() if t is not None], key=lambda t: t.position.x):
         draw.text_alignment = 'left' if (cnt % 2) == 0 else 'right'
         pos = s.position
         coord_x = int( (pos.x - _default_centre.x) * (width_px // _px_scale) / _width_ly + ((width_px / 2) // _px_scale))
         coord_y = int(-(pos.z - _default_centre.z) * (height_px // _px_scale) / _height_ly + ((height_px / 2) // _px_scale))
+        draw.stroke_opacity = 1.0
+        draw.stroke_color = color
+        draw.stroke_width = int(_circle_radius // 2.0)
+        draw.fill_opacity = 0.0
         draw.circle((coord_x, coord_y), (coord_x + _circle_radius, coord_y))
+        draw.stroke_width = 1.0
+        draw.stroke_opacity = 0.75
+        draw.stroke_color = black
+        draw.fill_opacity = 1.0
         draw.text(int(coord_x + text_offset_x), int(coord_y + text_offset_y), s.name)
         text_offset_x = -text_offset_x
         cnt += 1
