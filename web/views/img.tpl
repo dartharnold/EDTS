@@ -6,7 +6,7 @@
     function doSubmit()
     {
       var txt = document.getElementById("systems").value;
-      txt = txt.replace("\r\n", ",").replace("\n", ",");
+      txt = txt.replace(/\r\n/g, ",").replace(/\n/g, ",");
       window.location = "/mkimg/" + txt;
     }
   </script>

@@ -50,8 +50,8 @@ _width_ly = 90000
 _height_ly = 90000
 _circle_radius = 7
 _font_size = 14
-_font_name = 'Droid Sans Mono'
-_color = 'rgb(0,0,224)'
+_font_name = 'DejaVu Sans Mono'
+_color = 'rgb(0,64,255)'
 
 @bottle.route('/mkimg/<systems>')
 def img_make(systems):
@@ -79,6 +79,7 @@ def img_make(systems):
       draw.fill_opacity = 1.0
       draw.font_size = _font_size
       draw.font_family = _font_name
+      draw.font_weight = 900
       text_offset_x = _circle_radius * 1.5
       text_offset_y = _circle_radius * 0.8
       for s in syslist.values():
@@ -255,5 +256,5 @@ def api_find_station(glob):
 
 if __name__ == '__main__':
   env.start(data_path)
-  bottle.run(host='localhost', port=8080)
+  bottle.run(host='localhost', port=8099)
   env.stop(data_path)
