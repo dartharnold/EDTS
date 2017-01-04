@@ -70,6 +70,7 @@ def img_make(systems):
       height_px = img.height
       color = Color(_color)
       black = Color('#000')
+      white = Color('#fff')
       # Draw lines - make this optional/different one day?
       draw.fill_color = Color('#888')
       draw.fill_opacity = 0.5
@@ -94,11 +95,13 @@ def img_make(systems):
         draw.stroke_color = color
         draw.stroke_width = int(_circle_radius // 2.0)
         draw.fill_opacity = 0.0
+        draw.fill_color = color
         draw.circle((coord_x, coord_y), (coord_x + _circle_radius, coord_y))
         draw.stroke_width = 1.0
         draw.stroke_opacity = 0.75
         draw.stroke_color = black
         draw.fill_opacity = 1.0
+        draw.fill_color = white
         draw.text(int(coord_x + text_offset_x), int(coord_y + text_offset_y), s.name)
         text_offset_x = -text_offset_x
         cnt += 1
