@@ -358,7 +358,7 @@ def get_grid_coords(pos, is_global = False):
   pos = util.get_as_position(pos)
   if pos is None:
     return None
-  origin = sector.internal_origin_offset if is_global else get_sector(pos, allow_ha=False, get_name=False)
+  origin = sector.internal_origin_offset if is_global else get_sector(pos, allow_ha=False, get_name=False).origin
   mx = int(round((pos.x - origin.x) * 32))
   my = int(round((pos.y - origin.y) * 32))
   mz = int(round((pos.z - origin.z) * 32))
