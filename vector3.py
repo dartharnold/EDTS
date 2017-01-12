@@ -186,7 +186,10 @@ class Vector3(object):
     def get_normalised(self):
         x, y, z = self._v
         l = sqrt(x*x + y*y + z*z)
-        return Vector3(x/l, y/l, z/l)
+        try:
+          return Vector3(x/l, y/l, z/l)
+        except ZeroDivisionError:
+          return Vector3(0.0, 0.0, 0.0)
     get_normalized = get_normalised
 
     def dot(self, other):
