@@ -20,6 +20,7 @@ import ship
 import edts
 import close_to
 import coords
+import direction
 import distance
 import find
 import galmath
@@ -66,6 +67,12 @@ class EDI(cmd.Cmd):
 
   def do_edts(self, args):
     return self.run_application(edts, args)
+
+  def help_direction(self):
+    return self.run_help(direction)
+
+  def do_direction(self, args):
+    return self.run_application(direction, args)
 
   def help_distance(self):
     return self.run_help(distance)
