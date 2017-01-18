@@ -58,7 +58,7 @@ def calculate_id64s_from_lists(names, full, lists):
     output[names[idx]] = n
   return output
 
-# {18:25:39} ImportStars: unknown star: 'M Centauri'
+
 def calculate_id64s_from_list_files(names_file, full_file, list_files):
   with open(names_file, 'r') as f:
     names = [n.strip() for n in f]
