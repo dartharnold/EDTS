@@ -8,6 +8,7 @@ import sys
 import time
 import env
 from pgnames import log
+import system
 
 def run_test(it):
   teststart = time.clock()
@@ -219,6 +220,20 @@ if __name__ == '__main__':
       
       with env.use() as envdata:
         run_test(envdata.find_all_systems())
+
+    elif sys.argv[1] == "id64datatest":
+      env.set_verbosity(2)
+      env.start()
+      import id64data
+      for name, id64 in id64data.known_systems.items():
+        pgpos, pgunc, pgn2, pgbody = system.calculate_from_id64(id64)
+        knownsys = system.from_name(name)
+        if knownsys is None:
+          # print("Unknown system: {} ({})".format(name, id64))
+          continue
+        if any([abs(pgpos[i] - knownsys.position[i]) > (pgunc / 2) for i in range(3)]):
+          print("Bad ID64: {} actually at {}, meant to be at {} +/- {}LY".format(knownsys.name, knownsys.position, pgpos, pgunc/2))
+      env.stop()
 
     elif sys.argv[1] == "icztest":
       env.set_verbosity(2)
