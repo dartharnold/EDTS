@@ -1,28 +1,147 @@
+import logging
 import math
 import os
 import struct
 import sys
+import tempfile
 import util
 
-_vscache_entry_len = 8 # bytes / 64 bits
-_vscache_header_len = 6 * _vscache_entry_len
-_vscache_eof_marker = 0x5AFEC0DE5AFEC0DE
+log = logging.getLogger('starcache')
 
+class VisitedStarsCacheHeader(object):
+  def __init__(self):
+    self.start_magic = 'VisitedStars'
+    self.end_magic = 0x5AFEC0DE5AFEC0DE
+    self.magic = self.start_magic
+    self.padding = 0
+    self.version = 100
+    self.start = 0x30
+    self.end = 0x30
+    self.num_entries_offset = 0x18
+    self.num_entries = 0
+    self.entry_len = 8
+    self.account_id = 0
+    self.unknown1 = 0
+    self.cmdr_id = 0
+    self.unknown2 = 0
+
+def read_struct(f, format, size):
+  try:
+    data = f.read(size)
+    return struct.unpack(format, data)[0]
+  except:
+    log.error('Failed to read {} octets!'.format(size))
+    raise
+
+def read_uint32(f):
+  return read_struct(f, '<L', 4)
+
+def read_uint64(f):
+  return read_struct(f, '<Q', 8)
+
+def write_uint32(f, n):
+  return write_struct(f, '<L', n)
+
+def write_struct(f, format, n):
+  try:
+    f.write(struct.pack(format, n))
+  except:
+    log.error('Failed to write {} as  {}'.format(n, format))
+    raise
+
+def write_uint64(f, n):
+  return write_struct(f, '<Q', n)
+
+def read_visited_stars_cache_header(f):
+  try:
+    header = VisitedStarsCacheHeader()
+    header.magic = f.read(12)
+    if header.magic != header.start_magic:
+      log.error('Missing "VisitedStars" header!')
+      return None
+    header.padding = read_uint32(f)
+    if header.padding != 0:
+      log.warn('Unexpected non-zero padding after "VisitedStars" header...')
+    header.version = read_uint32(f)
+    if header.version != 100:
+      log.warn('Unexpected version {} not 100...'.format(header.version))
+    header.start = read_uint32(f)
+    header.num_entries = read_uint32(f)
+    header.entry_len = read_uint32(f)
+    header.account_id = read_uint32(f)
+    header.unknown1 = read_uint32(f)
+    header.cmdr_id = read_uint32(f)
+    header.unknown2 = read_uint32(f)
+    if header.unknown2 != 0:
+      log.warn('Unexpected non-zero padding after CMDR ID...')
+    header.end = header.start + (header.num_entries * header.entry_len)
+    f.seek(header.end, 0)
+    if f.tell() != header.end:
+      log.error('Failed to seek to end of entries!')
+      return None
+    if read_uint64(f) != header.end_magic:
+      log.warning('Missing magic EOF marker!')
+    f.seek(header.start)
+    if f.tell() != header.start:
+      log.error('Failed to seek to start of entries!')
+      return None
+    return header
+  except:
+    return None
+
+def write_visited_stars_cache(filename, systems):
+  scratch = None
+  try:
+    dirname = os.path.dirname(filename)
+    fd, scratch = tempfile.mkstemp('.tmp', 'VisitedStarsCache', dirname if dirname else '.')
+    with os.fdopen(fd, 'wb') as f:
+      header = VisitedStarsCacheHeader()
+      f.write(header.magic)
+      write_uint32(f, header.padding)
+      write_uint32(f, header.version)
+      write_uint32(f, header.start)
+      header.num_entries_offset = f.tell()
+      write_uint32(f, header.num_entries)
+      write_uint32(f, header.entry_len)
+      write_uint32(f, header.account_id)
+      write_uint32(f, header.unknown1)
+      write_uint32(f, header.cmdr_id)
+      write_uint32(f, header.unknown2)
+      for system in systems:
+        if system.id64 is None:
+          log.error('{} has no id64!'.format(system.name))
+          continue
+        write_uint64(f, system.id64)
+        header.num_entries += 1
+      write_uint64(f, header.end_magic)
+      f.seek(header.num_entries_offset)
+      if f.tell() != header.num_entries_offset:
+        log.error('Failed to seek to entry count offset!')
+        raise RuntimeError
+      write_uint32(f, header.num_entries)
+      os.rename(scratch, filename)
+  except:
+    if scratch is not None:
+      os.unlink(scratch)
+    raise
+    return False
+  return True
 
 def parse_visited_stars_cache(filename):
   with open(filename, 'rb') as f:
-    # Skip over file header
-    f.seek(_vscache_header_len, 0)
-    cur_entry = f.read(_vscache_entry_len)
-    while cur_entry is not None and len(cur_entry) == _vscache_entry_len:
+    header = read_visited_stars_cache_header(f)
+    if not header:
+      return
+    cur_entry = f.read(header.entry_len)
+    while cur_entry is not None and len(cur_entry) == header.entry_len:
       # Swap bytes to make it a sensible integer
       cur_id = struct.unpack('<Q', cur_entry)[0]
       # Check if this matches the magic EOF value
-      if cur_id == _vscache_eof_marker:
+      if cur_id == header.end_magic:
         break
       # Return this ID
       yield cur_id
-      cur_entry = f.read(_vscache_entry_len)
+      cur_entry = f.read(header.entry_len)
 
 
 def create_import_lists(data):
