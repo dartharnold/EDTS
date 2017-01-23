@@ -61,10 +61,10 @@ def read_visited_stars_cache_header(f):
       return None
     header.padding = read_uint32(f)
     if header.padding != 0:
-      log.warn('Unexpected non-zero padding after "VisitedStars" header...')
+      log.warning('Unexpected non-zero padding after "VisitedStars" header...')
     header.version = read_uint32(f)
     if header.version != 100:
-      log.warn('Unexpected version {} not 100...'.format(header.version))
+      log.warning('Unexpected version {} not 100...'.format(header.version))
     header.start = read_uint32(f)
     header.num_entries = read_uint32(f)
     header.entry_len = read_uint32(f)
@@ -73,7 +73,7 @@ def read_visited_stars_cache_header(f):
     header.cmdr_id = read_uint32(f)
     header.unknown2 = read_uint32(f)
     if header.unknown2 != 0:
-      log.warn('Unexpected non-zero padding after CMDR ID...')
+      log.warning('Unexpected non-zero padding after CMDR ID...')
     header.end = header.start + (header.num_entries * header.entry_len)
     f.seek(header.end, 0)
     if f.tell() != header.end:
