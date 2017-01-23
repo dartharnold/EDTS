@@ -1,5 +1,6 @@
 import pgnames
 import sector
+import struct
 import util
 import vector3
 
@@ -74,6 +75,14 @@ class System(object):
       return (self.name == other.name and self.position == other.position)
     else:
       return NotImplemented
+
+  def pretty_id64(self, dump = False):
+    if self.id64 is None:
+      return "MISSING ID64"
+    if dump:
+      return ' '.join(map(lambda b: '{0:02x}'.format(b), bytearray(struct.pack('<Q', self.id64))))
+    else:
+      return "0x{0:02x}".format(self.id64)
 
   def __hash__(self):
     return self._hash
