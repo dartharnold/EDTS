@@ -1,9 +1,14 @@
+from enum import Enum
 import pgnames
 import sector
 import struct
 import util
 import vector3
 
+class ID64Format(Enum):
+  INT = 0
+  HEX = 1
+  VSC = 2
 
 class System(object):
   def __init__(self, x, y, z, name = None, id64 = None):
@@ -76,13 +81,13 @@ class System(object):
     else:
       return NotImplemented
 
-  def pretty_id64(self, dump = False):
+  def pretty_id64(self, format = 0):
     if self.id64 is None:
       return "MISSING ID64"
-    if dump:
+    if format is ID64Format.VSC:
       return ' '.join(map(lambda b: '{0:02x}'.format(b), bytearray(struct.pack('<Q', self.id64))))
     else:
-      return "0x{0:02x}".format(self.id64)
+      return "{0}".format("{0:016x}" if format is ID64Format.HEX else "{0:d}").format(self.id64).upper()
 
   def __hash__(self):
     return self._hash

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from system_internal import ID64Format
 import argparse
 import env
 import fnmatch
@@ -23,12 +24,9 @@ class Application(object):
     ap.add_argument("-i", "--show-ids", default=False, action='store_true', help="Show system and station IDs in output")
     ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
     ap.add_argument("-r", "--regex", default=False, action='store_true', help="Takes input as a regex rather than a glob")
-    ap.add_argument("--id64", default=False, action='store_true', help="Show system ID64 in output")
-    ap.add_argument("--hex-id64", default=False, action='store_true', help="Show hex dump of system ID64")
+    ap.add_argument("--id64", required=False, type=str.upper, choices=[f.name for f in ID64Format], help="Show system ID64 in output")
     ap.add_argument("system", metavar="system", type=str, nargs=1, help="The system or station to find")
     self.args = ap.parse_args(arg)
-    if self.args.hex_id64:
-      self.args.id64 = True
 
   def run(self):
     sys_matches = []
@@ -52,7 +50,7 @@ class Application(object):
         print("")
         for sysobj in sorted(sys_matches, key=lambda t: t.name):
           if self.args.show_ids or self.args.id64:
-            id = " ({0})".format(sysobj.pretty_id64(self.args.hex_id64) if self.args.id64 else sysobj.id)
+            id = " ({0})".format(sysobj.pretty_id64(ID64Format[self.args.id64]) if self.args.id64 else sysobj.id)
           else:
             id = ""
           print("  {0}{1}".format(sysobj.to_string(), id))
