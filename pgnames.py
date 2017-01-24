@@ -130,38 +130,10 @@ Returns:
   The input system/sector name with its case corrected
 """
 def get_canonical_name(name, sector_only = False):
-  sectname = None
-  sysid = None
-
-  # See if we have a full system name
-  m = pgdata.pg_system_regex.match(name)
-  if m is not None:
-    sectname_raw = m.group("sector")
-  else:
-    sectname_raw = name
-
-  # Check if this sector name appears in ha_regions, pass it through the fragment process if not
-  if sectname_raw.lower() in pgdata.ha_regions:
-    sectname = pgdata.ha_regions[sectname_raw.lower()].name
-  else:
-    # get_sector_fragments converts to Title Case, so we don't need to
-    frags = get_sector_fragments(sectname_raw)
-    if frags is not None:
-      sectname = format_sector_name(frags)
-
-  if sector_only:
-    return sectname
-
-  # Work out what we should be returning, and do it
-  if m is not None and sectname is not None:
-    return format_system_name({
-      'SectorName': sectname,
-      'L1': m.group('l1'), 'L2': m.group('l2'), 'L3': m.group('l3'),
-      'MCode': m.group('mcode'),
-      'N1': m.group('n1'), 'N2': m.group('n2')})
-  else:
-    # This may be none if get_sector_fragments/format_sector_name failed
-    return sectname
+  result = _get_canonical_name_fragments(name, sector_only)
+  if result is None or 'SectorName' not in result:
+    return None
+  return format_system_name(result) if (len(result) > 1 and not sector_only) else result['SectorName']
 
 
 """
@@ -285,9 +257,7 @@ Returns:
 """
 def get_system_fragments(input, ensure_canonical = True):
   if ensure_canonical:
-    input = get_canonical_name(input)
-  if input is None:
-    return None
+    return _get_canonical_name_fragments(input)
   m = pgdata.pg_system_regex.match(input)
   if m is None:
     return None
@@ -470,6 +440,42 @@ def _get_sysid_from_soffset(position, mcode, format_output=False):
     return output
   else:
     return [prefix, centre, suffix, sector.get_mcode(mcode), number1]
+
+
+# Get the canonical name fragments of a system/sector
+def _get_canonical_name_fragments(name, sector_only = False):
+  sectname = None
+  sysid = None
+
+  # See if we have a full system name
+  m = pgdata.pg_system_regex.match(name)
+  if m is not None:
+    sectname_raw = m.group("sector")
+  else:
+    sectname_raw = name
+
+  # Check if this sector name appears in ha_regions, pass it through the fragment process if not
+  if sectname_raw.lower() in pgdata.ha_regions:
+    sectname = pgdata.ha_regions[sectname_raw.lower()].name
+  else:
+    # get_sector_fragments converts to Title Case, so we don't need to
+    frags = get_sector_fragments(sectname_raw)
+    if frags is not None:
+      sectname = format_sector_name(frags)
+
+  if sector_only:
+    return sectname
+
+  # Work out what we should be returning, and do it
+  if m is not None and sectname is not None:
+    return {
+      'SectorName': sectname,
+      'L1': m.group('l1').upper(), 'L2': m.group('l2').upper(), 'L3': m.group('l3').upper(),
+      'MCode': m.group('mcode').lower(),
+      'N1': int(m.group('n1')) if m.group('n1') is not None else 0, 'N2': int(m.group('n2'))}
+  else:
+    # sectname may be none if get_sector_fragments/format_sector_name failed
+    return {'SectorName': sectname}
 
 
 # Get the class of the sector from its name
