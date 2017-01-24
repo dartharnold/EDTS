@@ -60,5 +60,8 @@ class TestFSD(unittest.TestCase):
     self.assertAlmostEqual(wmin, 0.55, 2)
     self.assertAlmostEqual(wmax, 941.39, 2)
     wmin, wmax = f.fuel_weight_range(300.0, mass=521.8)
+    self.assertIsNone(wmin)
+    self.assertIsNone(wmax)
+    wmin, wmax = f.fuel_weight_range(300.0, mass=521.8, allow_invalid=True)
     self.assertGreater(wmin, 10**10)
     self.assertLess(wmax, 0)
