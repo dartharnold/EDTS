@@ -463,11 +463,8 @@ def _get_canonical_name_fragments(name, sector_only = False):
     if frags is not None:
       sectname = format_sector_name(frags)
 
-  if sector_only:
-    return sectname
-
   # Work out what we should be returning, and do it
-  if m is not None and sectname is not None:
+  if not sector_only and m is not None and sectname is not None:
     return {
       'SectorName': sectname,
       'L1': m.group('l1').upper(), 'L2': m.group('l2').upper(), 'L3': m.group('l3').upper(),
