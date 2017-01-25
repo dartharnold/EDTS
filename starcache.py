@@ -93,7 +93,7 @@ def write_visited_stars_cache(filename, systems):
   scratch = None
   try:
     dirname = os.path.dirname(filename)
-    fd, scratch = tempfile.mkstemp('.tmp', 'VisitedStarsCache', dirname if dirname else '.')
+    fd, scratch = tempfile.mkstemp('.tmp', os.path.basename(filename), dirname if dirname else '.')
     with os.fdopen(fd, 'wb') as f:
       header = VisitedStarsCacheHeader()
       f.write(header.magic)
