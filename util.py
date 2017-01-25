@@ -110,6 +110,15 @@ def read_stream(stream, limit = None):
 def read_from_url(url):
   return read_stream(open_url(url))
 
+def write_stream(stream, data):
+  try:
+    if sys.version_info >= (3, 0):
+      return stream.write(data.encode("utf-8"))
+    else:
+      return stream.write(data)
+  except:
+    raise
+
 def path_to_url(path):
   if sys.version_info >= (3, 0):
     return urllib.parse.urljoin('file:', urllib.request.pathname2url(os.path.abspath(path)))
