@@ -20,7 +20,7 @@ class Application(object):
     ap.add_argument("-c", "--check", default=False, action='store_true', help="Check if second system is in the same direction as the first from the reference")
     ap.add_argument("-n", "--normal", default=False, action='store_true', help="Return normalised direction vector")
     ap.add_argument("-r", "--reference", metavar="system", nargs='?', default="Sol", help="Reference system for angle calculation")
-    ap.add_argument("-t", "--tolerance", type=int, default=15, help="Tolerance in percent for --check")
+    ap.add_argument("-t", "--tolerance", type=float, default=5, help="Tolerance in percent for --check")
     ap.add_argument("systems", metavar="system", nargs=2, help="Systems")
 
     self.args = ap.parse_args(arg)
@@ -50,12 +50,12 @@ class Application(object):
         d = v.dot(w)
         log.debug('{0} vs {1} dot {2}'.format(v, w, d))
         if d >= 1.0 - float(self.args.tolerance) / 100:
-          print('OK {}% deviation'.format(100 - int(100 * d)))
+          print('OK {0:.2f}% deviation'.format(100 * (1 - d)))
           sys.exit(0)
         elif d < 0.0:
           print('NO opposite')
         else:
-          print('NO {}% deviation'.format(100 - int(100 * d)))
+          print('NO {0:.2f}% deviation'.format(100 * (1 - d)))
         sys.exit(100)
       else:
         v = b - a
