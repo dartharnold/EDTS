@@ -196,14 +196,14 @@ def calculate_from_id64(input):
   return (coords, boxel_size, n2, body_id)
 
 
-def calculate_id64(pos, mcode, n2):
+def calculate_id64(pos, mcode, n2, body = 0):
   # Get the data we need to start with (mc as 0-7, cube width, boxel X/Y/Z coords)
   mc = ord(sector.get_mcode(mcode)) - ord('a')
   cube_width = sector.get_mcode_cube_width(mcode)
   boxel_coords = (pgnames.get_boxel_origin(pos, mcode) - sector.internal_origin_offset) / cube_width
   # Populate each field, shifting as required
-  output = util.pack_and_shift(0, 0, 3)
-  output = util.pack_and_shift(output, int(n2), 16)  # Not sure what the length is
+  output = util.pack_and_shift(0, int(body), 9)
+  output = util.pack_and_shift(output, int(n2), 11+mc*3)
   output = util.pack_and_shift(output, int(boxel_coords.x), 14-mc)
   output = util.pack_and_shift(output, int(boxel_coords.y), 13-mc)
   output = util.pack_and_shift(output, int(boxel_coords.z), 14-mc)
