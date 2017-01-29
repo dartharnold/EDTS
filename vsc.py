@@ -24,6 +24,7 @@ class Application(object):
     subparsers = ap.add_subparsers()
     bp = subparsers.add_parser("batch", help="Batch import jobs")
     bp.add_argument("-d", "--directory", help="Directory where Elite looks for ImportStars.txt")
+    bp.add_argument("-n", "--no-import", default=False, action="store_true", help="Only create ImportStars files, don't copy to game client")
     bp.add_argument("starfile", metavar="filename")
     bp.set_defaults(func=self.run_batch)
     ip = subparsers.add_parser("import", help="Use Elite client to run import job")
@@ -72,6 +73,9 @@ class Application(object):
     for name in names:
       cachefile = cacheformat.format(name)
       importfile = importformat.format(name)
+      if args.no_import:
+        print(format(importfile))
+        continue
       log.info("Importing from {}".format(importfile))
       self.game_import({
         'cachefile': cachefile,
@@ -79,7 +83,13 @@ class Application(object):
         'importfile': importfile
       })
 
-    id64s = starcache.calculate_id64s_from_list_files(args.starfile, cacheformat.format('Full'), [cacheformat.format(n) for n in names if n != 'Full'])
+    if args.no_import:
+      return
+    try:
+      id64s = starcache.calculate_id64s_from_list_files(args.starfile, cacheformat.format('Full'), [cacheformat.format(n) for n in names if n != 'Full'])
+    except IOError:
+      log.error("Import job failed!")
+      sys.exit(1)
     print(id64s)
 
   def client_import(self, importsrc, importdst, imported, recent):
