@@ -3,7 +3,6 @@ import decimal
 import defs
 import env_backend as eb
 import filter
-import id64data
 import json
 import logging
 import math
@@ -91,6 +90,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done.")
 
   def _generate_systems(self, systems):
+    import id64data
     for s in systems:
       s_id64 = id64data.known_systems.get(s['name'].lower(), None)
       yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']), s_id64)
@@ -265,6 +265,9 @@ class SQLite3DBConnection(eb.EnvBackend):
     # return self.find_systems_by_name_safe(name, mode, filters)
     return self.find_systems_by_name_unsafe(name, mode, filters)
 
+  def find_systems_by_id64(self, id64list, filters = None):
+    return self.find_systems_by_id64_safe(id64list, filters)
+
   def find_stations_by_name(self, name, mode = eb.FIND_EXACT, filters = None):
     # return self.find_stations_by_name_safe(name, mode, filters)
     return self.find_stations_by_name_unsafe(name, mode, filters)
@@ -305,6 +308,23 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done.")
     while result is not None:
       yield (_process_system_result(result), json.loads(result['stndata']))
+      result = c.fetchone()
+
+  def find_systems_by_id64_safe(self, id64list, filters = None):
+    c = self._conn.cursor()
+    cmd, params = _construct_query(
+      ['systems'],
+      ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
+      ["systems.id64 IN ({})".format(','.join(['?'] * len(id64list)))],
+      [],
+      id64list,
+      filters)
+    log.debug("Executing: {}; params = {}".format(cmd, params))
+    c.execute(cmd, params)
+    result = c.fetchone()
+    log.debug("Done.")
+    while result is not None:
+      yield _process_system_result(result)
       result = c.fetchone()
 
   # WARNING: VERY UNSAFE, USE WITH CARE

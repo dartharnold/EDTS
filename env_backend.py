@@ -34,6 +34,9 @@ class EnvBackend(object):
   def find_systems_by_name(self, name, mode = FIND_EXACT, filter = None):
     raise NotImplementedError("Invalid use of base EnvBackend find_systems_by_name method")
 
+  def find_systems_by_id64(self, name, filter = None):
+    raise NotImplementedError("Invalid use of base EnvBackend find_systems_by_id64 method")
+
   def find_stations_by_name(self, name, mode = FIND_EXACT, filter = None):
     raise NotImplementedError("Invalid use of base EnvBackend find_stations_by_name method")
 
