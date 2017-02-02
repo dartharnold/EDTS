@@ -12,9 +12,10 @@ log = logging.getLogger('starcache')
 class VisitedStarsCacheHeader(object):
   def __init__(self):
     self.start_magic = 'VisitedStars'
+    self.recent_magic = 0x7f00
     self.end_magic = 0x5AFEC0DE5AFEC0DE
     self.magic = self.start_magic
-    self.padding = 0
+    self.recent = False
     self.version = 100
     self.start = 0x30
     self.end = 0x30
@@ -60,9 +61,11 @@ def read_visited_stars_cache_header(f):
     if header.magic.decode("utf-8") != header.start_magic:
       log.error('Missing "VisitedStars" header!')
       return None
-    header.padding = read_uint32(f)
-    if header.padding != 0:
-      log.warning('Unexpected non-zero padding after "VisitedStars" header...')
+    recent = read_uint32(f)
+    if recent == header.recent_magic:
+      header.recent = True
+    elif recent:
+      log.warning('Unexpected recent magic...')
     header.version = read_uint32(f)
     if header.version != 100:
       log.warning('Unexpected version {} not 100...'.format(header.version))
@@ -75,13 +78,14 @@ def read_visited_stars_cache_header(f):
     header.unknown2 = read_uint32(f)
     if header.unknown2 != 0:
       log.warning('Unexpected non-zero padding after CMDR ID...')
-    header.end = header.start + (header.num_entries * header.entry_len)
-    f.seek(header.end, 0)
-    if f.tell() != header.end:
-      log.error('Failed to seek to end of entries!')
-      return None
-    if read_uint64(f) != header.end_magic:
-      log.warning('Missing magic EOF marker!')
+    if not header.recent:
+      header.end = header.start + (header.num_entries * header.entry_len)
+      f.seek(header.end, 0)
+      if f.tell() != header.end:
+        log.error('Failed to seek to end of entries!')
+        return None
+      if read_uint64(f) != header.end_magic:
+        log.warning('Missing magic EOF marker!')
     f.seek(header.start)
     if f.tell() != header.start:
       log.error('Failed to seek to start of entries!')
@@ -90,7 +94,7 @@ def read_visited_stars_cache_header(f):
   except:
     return None
 
-def write_visited_stars_cache(filename, systems):
+def write_visited_stars_cache(filename, systems, recent = False):
   scratch = None
   try:
     dirname = os.path.dirname(filename)
@@ -98,7 +102,10 @@ def write_visited_stars_cache(filename, systems):
     with os.fdopen(fd, 'wb') as f:
       header = VisitedStarsCacheHeader()
       f.write(header.magic)
-      write_uint32(f, header.padding)
+      if recent:
+        write_uint32(f, header.recent_magic)
+      else:
+        write_uint32(f, 0)
       write_uint32(f, header.version)
       write_uint32(f, header.start)
       header.num_entries_offset = f.tell()
@@ -114,12 +121,13 @@ def write_visited_stars_cache(filename, systems):
           continue
         write_uint64(f, system.id64)
         header.num_entries += 1
-      write_uint64(f, header.end_magic)
-      f.seek(header.num_entries_offset)
-      if f.tell() != header.num_entries_offset:
-        log.error('Failed to seek to entry count offset!')
-        raise RuntimeError
-      write_uint32(f, header.num_entries)
+      if not recent:
+        write_uint64(f, header.end_magic)
+        f.seek(header.num_entries_offset)
+        if f.tell() != header.num_entries_offset:
+          log.error('Failed to seek to entry count offset!')
+          raise RuntimeError
+        write_uint32(f, header.num_entries)
       shutil.move(scratch, filename)
   except:
     if scratch is not None:
