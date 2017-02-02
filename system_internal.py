@@ -169,6 +169,10 @@ def mask_id64_as_body(input):
   return result
 
 
+def combine_to_id64(system, body):
+  return (system & (2**55-1)) + ((body & (2**9-1)) << 55)
+
+
 def calculate_from_id64(input):
   # If input is a string, assume hex
   if util.is_str(input):
