@@ -25,6 +25,7 @@ import distance
 import find
 import galmath
 import fuel_usage
+import vsc
 
 
 class EDI(cmd.Cmd):
@@ -115,6 +116,18 @@ class EDI(cmd.Cmd):
 
   def do_fuel_usage(self, args):
     return self.run_application(fuel_usage, args)
+
+  def help_starcache(self):
+    return self.run_help(vsc)
+
+  def do_starcache(self, args):
+    return self.run_application(vsc, args)
+
+  def help_vsc(self):
+    return self.run_help(vsc)
+
+  def do_vsc(self, args):
+    return self.run_application(vsc, args)
 
   def help_set_verbosity(self):
     print("usage: set_verbosity N")
