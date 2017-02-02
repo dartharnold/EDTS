@@ -56,8 +56,8 @@ def write_uint64(f, n):
 def read_visited_stars_cache_header(f):
   try:
     header = VisitedStarsCacheHeader()
-    header.magic = f.read(12)
-    if header.magic != header.start_magic:
+    header.magic = f.read(len(header.start_magic))
+    if header.magic.decode("utf-8") != header.start_magic:
       log.error('Missing "VisitedStars" header!')
       return None
     header.padding = read_uint32(f)
