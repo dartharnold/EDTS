@@ -8,6 +8,7 @@ import gc
 import json
 import logging
 import os
+import shutil
 import platform
 import re
 import sys
@@ -166,7 +167,7 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
     if copy_local:
       f.close()
       f = None
-      os.rename(scratch, filename)
+      shutil.move(scratch, filename)
   except MemoryError:
     encoded = None
     obj = None
@@ -250,6 +251,6 @@ if __name__ == '__main__':
 
     if os.path.isfile(db_file):
       os.unlink(db_file)
-    os.rename(db_tmp_filename, db_file)
+    shutil.move(db_tmp_filename, db_file)
 
   log.info("All done.")

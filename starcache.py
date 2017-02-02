@@ -1,6 +1,7 @@
 import logging
 import math
 import os
+import shutil
 import struct
 import sys
 import tempfile
@@ -119,7 +120,7 @@ def write_visited_stars_cache(filename, systems):
         log.error('Failed to seek to entry count offset!')
         raise RuntimeError
       write_uint32(f, header.num_entries)
-      os.rename(scratch, filename)
+      shutil.move(scratch, filename)
   except:
     if scratch is not None:
       os.unlink(scratch)
