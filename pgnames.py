@@ -451,8 +451,10 @@ def _get_canonical_name_fragments(name, sector_only = False):
   m = pgdata.pg_system_regex.match(name)
   if m is not None:
     sectname_raw = m.group("sector")
-  else:
+  elif sector_only:
     sectname_raw = name
+  else:
+    return None
 
   # Check if this sector name appears in ha_regions, pass it through the fragment process if not
   if sectname_raw.lower() in pgdata.ha_regions:
