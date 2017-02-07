@@ -12,7 +12,7 @@ import threading
 import time
 import util
 import pgnames
-import system_internal as system
+import system_internal
 import station
 import db_sqlite3
 import env_backend as eb
@@ -50,13 +50,13 @@ register_backend(default_backend_name, _get_default_backend)
 
 
 def _make_known_system(s, keep_data=False):
-  sysobj = system.KnownSystem(s)
+  sysobj = system_internal.KnownSystem(s)
   if keep_data:
     sysobj.data = s.copy()
   return sysobj
 
 def _make_station(sy, st, keep_data = False):
-  sysobj = _make_known_system(sy, keep_data) if not isinstance(sy, system.KnownSystem) else sy
+  sysobj = _make_known_system(sy, keep_data) if not isinstance(sy, system_internal.KnownSystem) else sy
   stnobj = station.Station(st, sysobj)
   if keep_data:
     stnobj.data = st
@@ -145,7 +145,7 @@ class Env(object):
     coords_data = util.parse_coords(sysname)
     if coords_data is not None:
       cx, cy, cz, name = coords_data
-      return system.System(cx, cy, cz, name)
+      return system_internal.System(cx, cy, cz, name)
     else:
       result = self._backend.get_system_by_name(sysname)
       if result is not None:
@@ -157,7 +157,7 @@ class Env(object):
   def get_system_by_id64(self, id64, keep_data = False):
     if util.is_str(id64):
       id64 = int(id64, 16)
-    coords, cube_width, n2, _ = system.calculate_from_id64(id64)
+    coords, cube_width, n2, _ = system_internal.calculate_from_id64(id64)
     # Get a system prototype to steal its name
     sys_proto = pgnames.get_system(coords, cube_width)
     pname = sys_proto.name + str(n2)
@@ -176,7 +176,7 @@ class Env(object):
       coords_data = util.parse_coords(s)
       if coords_data is not None:
         cx, cy, cz, name = coords_data
-        co_list[s] = system.System(cx, cy, cz, name)
+        co_list[s] = system_internal.System(cx, cy, cz, name)
       else:
         db_list.append(s)
     # Now query for the real ones
@@ -221,7 +221,7 @@ class Env(object):
     max_x = max(vec_from.x, vec_to.x) + buffer_to
     max_y = max(vec_from.y, vec_to.y) + buffer_to
     max_z = max(vec_from.z, vec_to.z) + buffer_to
-    return [system.KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=self._get_as_filters(filters))]
+    return [system_internal.KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=self._get_as_filters(filters))]
  
   def find_all_systems(self, filters = None, keep_data = False):
     for s in self._backend.find_all_systems(filters=self._get_as_filters(filters)):
@@ -232,27 +232,31 @@ class Env(object):
       yield _make_station(sy, st, keep_data=keep_data)
 
   def find_systems_by_name(self, name, filters = None, keep_data = False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
+    for s in self._backend.find_systems_by_name(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
   def find_systems_by_glob(self, name, filters = None, keep_data = False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
+    for s in self._backend.find_systems_by_name(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
   def find_systems_by_regex(self, name, filters = None, keep_data = False):
-    for s in self._backend.find_systems_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
+    for s in self._backend.find_systems_by_name(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
+      yield _make_known_system(s, keep_data)
+
+  def find_systems_by_id64(self, id64list, filters = None, keep_data = False):
+    for s in self._backend.find_systems_by_id64([system_internal.mask_id64_as_system(i) for i in id64list], filters=self._get_as_filters(filters)):
       yield _make_known_system(s, keep_data)
 
   def find_stations_by_name(self, name, filters = None, keep_data = False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
+    for (sy, st) in self._backend.find_stations_by_name(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
   def find_stations_by_glob(self, name, filters = None, keep_data = False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
+    for (sy, st) in self._backend.find_stations_by_name(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
   def find_stations_by_regex(self, name, filters = None, keep_data = False):
-    for (sy, st) in self._backend.find_stations_by_name_unsafe(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
+    for (sy, st) in self._backend.find_stations_by_name(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
       yield _make_station(sy, st, keep_data)
 
   def _load_data(self):
