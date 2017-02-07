@@ -9,6 +9,12 @@ import util
 
 log = logging.getLogger('starcache')
 
+IMPORTFILE = "ImportStars.txt"
+IMPORTFORMAT = 'ImportStars{}.txt'
+IMPORTEDFILE = "ImportStars.txt.imported"
+CACHEFILE = "VisitedStarsCache.dat"
+RECENTFILE = "RecentlyVisitedStars.dat"
+
 class VisitedStarsCacheHeader(object):
   def __init__(self):
     self.start_magic = 'VisitedStars'
@@ -163,12 +169,15 @@ def create_import_lists(data):
   return lists
 
 
-def create_import_list_files(data, output_format = 'ImportStars{}.txt'):
+def create_import_list_files(data, output_format = IMPORTFORMAT):
+  names = ['Full']
   with open(output_format.format('Full'), 'w') as f:
     f.writelines(['{}\n'.format(d) for d in data])
   for i, l in enumerate(create_import_lists(data)):
+    names.append(str(i))
     with open(output_format.format(i), 'w') as f:
       f.writelines(['{}\n'.format(d) for d in l])
+  return names
 
 
 def calculate_id64s_from_lists(names, full, lists):
