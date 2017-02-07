@@ -187,12 +187,19 @@ def calculate_id64s_from_lists(names, full, lists):
     return {}
   count = 2**len(lists)
   output = {}
+  dups = 0
   for n in full:
     idx = 0
     for i in range(len(lists)):
       if n in lists[i]:
         idx += (2**i)
-    output[names[idx]] = n
+    try:
+      output[names[idx]] = n
+    except IndexError:
+      log.warning("Possible duplicate name for ID {} (entry {}; index {}/{})".format(n, i, idx, len(full)))
+      dups += 1
+  if dups:
+    raise IndexError("Found {} possible duplicate name(s)".format(dups))
   return output
 
 
