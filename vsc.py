@@ -40,6 +40,7 @@ class Application(object):
     rp.set_defaults(func=self.run_read)
     wp = subparsers.add_parser("write", help="Write to star cache")
     wp.add_argument("writefile", metavar="filename")
+    wp.add_argument("-i", "--importfile", metavar="filename", nargs='?', help="File with list of stars")
     wp.add_argument("-r", "--recent", default=False, action="store_true", help="Create int RecentlyVisitedStars format")
     wp.add_argument("filters", metavar="filters", nargs='*')
     wp.set_defaults(func=self.run_write)
@@ -234,7 +235,13 @@ class Application(object):
       self.batch_read(envdata, id64list)
 
   def run_write(self, envdata, args):
-    starcache.write_visited_stars_cache(args.writefile, envdata.find_all_systems(filter.entry_separator.join(args.filters) if len(args.filters) else None), self.args.recent)
+    filters = filter.entry_separator.join(args.filters) if len(args.filters) else None
+    if args.importfile:
+      with open(args.importfile, 'r') as f:
+        iterator = envdata.find_systems_by_name([n.strip() for n in f], filters)
+    else:
+        iterator = envdata.find_all_systems(filters)
+    starcache.write_visited_stars_cache(args.writefile, iterator, self.args.recent)
 
 if __name__ == '__main__':
   env.start()
