@@ -1,3 +1,4 @@
+import collections
 import defs
 import thirdparty.gzipinputstream as gzis
 import logging
@@ -228,3 +229,6 @@ def get_as_position(v):
   except:
     pass
   return None
+
+def flatten(listish):
+  return [i for sublist in [listish] for i in sublist] if isinstance(listish, collections.Iterable) else [listish]
