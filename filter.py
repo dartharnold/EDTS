@@ -7,6 +7,7 @@ import re
 import vector3
 import station
 import system_internal as system
+import sys
 import util
 
 log = logging.getLogger("filter")
@@ -15,7 +16,8 @@ default_direction_angle = 15.0
 
 entry_separator = ';'
 entry_subseparator = ','
-entry_kvseparator_re = re.compile('(=|!=|<>|<|>|<=|>=)')
+entry_kvseparator_re = re.compile('(=|!=|<>|<=|>=|<|>)')
+# Note: != allows null/None, <> does not
 
 
 class AnyType(object):
@@ -32,6 +34,27 @@ class PosArgsType(object):
     return "PosArgs"
 PosArgs = PosArgsType()
 
+class PadSize(object):
+  values = ['S','M','L']
+  def __init__(self, value):
+    if util.is_str(value):
+      value = value.upper()
+    self.value = value if value in PadSize.values else None
+  def __str__(self):
+    return self.value
+  def __repr__(self):
+    return self.value
+  def __cmp__(self, rhs):
+    if isinstance(rhs, PadSize):
+      rhs = rhs.value
+    if rhs is Any:
+      return 0
+    if rhs is None:
+      return sys.maxsize
+    if not rhs in PadSize.values:
+      raise ValueError('tried to compare pad size with an invalid value')
+    return (PadSize.values.index(self.value) - PadSize.values.index(rhs))
+
 class Operator(object):
   def __init__(self, op, value):
     self.value = value
@@ -40,6 +63,21 @@ class Operator(object):
     return "{} {}".format(self.operator, self.value)
   def __repr__(self):
     return "{} {}".format(self.operator, self.value)
+  def matches(self, value_to_test):
+    if self.operator == '=':
+      return (value_to_test == self.value)
+    elif self.operator == '!=':
+      return (value_to_test != self.value)
+    elif self.operator == '<>':
+      return (value_to_test != self.value and self.value is not None)
+    elif self.operator == '<':
+      return (self.value is not None and value_to_test < self.value)
+    elif self.operator == '>':
+      return (self.value is not None and value_to_test > self.value)
+    elif self.operator == '<=':
+      return (self.value is not None and value_to_test <= self.value)
+    elif self.operator == '>=':
+      return (self.value is not None and value_to_test >= self.value)
 
 _assumed_operators = {int: '<', float: '<'}
 
@@ -47,8 +85,8 @@ _assumed_operators = {int: '<', float: '<'}
 def _get_valid_ops(fn):
   if isinstance(fn, dict) and 'fn' in fn:
     return _get_valid_ops(fn['fn'])
-  if fn is int or fn is float:
-    return ['=','<','>','<=','>=']
+  if fn is int or fn is float or fn is PadSize:
+    return ['=','!=','<','>','<=','>=']
   if isinstance(fn, dict):
     return ['=']
   else:
@@ -76,7 +114,7 @@ _conversions = {
   'pad':         {
                    'max': 1,
                    'special': [Any, None],
-                   'fn': str.upper
+                   'fn': PadSize
                  },
   'close_to':    {
                    'max': None,
@@ -104,7 +142,7 @@ _conversions = {
 
 def _global_conv(val, specials = []):
   if isinstance(val, Operator):
-    return Operator(value=_global_conv(val.value, specials), op=val.operator)
+    return (Operator(value=_global_conv(val.value, specials), op=val.operator), False)
 
   if val.lower() == "any" and Any in specials:
     return (Any, False)
@@ -320,10 +358,14 @@ def generate_sql(filters):
           filter_str.append("stations.max_pad_size IS NULL")
         elif (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
           filter_str.append("stations.max_pad_size IS NOT NULL")
-        else:
+        elif entry.operator in ['=','!=']:
           extra_str = " OR stations.max_pad_size IS NULL"
           filter_str.append("stations.max_pad_size {} ?{}".format(entry.operator, extra_str if entry.operator == '!=' else ''))
           filter_params.append(entry.value)
+        else:
+          valid_values = [p for p in PadSize.values if entry.matches(p)]
+          filter_str.append(" OR ".join(["stations.max_pad_size = ?"] * len(valid_values)))
+          filter_params.append(valid_values)
   if 'sc_distance' in filters:
     req_tables.add('stations')
     for oentry in filters['sc_distance']:
@@ -344,79 +386,64 @@ def generate_sql(filters):
   }
 
 
-def filter_list(s_list, filters, limit = None, p_src_list = None):
-  src_list = None
-  if p_src_list is not None:
-    src_list = [s if isinstance(s, station.Station) else station.Station.none(s) for s in p_src_list]
-
-  if (src_list is not None and 'direction' in filters):
-    direction_obj = filters['direction']
-    direction_angle = filters['direction_angle'] if 'direction_angle' in filters else default_direction_angle
-    max_angle = direction_angle * math.pi / 180.0
-    if direction_obj is None:
-      log.error("Could not find direction target \"{0}\"!".format(self.args.direction))
-      return
-
-  asys = []
-  maxdist = 0.0
-
+def filter(s_list, filters):
+  limit = int(filters['limit']) if 'limit' in filters else None
+  count = 0
   for s in s_list:
-    if isinstance(s, station.Station):
-      st = s
-      sy = s.system
-    elif isinstance(s, system.KnownSystem):
-      st = station.Station.none(s)
-      sy = s
-    else:
-      log.error("Object of type '{}' cannot be filtered with systems/stations".format(type(s)))
-      continue
-
-    if ('allegiance' in filters and ((not hasattr(sy, 'allegiance')) or filters['allegiance'] != sy.allegiance)):
-      continue
-
-    has_stns = (hasattr(sy, 'allegiance') and sy.allegiance is not None)
-    
-    if ('pad' in filters and not has_stns):
-      continue
-
-    if ('direction' in filters and src_list is not None and not self.all_angles_within(src_list, sy, direction_obj, max_angle)):
-      continue
-
-    if ('pad' in filters and filters['pad'] != 'L' and st.max_pad_size == 'L'):
-      continue
-
-    if ('min_sc_distance' in filters and (st.distance is None or st.distance < filters['min_sc_distance'])):
-      continue
-    if ('max_sc_distance' in filters and (st.distance is None or st.distance > filters['max_sc_distance'])):
-      continue
-
-    dist = None
-    if src_list is not None:
-      dist = math.fsum([s.distance_to(start) for start in src_list])
-
-      if ('min_distance' in filters and any([s.distance_to(start) < filters['min_distance'] for start in src_list])):
-        continue
-      if ('max_distance' in filters and any([s.distance_to(start) > filters['max_distance'] for start in src_list])):
-        continue
-
-    if limit is None or len(asys) < limit or (dist is None or dist < maxdist):
-      # We have a new contender; add it, sort by distance, chop to length and set the new max distance
-      asys.append(s)
-      # Sort the list by distance to ALL start systems
-      if src_list is not None:
-        asys.sort(key=lambda t: math.fsum([t.distance_to(start) for start in src_list]))
-
-      if limit is not None:
-        asys = asys[0:limit]
-      maxdist = max(dist, maxdist)
-
-  return asys
+    if is_match(s, filters):
+      if limit and count >= limit:
+        return
+      yield s
+      count += 1
 
 
-def all_angles_within(starts, dest1, dest2, max_angle):
-  for d in starts:
-    cur_dir = (dest1.position - d.position)
-    test_dir = (dest2.position - d.position)
-    if cur_dir.angle_to(test_dir) > max_angle:
-      return False
+def is_match(s, filters):
+  sy = s.system if isinstance(s, station.Station) else s
+  st = s if isinstance(s, station.Station) else station.Station.none(s)
+  if 'close_to' in filters:
+    for oentry in filters['close_to']:
+      for entry in oentry[PosArgs]:
+        pos = entry.value.position
+        # For each operator and value...
+        if 'distance' in oentry:
+          for opval in oentry['distance']:
+            if not opval.matches(sy.distance_to(pos)):
+              return False
+        if 'direction' in oentry:
+          for dentry in oentry['direction']:
+            dpos = dentry.value.position
+            cur_angle = (sy.position - pos).angle_to(dpos - pos)
+            if 'angle' in oentry:
+              for aentry in oentry['angle']:
+                if not aentry.matches(cur_angle):
+                  return False
+  if 'allegiance' in filters:
+    for oentry in filters['allegiance']:
+      for entry in oentry[PosArgs]:
+        # Handle Any/None carefully
+        if (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
+          if sy.allegiance is None or sy.allegiance == 'None':
+            return False
+        elif (entry.operator == '=' and entry.value is None) or (entry.operator in ['!=','<>'] and entry.value is Any):
+          if sy.allegiance is not None and sy.allegiance != 'None':
+            return False
+        elif not entry.matches(sy.allegiance):
+          return False
+  if 'pad' in filters:
+    for oentry in filters['pad']:
+      for entry in oentry[PosArgs]:
+        if (entry.operator == '=' and entry.value is None) or (entry.operator in ['!=','<>'] and entry.value is Any):
+          if st.max_pad_size is not None:
+            return False
+        elif (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
+          if st.max_pad_size is None:
+            return False
+        else:
+          if not entry.matches(st.max_pad_size):
+            return False
+  if 'sc_distance' in filters:
+    for oentry in filters['sc_distance']:
+      for entry in oentry[PosArgs]:
+        if not entry.matches(st.distance):
+          return False
   return True
