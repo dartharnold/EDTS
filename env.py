@@ -80,7 +80,7 @@ class Env(object):
 
   @property
   def filter_converters(self):
-    return {'system': self.get_system, 'station': self.get_station}
+    return {'system': self.parse_system, 'station': self.parse_station}
 
   def parse_filter_string(self, s):
     return filter.parse(s, self.filter_converters)
