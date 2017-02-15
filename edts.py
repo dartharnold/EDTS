@@ -28,6 +28,9 @@ class Application(object):
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
+    ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including % sign)")
+    ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including % sign)")
+    ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including % sign)")
     ap.add_argument("-j", "--jump-range", type=float, required=False, help="The ship's max jump range with full fuel and empty cargo")
     ap.add_argument("-w", "--witchspace-time", type=int, default=c.default_ws_time, help="Time in seconds spent in hyperspace jump")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
@@ -59,6 +62,11 @@ class Application(object):
       # If user has provided full ship data in this invocation, use it
       # TODO: support cargo capacity?
       self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
+      if self.args.fsd_optmass is not None or self.args.fsd_mass is not None or self.args.fsd_maxfuel is not None:
+        fsd_optmass = util.parse_number_or_percentage(self.args.fsd_optmass, self.ship.fsd.stock_optmass)
+        fsd_mass = util.parse_number_or_percentage(self.args.fsd_mass, self.ship.fsd.stock_mass)
+        fsd_maxfuel = util.parse_number_or_percentage(self.args.fsd_maxfuel, self.ship.fsd.stock_maxfuel)
+        self.ship = self.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
     elif 'ship' in state:
       # If we have a cached ship, use that (with any overrides provided as part of this invocation)
       fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd

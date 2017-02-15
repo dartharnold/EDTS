@@ -28,6 +28,7 @@ _rgxstr_float = r'[-+]?\d+(?:\.\d+)?'
 # Match a set of coords such as "[33, -45.6, 78.910]"
 _rgxstr_coords = r'^\[\s*(?P<x>{0})\s*[,/]\s*(?P<y>{0})\s*[,/]\s*(?P<z>{0})\s*\](?:=(?P<name>.+))?$'.format(_rgxstr_float)
 # Compile the regex for faster execution later
+_regex_float = re.compile('^' + _rgxstr_float + '$')
 _regex_coords = re.compile(_rgxstr_coords)
 
 def parse_coords(sysname):
@@ -137,6 +138,15 @@ def download_file(url, file):
 
 def string_bool(s):
   return s.lower() in ("yes", "true", "1")
+
+
+def parse_number_or_percentage(value, basevalue):
+  if value is None or not _regex_float.match(value.strip('%')):
+    return None
+  if value.endswith('%'):
+    return float(basevalue) + (float(value.strip('%')) / 100.0)
+  else:
+    return float(value)
 
 
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
