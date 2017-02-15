@@ -114,7 +114,7 @@ def _global_conv(val, specials = []):
     return (val, True)
 
 
-def parse_filter_string(s, extra_converters = {}):
+def parse(s, extra_converters = {}):
   entries = s.split(entry_separator)
   output = {}
   # For each separate filter entry...
@@ -261,7 +261,7 @@ def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs
   return output
 
 
-def generate_filter_sql(filters):
+def generate_sql(filters):
   select_str = []
   filter_str = []
   group_str = []

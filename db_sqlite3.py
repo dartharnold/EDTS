@@ -445,7 +445,7 @@ def _construct_query(qtables, select, qfilter, select_params = [], filter_params
   qmodifier_params = []
   # Apply any user-defined filters
   if filters:
-    fsql = filter.generate_filter_sql(filters)
+    fsql = filter.generate_sql(filters)
     tables = set(qtables + fsql['tables'])
     select = select + fsql['select'][0]
     qfilter = qfilter + fsql['filter'][0]
