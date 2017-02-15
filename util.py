@@ -28,6 +28,7 @@ _rgxstr_float = r'[-+]?\d+(?:\.\d+)?'
 # Match a set of coords such as "[33, -45.6, 78.910]"
 _rgxstr_coords = r'^\[\s*(?P<x>{0})\s*[,/]\s*(?P<y>{0})\s*[,/]\s*(?P<z>{0})\s*\](?:=(?P<name>.+))?$'.format(_rgxstr_float)
 # Compile the regex for faster execution later
+_regex_float = re.compile('^' + _rgxstr_float + '$')
 _regex_coords = re.compile(_rgxstr_coords)
 
 def parse_coords(sysname):
@@ -150,6 +151,15 @@ def string_bool(s):
 
 def hex2str(s):
   return ''.join(chr(int(s[i:i+2], 16)) for i in range(0, len(s), 2))
+
+
+def parse_number_or_add_percentage(value, basevalue):
+  if value is None or not _regex_float.match(value.strip('%')):
+    return None
+  if value.endswith('%'):
+    return float(basevalue) * (1.0 + (float(value.strip('%')) / 100.0))
+  else:
+    return float(value)
 
 
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions

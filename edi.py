@@ -159,7 +159,7 @@ class EDI(cmd.Cmd):
     self.state['ship'] = s
 
     print("")
-    print("Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}Ly ({4:.2f}Ly)".format(s.fsd.drive, s.mass, s.tank_size, s.range(), s.max_range()))
+    print(str(s))
     print("")
 
     return True
