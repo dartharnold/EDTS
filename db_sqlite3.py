@@ -34,6 +34,12 @@ def _vec3_len(x1, y1, z1, x2, y2, z2):
   zdiff = (z2-z1)
   return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
 
+def _list_clause(field, mode, names):
+  if mode in [eb.FIND_GLOB, eb.FIND_REGEX]:
+    operator = _find_operators[mode]
+    return "({})".format(' OR '.join(["{} {} ?".format(field, operator)] * len(names)))
+  else:
+    return "{} IN ({})".format(field, ','.join(['?'] * len(names)))
 
 def _vec3_angle(x1, y1, z1, x2, y2, z2):
   return vector3.Vector3(x1, y1, z1).angle_to(vector3.Vector3(x2, y2, z2))
@@ -261,9 +267,9 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done, {} results.".format(len(results)))
     return [_process_system_result(r) for r in results]
     
-  def find_systems_by_name(self, name, mode = eb.FIND_EXACT, filters = None):
-    # return self.find_systems_by_name_safe(name, mode, filters)
-    return self.find_systems_by_name_unsafe(name, mode, filters)
+  def find_systems_by_name(self, namelist, mode = eb.FIND_EXACT, filters = None):
+    # return self.find_systems_by_name_safe(namelist, mode, filters)
+    return self.find_systems_by_name_unsafe(namelist, mode, filters)
 
   def find_systems_by_id64(self, id64list, filters = None):
     return self.find_systems_by_id64_safe(id64list, filters)
@@ -272,16 +278,17 @@ class SQLite3DBConnection(eb.EnvBackend):
     # return self.find_stations_by_name_safe(name, mode, filters)
     return self.find_stations_by_name_unsafe(name, mode, filters)
 
-  def find_systems_by_name_safe(self, name, mode = eb.FIND_EXACT, filters = None):
+  def find_systems_by_name_safe(self, namelist, mode = eb.FIND_EXACT, filters = None):
+    names = util.flatten(namelist)
     if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
-      name = name.replace('*','%').replace('?','_')
+      names = map(lambda name: name.replace('*','%').replace('?','_'), names)
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
       ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
-      ['systems.name {} ?'.format(_find_operators[mode])],
+      [_list_clause('systems.name', mode, names)],
       [],
-      [name],
+      names,
       filters)
     log.debug("Executing: {}; params = {}".format(cmd, params))
     c.execute(cmd, params)
@@ -333,18 +340,19 @@ class SQLite3DBConnection(eb.EnvBackend):
   # This significantly slows down searches (~500x at time of writing) due to doing full table scans
   # So, these methods are fast but vulnerable to SQL injection due to use of string literals
   # This will hopefully be unnecessary in Python 2.7.11+ / 3.6.0+ if porting of a newer pysqlite2 version is completed
-  def find_systems_by_name_unsafe(self, name, mode=eb.FIND_EXACT, filters = None):
+  def find_systems_by_name_unsafe(self, namelist, mode=eb.FIND_EXACT, filters = None):
+    names = util.flatten(namelist)
     if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
-      name = name.replace('*','%').replace('?','_')
-    name = _bad_char_regex.sub("", name)
-    name = name.replace("'", r"''")
+      names = map(lambda name: name.replace('*','%').replace('?','_'), names)
+    names = map(lambda name: _bad_char_regex.sub("", name), names)
+    names = map(lambda name: name.replace("'", r"''"), names)
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
       ['systems.name AS name', 'systems.pos_x AS pos_x', 'systems.pos_y AS pos_y', 'systems.pos_z AS pos_z', 'systems.id64 AS id64', 'systems.data AS data'],
-      ["systems.name {} '{}'".format(_find_operators[mode], name)],
+      [_list_clause('systems.name', mode, names)],
       [],
-      [],
+      names,
       filters)
     log.debug("Executing (U): {}; params = {}".format(cmd, params))
     c.execute(cmd, params)
