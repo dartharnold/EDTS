@@ -55,6 +55,24 @@ class FSD(object):
          or self.fuelmul != self.stock_fuelmul
          or self.fuelpower != self.stock_fuelpower)
 
+  def get_modified(self, optmass = None, optmass_percent = None, maxfuel = None, maxfuel_percent = None, fsdmass = None, fsdmass_percent = None):
+    fsd = FSD(self.drive)
+    if (optmass is not None and optmass_percent is not None):
+      raise ValueError("A maximum of one of optmass and optmass_percent must be provided")
+    if (fsdmass is not None and fsdmass_percent is not None):
+      raise ValueError("A maximum of one of fsdmass and fsdmass_percent must be provided")
+    if (maxfuel is not None and maxfuel_percent is not None):
+      raise ValueError("A maximum of one of maxfuel and maxfuel_percent must be provided")
+    if optmass is not None:
+      fsd.optmass = optmass
+    elif optmass_percent is not None:
+      fsd.optmass *= (1.0 + optmass_percent/100.0)
+    if maxfuel is not None:
+      fsd.maxfuel = maxfuel
+    elif maxfuel_percent is not None:
+      fsd.maxfuel *= (1.0 + maxfuel_percent/100.0)
+    return fsd
+
   def range(self, mass, fuel, cargo = 0):
     cur_maxfuel = min(self.maxfuel, float(fuel))
     return (self.optmass / (float(mass) + float(fuel) + float(cargo))) * math.pow((cur_maxfuel / self.fuelmul), (1.0 / self.fuelpower))
