@@ -231,4 +231,4 @@ def get_as_position(v):
   return None
 
 def flatten(listish):
-  return [i for sublist in [listish] for i in sublist] if isinstance(listish, collections.Iterable) else [listish]
+  return [i for sublist in [listish] for i in sublist] if (isinstance(listish, collections.Iterable) and not is_str(listish)) else [listish]
