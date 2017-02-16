@@ -24,6 +24,7 @@ class Application(object):
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
+    ap.add_argument(      "--ship", metavar="filename", type=str, required=False, help="Load ship data from export file")
     ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
@@ -67,6 +68,12 @@ class Application(object):
         fsd_mass = util.parse_number_or_add_percentage(self.args.fsd_mass, self.ship.fsd.stock_mass)
         fsd_maxfuel = util.parse_number_or_add_percentage(self.args.fsd_maxfuel, self.ship.fsd.stock_maxfuel)
         self.ship = self.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
+    elif self.args.ship:
+      loaded = ship.Ship.from_file(self.args.ship)
+      fsd = self.args.fsd if self.args.fsd is not None else loaded.fsd
+      mass = self.args.mass if self.args.mass is not None else loaded.mass
+      tank = self.args.tank if self.args.tank is not None else loaded.tank_size
+      self.ship = ship.Ship(fsd, mass, tank)
     elif 'ship' in state:
       # If we have a cached ship, use that (with any overrides provided as part of this invocation)
       fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
@@ -76,7 +83,7 @@ class Application(object):
     else:
       # No ship is fine as long as we have a static jump range set
       if self.args.jump_range is None:
-        log.error("Error: You must specify all of --fsd, --mass and --tank and/or --jump-range.")
+        log.error("Error: You must specify --ship or all of --fsd, --mass and --tank and/or --jump-range.")
         sys.exit(1)
       else:
         self.ship = None

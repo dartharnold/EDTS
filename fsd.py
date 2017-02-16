@@ -36,11 +36,38 @@ class FSD(object):
     self.maxfuel    = float(fsdobj['maxfuel'])
     self.fuelmul    = float(fsdobj['fuelmul'])
     self.fuelpower  = float(fsdobj['fuelpower'])
-    self.stock_mass = float(fsdobj['mass'])
+    self.mass       = float(fsdobj['mass'])
+    self.stock_mass      = self.mass
     self.stock_optmass   = self.optmass
     self.stock_maxfuel   = self.maxfuel
     self.stock_fuelmul   = self.fuelmul
     self.stock_fuelpower = self.fuelpower
+
+  @classmethod
+  def from_dict(self, data):
+    if '$schema' in data and re.match(r'https://coriolis.*schemas/ship-loadout', data['$schema']):
+      try:
+        log.debug("Reading FSD from Coriolis dump")
+        drive = data['components']['standard']['frameShiftDrive']
+        classrating = '{}{}'.format(drive['class'], drive['rating'])
+        log.debug("Dumped FSD is {}".format(classrating))
+        fsd_info = FSD(classrating)
+        if 'modifications' in drive:
+          mods = drive['modifications']
+          # Coriolis dump reports, eg, a 28.7910% bonus as 2879.10.
+          if 'mass' in mods:
+            fsd_info.mass *= 1.0 + mods['mass'] / 10000.0
+            log.debug("Dumped FSD modified mass is {}".format(fsd_info.mass))
+          if 'maxfuel' in mods:
+            fsd_info.maxfuel *= 1.0 + mods['maxfuel'] / 10000.0
+            log.debug("Dumped FSD modified maxfuel is {}".format(fsd_info.maxfuel))
+          if 'optmass' in mods:
+            fsd_info.optmass *= 1.0 + mods['optmass'] / 10000.0
+            log.debug("Dumped FSD modified optmass is {}".format(fsd_info.optmass))
+        return fsd_info
+      except KeyError:
+        pass
+    log.error("Don't understand dump file!")
 
   def __str__(self):
     return "{}{}".format(self.drive, " (modified)" if self.is_modified else "")

@@ -19,9 +19,10 @@ class Application(object):
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Plot jump distance matrix", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
-    ap.add_argument("-f", "--fsd", type=str, required=('ship' not in state), help="The ship's frame shift drive in the form 'A6 or '6A'")
-    ap.add_argument("-m", "--mass", type=float, required=('ship' not in state), help="The ship's unladen mass excluding fuel")
-    ap.add_argument("-t", "--tank", type=float, required=('ship' not in state), help="The ship's fuel tank size")
+    ap.add_argument(      "--ship", metavar="filename", type=str, required=False, help="Load ship data from export file")
+    ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
+    ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
+    ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
     ap.add_argument("-r", "--refuel", action='store_true', default=False, help="Assume that the ship can be refueled as needed, e.g. by fuel scooping")
@@ -31,13 +32,19 @@ class Application(object):
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
       self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
+    elif self.args.ship:
+      loaded = ship.Ship.from_file(self.args.ship)
+      fsd = self.args.fsd if self.args.fsd is not None else loaded.fsd
+      mass = self.args.mass if self.args.mass is not None else loaded.mass
+      tank = self.args.tank if self.args.tank is not None else loaded.tank_size
+      self.ship = ship.Ship(fsd, mass, tank)
     elif 'ship' in state:
       fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
       mass = self.args.mass if self.args.mass is not None else state['ship'].mass
       tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
       self.ship = ship.Ship(fsd, mass, tank)
     else:
-      log.error("Error: You must specify all of --fsd, --mass and --tank, or have previously set these")
+      log.error("Error: You must specify --ship, all of --fsd, --mass and --tank, or have previously set a ship")
       sys.exit(1)
 
     if self.args.starting_fuel is None:

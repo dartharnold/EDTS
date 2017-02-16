@@ -139,6 +139,28 @@ class EDI(cmd.Cmd):
     env.set_verbosity(int(args))
     return True
 
+  def help_load_ship(self):
+    print("usage: load_ship coriolis_file")
+    print("")
+    print("Read a Coriolis ship dump")
+    return True
+
+  def do_load_ship(self, args):
+    ap = argparse.ArgumentParser(fromfile_prefix_chars="@", prog = "read_ship")
+    ap.add_argument("filename", type=str)
+    try:
+      argobj = ap.parse_args(shlex.split(args))
+    except SystemExit:
+      return True
+    s = ship.Ship.from_file(argobj.filename)
+    self.state['ship'] = s
+
+    print("")
+    print(str(s))
+    print("")
+
+    return True
+
   def help_set_ship(self):
     print("usage: set_ship -m N -t N -f NC [-c N]")
     print("")
