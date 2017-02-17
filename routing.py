@@ -1,10 +1,10 @@
-import logging
 import calc
 import env
 import math
 import sys
+import util
 
-log = logging.getLogger("route")
+log = util.get_logger("route")
 
 default_rbuffer_ly = 40.0
 default_hbuffer_ly = 10.0
@@ -67,7 +67,7 @@ class Routing(object):
       # A* search - faster but worse fuel efficiency
       return self.plot_astar(sys_from, sys_to, jump_range, full_range)
     else:
-      log.error("Tried to use invalid route strategy {0}".format(self._route_strategy))
+      log.error("Tried to use invalid route strategy {0}", self._route_strategy)
       return None
 
   def plot_astar(self, sys_from, sys_to, jump_range, full_range):
@@ -106,7 +106,7 @@ class Routing(object):
     failed_attempts = []
     force_intermediate = False
 
-    log.debug("Attempting to plot from {0} --> {1}".format(sys_from.to_string(), sys_to.to_string()))
+    log.debug("Attempting to plot from {0} --> {1}", sys_from.to_string(), sys_to.to_string())
 
     route = [sys_from]
     # While we haven't hit our limit to bomb out...
@@ -128,7 +128,7 @@ class Routing(object):
             optimistic_count += self._ocount_relax_inc_mul * best_jump_count
             search_radius += self._trunkle_search_radius_relax_mul * best_jump_count
             continue
-          log.debug("Found {0} new stars to check".format(len(c_next_stars)))
+          log.debug("Found {0} new stars to check", len(c_next_stars))
           next_stars = c_next_stars
         else:
           next_stars = [sys_to]
@@ -149,7 +149,7 @@ class Routing(object):
         if len(next_stars) == 0:
           optimistic_count += self._ocount_relax_inc_mul * best_jump_count
           search_radius += self._trunkle_search_radius_relax_mul * best_jump_count
-          log.debug("Attempt failed, bumping oc to {0:.3f}".format(optimistic_count))
+          log.debug("Attempt failed, bumping oc to {0:.3f}", optimistic_count)
         if next_star == sys_to:
           log.debug("Forcing intermediate")
           force_intermediate = True
@@ -170,10 +170,10 @@ class Routing(object):
         optimistic_count = math.max(1.0, self._ocount_reset_dec)
       # If we've hit the destination, return with successful route
       if sys_cur == sys_to:
-        log.debug("Arrived at {0}".format(sys_to.to_string()))
+        log.debug("Arrived at {0}", sys_to.to_string())
         return route
 
-      log.debug("Plotted {0} jumps to {1}, continuing".format(len(next_route)-1, next_star.to_string()))
+      log.debug("Plotted {0} jumps to {1}, continuing", len(next_route)-1, next_star.to_string())
 
     log.debug("No full-route found")
     return None
@@ -191,7 +191,7 @@ class Routing(object):
         stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
     stars = self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)
 
-    log.debug("{0} --> {1}: systems to search from: {2}".format(sys_from.name, sys_to.name, len(stars)))
+    log.debug("{0} --> {1}: systems to search from: {2}", sys_from.name, sys_to.name, len(stars))
 
     add_jumps = 0
     best_jump_count = self.best_jump_count(sys_from, sys_to, jump_range)
@@ -201,9 +201,9 @@ class Routing(object):
 
     while best is None and add_jumps <= self._trundle_max_addjumps and (addj_limit is None or add_jumps <= addj_limit):
       while best is None and (hbuffer_ly < hbuffer_relax_max or hbuffer_ly == self._hbuffer_base):
-        log.debug("Attempt %d at hbuffer %.1f, jump count: %d, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
+        log.debug("Attempt {0} at hbuffer {1:.1f}, jump count: {2}, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
         vr = self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly)
-        log.debug("Attempt %d at hbuffer %.1f, jump count: %d, viable routes: %d", add_jumps, hbuffer_ly, best_jump_count + add_jumps, len(vr))
+        log.debug("Attempt {0} at hbuffer {1:.1f}, jump count: {2}, viable routes: {3}", add_jumps, hbuffer_ly, best_jump_count + add_jumps, len(vr))
         for route in vr:
           cost = self._calc.trundle_cost(route)
           if bestcost is None or cost < bestcost:
@@ -214,7 +214,7 @@ class Routing(object):
       hbuffer_ly = self._hbuffer_base
 
     if best is not None:
-      log.debug("Route, length = {0}, cost = {1:.2f}: {2}".format(len(best)-1, bestcost, " --> ".join([str(p) for p in best])))
+      log.debug("Route, length = {0}, cost = {1:.2f}: {2}", len(best)-1, bestcost, " --> ".join([str(p) for p in best]))
     else:
       log.debug("No route found")
     return best

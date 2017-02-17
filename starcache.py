@@ -1,4 +1,3 @@
-import logging
 import math
 import os
 import shutil
@@ -7,7 +6,7 @@ import sys
 import tempfile
 import util
 
-log = logging.getLogger('starcache')
+log = util.get_logger('starcache')
 
 IMPORTFILE = "ImportStars.txt"
 IMPORTFORMAT = 'ImportStars{}.txt'
@@ -38,7 +37,7 @@ def read_struct(f, format, size):
     data = f.read(size)
     return struct.unpack(format, data)[0]
   except:
-    log.error('Failed to read {} octets!'.format(size))
+    log.error('Failed to read {} octets!', size)
     raise
 
 def read_uint32(f):
@@ -54,7 +53,7 @@ def write_struct(f, format, n):
   try:
     f.write(struct.pack(format, n))
   except:
-    log.error('Failed to write {} as  {}'.format(n, format))
+    log.error('Failed to write {} as {}', n, format)
     raise
 
 def write_uint64(f, n):
@@ -74,7 +73,7 @@ def read_visited_stars_cache_header(f):
       log.warning('Unexpected recent magic...')
     header.version = read_uint32(f)
     if header.version != 100:
-      log.warning('Unexpected version {} not 100...'.format(header.version))
+      log.warning('Unexpected version {} not 100...', header.version)
     header.start = read_uint32(f)
     header.num_entries = read_uint32(f)
     header.entry_len = read_uint32(f)
@@ -123,7 +122,7 @@ def write_visited_stars_cache(filename, systems, recent = False):
       write_uint32(f, header.unknown2)
       for system in systems:
         if system.id64 is None:
-          log.error('{} has no id64!'.format(system.name))
+          log.error('{} has no id64!', system.name)
           continue
         write_uint64(f, system.id64)
         header.num_entries += 1
@@ -196,7 +195,7 @@ def calculate_id64s_from_lists(names, full, lists):
     try:
       output[names[idx]] = n
     except IndexError:
-      log.warning("Possible duplicate name for ID {} (entry {}; index {}/{})".format(n, i, idx, len(full)))
+      log.warning("Possible duplicate name for ID {} (entry {}; index {}/{})", n, i, idx, len(full))
       dups += 1
   if dups:
     raise IndexError("Found {} possible duplicate name(s)".format(dups))

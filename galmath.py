@@ -2,13 +2,13 @@
 
 from __future__ import print_function
 import argparse
-import logging
 import math
 import sys
+import util
 
 app_name = "galmath"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 class Application(object):
@@ -33,7 +33,7 @@ class Application(object):
     ans = low_max_dist - ((num_jumps / 4.0) + ((self.args.core_distance + 1) * 2.0))
     inaccuracy = low_max_dist * 0.0025
 
-    log.debug("M = {0:.2f}, N = {1}, D = {2:.2f}".format(low_max_dist, num_jumps, self.args.core_distance))
+    log.debug("M = {0:.2f}, N = {1}, D = {2:.2f}", low_max_dist, num_jumps, self.args.core_distance)
 
     print("")
     print("Travelling {0:.1f}Ly with a {1:.2f}Ly jump range, at around {2:.0f}Ly from the core centre:".format(

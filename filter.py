@@ -1,6 +1,5 @@
 import argparse
 import collections
-import logging
 import math
 import random
 import re
@@ -10,7 +9,7 @@ import system_internal as system
 import sys
 import util
 
-log = logging.getLogger("filter")
+log = util.get_logger("filter")
 
 default_direction_angle = 15.0
 

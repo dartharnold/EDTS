@@ -20,7 +20,18 @@ else:
   import urllib
   import urlparse
 
-log = logging.getLogger("util")
+# Slightly ugly classes to allow new-style {} formatting in log messages without always executing them
+class _BraceString(str):
+  def __mod__(self, other): return self.format(*other)
+  def __str__(self): return self
+class _StyleAdapter(logging.LoggerAdapter):
+  def __init__(self, logger, extra=None): super(_StyleAdapter, self).__init__(logger, extra)
+  def process(self, msg, kwargs): return _BraceString(msg), kwargs
+
+def get_logger(name):
+  return _StyleAdapter(logging.getLogger(name))
+
+log = get_logger("util")
 
 USER_AGENT = '{}/{}'.format(defs.name, defs.version)
 
@@ -43,7 +54,7 @@ def parse_coords(sysname):
       name = rx_match.group('name') if rx_match.group('name') is not None else sysname
       return (cx, cy, cz, name)
     except Exception as ex:
-      log.debug("Failed to parse manual system: {}".format(ex))
+      log.debug("Failed to parse manual system: {}", ex)
   return None
 
 
@@ -58,7 +69,7 @@ def open_url(url, allow_gzip = True):
     try:
       response = urllib.request.urlopen(request)
     except urllib.error.HTTPError as err:
-      log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
+      log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
       return None
   else:
     sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
@@ -70,13 +81,13 @@ def open_url(url, allow_gzip = True):
     try:
       response = urllib2.urlopen(request, context=sslctx)
     except urllib2.HTTPError as err:
-      log.error("Error {0} opening {1}: {2}".format(err.code, url, err.reason))
+      log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
       return None
   if response.info().get('Content-Encoding') == 'gzip':
     try:
       return gzis.GzipInputStream(response)
     except:
-      log.error("Error decompressing {0}".format(url))
+      log.error("Error decompressing {0}", url)
       return None
   else:
     return response

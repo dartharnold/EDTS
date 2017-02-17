@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 import argparse
-import logging
 import math
 import sys
 import env
@@ -16,7 +15,7 @@ from fsd import FSD
 
 app_name = "edts"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 class Application(object):
@@ -90,7 +89,7 @@ class Application(object):
     if self.ship is not None:
       log.debug(str(self.ship))
     else:
-      log.debug("Static jump range {0:.2f}Ly".format(self.args.jump_range))
+      log.debug("Static jump range {0:.2f}Ly", self.args.jump_range)
 
   def run(self):
     with env.use() as envdata:
@@ -98,10 +97,10 @@ class Application(object):
       end = envdata.parse_station(self.args.end)
 
       if start is None:
-        log.error("Error: start system/station {0} could not be found. Stopping.".format(self.args.start))
+        log.error("Error: start system/station {0} could not be found. Stopping.", self.args.start)
         return
       if end is None:
-        log.error("Error: end system/station {0} could not be found. Stopping.".format(self.args.end))
+        log.error("Error: end system/station {0} could not be found. Stopping.", self.args.end)
         return
 
       # Locate all the systems/stations provided and ensure they're valid for our ship
@@ -109,11 +108,11 @@ class Application(object):
       for sname in self.args.stations:
         if sname in stations and stations[sname] is not None:
           sobj = stations[sname]
-          log.debug("Adding system/station: {0}".format(sobj.to_string()))
+          log.debug("Adding system/station: {0}", sobj.to_string())
           if self.args.pad_size == "L" and sobj.max_pad_size != "L":
-            log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.".format(sobj.name, sobj.system_name))
+            log.warning("Warning: station {0} ({1}) is not usable by the specified ship size.", sobj.name, sobj.system_name)
         else:
-          log.warning("Error: system/station {0} could not be found.".format(sname))
+          log.warning("Error: system/station {0} could not be found.", sname)
           return
     stations = list(stations.values())
 
@@ -164,7 +163,7 @@ class Application(object):
 
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], i-1, self.args.long_jumps)
         if self.args.route:
-          log.debug("Doing route plot for {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
+          log.debug("Doing route plot for {0} --> {1}", route[i-1].system_name, route[i].system_name)
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
             leg_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
           else:
@@ -176,7 +175,7 @@ class Application(object):
             cur_data['jumpcount_min'] = route_jcount
             cur_data['jumpcount_max'] = route_jcount
           else:
-            log.warning("No valid route found for leg: {0} --> {1}".format(route[i-1].system_name, route[i].system_name))
+            log.warning("No valid route found for leg: {0} --> {1}", route[i-1].system_name, route[i].system_name)
             total_fuel_cost_exact = False
         else:
           total_fuel_cost_exact = False
@@ -394,7 +393,7 @@ class Application(object):
             fcost = 0.0
             for j in range(0, len(od['leg_route'])):
               fcost += self.ship.cost(od['leg_route'][j]['src'].distance_to(od['leg_route'][j]['dst']))
-            log.debug("Hop {0} -> {1}, highball fuel cost: {2:.2f}T".format(od['src'].system_name, od['dst'].system_name, fcost))
+            log.debug("Hop {0} -> {1}, highball fuel cost: {2:.2f}T", od['src'].system_name, od['dst'].system_name, fcost)
 
     else:
       print("")

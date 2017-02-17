@@ -1,10 +1,10 @@
-import logging
 import math
 import sys
 import ship
 from station import Station
+import util
 
-log = logging.getLogger("calc")
+log = util.get_logger("calc")
 
 default_slf = 0.9
 default_strategy = "astar"
@@ -92,7 +92,7 @@ class Calc(object):
     elif self.route_strategy == "astar":
       return self.astar_cost(route[0], route[-1], route)
     else:
-      log.error("Invalid route strategy {0} provided".format(self.route_strategy))
+      log.error("Invalid route strategy {0} provided", self.route_strategy)
       return None
 
   # Gets the route cost for a trundle/trunkle route
@@ -180,7 +180,7 @@ class Calc(object):
     sc_t = sum(self.sc_time(stn) for stn in route[1:])
     stn_t = sum(self.station_time(stn) for stn in route)
 
-    log.debug("hs_time = {0:.2f}, sc_time = {1:.2f}, stn_time = {2:.2f}".format(hs_t, sc_t, stn_t))
+    log.debug("hs_time = {0:.2f}, sc_time = {1:.2f}, stn_time = {2:.2f}", hs_t, sc_t, stn_t)
 
     return (hs_t + sc_t + stn_t)
 

@@ -3,11 +3,11 @@
 from __future__ import print_function
 import argparse
 import env
-import logging
+import util
 
 app_name = "coords"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 class Application(object):
@@ -25,7 +25,7 @@ class Application(object):
       for name in self.args.system:
         maxlen = max(maxlen, len(name))
         if name not in systems or systems[name] is None:
-          log.error("Could not find system \"{0}\"!".format(name))
+          log.error("Could not find system \"{0}\"!", name)
           return
 
     print("")

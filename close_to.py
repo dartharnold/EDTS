@@ -4,13 +4,13 @@ from __future__ import print_function
 import argparse
 import env
 import filter
-import logging
 import math
 import sys
+import util
 
 app_name = "close_to"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 default_max_angle = 15.0
 
@@ -69,7 +69,7 @@ class Application(object):
       for d in self.args.system:
         d['sysobj'] = tmpsystems.get(d['system'], None)
         if d['sysobj'] is None:
-          log.error("Could not find start system \"{0}\"!".format(d['system']))
+          log.error("Could not find start system \"{0}\"!", d['system'])
           return
       # Create a list of names for quick checking in the main loop
       start_names = [d['system'].lower() for d in self.args.system]
@@ -77,7 +77,7 @@ class Application(object):
       if self.args.direction is not None:
         direction_obj = envdata.parse_system(self.args.direction)
         if direction_obj is None:
-          log.error("Could not find direction system \"{0}\"!".format(self.args.direction))
+          log.error("Could not find direction system \"{0}\"!", self.args.direction)
           return
 
     asys = []
@@ -94,7 +94,7 @@ class Application(object):
     filters['close_to'] = close_to_list
     if self.args.pad_size is not None:
       # Retain previous behaviour: 'M' counts as 'any'
-      filters['pad'] = [{filter.PosArgs: [filter.Operator('=', 'L' if self.args.pad_size == 'L' else filter.Any)]}]
+      filters['pad'] = [{filter.PosArgs: [filter.Operator('>=', filter.PadSize('L') if self.args.pad_size == 'L' else filter.Any)]}]
     if self.args.max_sc_distance is not None:
       filters['sc_distance'] = [{filter.PosArgs: [filter.Operator('<', self.args.max_sc_distance)]}]
     if self.args.allegiance is not None:
@@ -126,7 +126,7 @@ class Application(object):
           if len(self.args.system) == 1:
             print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
           else:
-            print("    {0}".format(asys[i].name, " ({0:.2f}Ly)".format(asys[i].distance_to(self.args.system[0]['sysobj']))))
+            print("    {0}".format(asys[i].name))
           if self.args.list_stations:
             stlist = envdata.find_stations(asys[i])
             stlist.sort(key=lambda t: t.distance)

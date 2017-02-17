@@ -4,13 +4,13 @@ from __future__ import print_function
 import argparse
 import env
 import fnmatch
-import logging
 import re
 import sys
+import util
 
 app_name = "find"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 class Application(object):

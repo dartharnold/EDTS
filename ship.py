@@ -1,9 +1,9 @@
 import json
-import logging
 import sys
+import util
 from fsd import FSD
 
-log = logging.getLogger("ship")
+log = util.get_logger("ship")
 
 
 class Ship(object):
@@ -22,11 +22,11 @@ class Ship(object):
         log.debug("Reading ship from Coriolis dump")
         stats = data['stats']
         mass = stats['unladenMass']
-        log.debug("Dumped unladenMass: {}".format(mass))
+        log.debug("Dumped unladenMass: {}", mass)
         tank = stats['fuelCapacity']
-        log.debug("Dumped fuelCapacity: {}".format(tank))
+        log.debug("Dumped fuelCapacity: {}", tank)
         max_cargo = stats['cargoCapacity']
-        log.debug("Dumped cargoCapacity: {}".format(max_cargo))
+        log.debug("Dumped cargoCapacity: {}", max_cargo)
         return Ship(fsd_info, mass, tank, max_cargo)
       except KeyError:
         pass
@@ -41,7 +41,7 @@ class Ship(object):
           sys.exit(1)
         return ship
     except IOError:
-      log.error("Error reading file {}!".format(filename))
+      log.error("Error reading file {}!", filename)
 
   def __str__(self):
     return "Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}Ly ({4:.2f}Ly)".format(str(self.fsd), self.mass, self.tank_size, self.range(), self.max_range())

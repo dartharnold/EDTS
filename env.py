@@ -4,7 +4,6 @@ logging.basicConfig(level = logging.INFO, format="[%(asctime)-8s.%(msecs)03d] [%
 
 import argparse
 import collections
-import logging
 import os
 import platform
 import sys
@@ -18,11 +17,11 @@ import db_sqlite3
 import env_backend as eb
 import filter
 
-log = logging.getLogger("env")
+log = util.get_logger("env")
 
 def log_versions(extra = []):
   sep = ' / '
-  log.debug("Python: {} {}{}OS: {} {}{}".format(platform.python_version(), platform.architecture()[0], sep, platform.platform(), platform.machine(), sep + sep.join(extra) if extra else ''))
+  log.debug("Python: {} {}{}OS: {}, {} {}{}", platform.python_version(), platform.architecture()[0], sep, platform.system(), platform.platform(), platform.machine(), sep + sep.join(extra) if extra else '')
 
 
 default_backend_name = 'db_sqlite3'
@@ -266,7 +265,7 @@ class Env(object):
       log.debug("Data loaded")
     except Exception as ex:
       self.is_data_loaded = False
-      log.error("Failed to load environment data: {}".format(ex))
+      log.error("Failed to load environment data: {}", ex)
 
   def _load_coriolis_data(self):
     self._coriolis_fsd_list = self._backend.retrieve_fsd_list()
@@ -307,7 +306,7 @@ def start(path = default_path, backend = default_backend_name):
   if not is_started(path, backend):
     backend_obj = _registered_backends[backend](path)
     if backend_obj is None or not isinstance(backend_obj, eb.EnvBackend):
-      log.error("Failed to start environment: backend name '{}' failed to create object".format(backend))
+      log.error("Failed to start environment: backend name '{}' failed to create object", backend)
       return False
     newdata = Env(backend_obj)
     if newdata.is_data_loaded:

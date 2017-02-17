@@ -4,7 +4,6 @@ import defs
 import env_backend as eb
 import filter
 import json
-import logging
 import math
 import os
 import pgnames
@@ -14,7 +13,7 @@ import time
 import util
 import vector3
 
-log = logging.getLogger("db_sqlite3")
+log = util.get_logger("db_sqlite3")
 
 schema_version = 7
 
@@ -46,7 +45,7 @@ def _vec3_angle(x1, y1, z1, x2, y2, z2):
 
 
 def log_versions():
-  log.debug("SQLite3: {} / PySQLite: {}".format(sqlite3.sqlite_version, sqlite3.version))
+  log.debug("SQLite3: {} / PySQLite: {}", sqlite3.sqlite_version, sqlite3.version)
 
 
 def open_db(filename = defs.default_db_path, check_version = True):
@@ -61,7 +60,7 @@ def open_db(filename = defs.default_db_path, check_version = True):
     c.execute('SELECT db_version FROM edts_info')
     (db_version, ) = c.fetchone()
     if db_version != schema_version:
-      log.warning("DB file's schema version {0} does not match the expected version {1}.".format(db_version, schema_version))
+      log.warning("DB file's schema version {0} does not match the expected version {1}.", db_version, schema_version)
       log.warning("This is likely to cause errors; you may wish to rebuild the database by running update.py")
     log.debug("DB connection opened")
   return SQLite3DBConnection(conn)
@@ -118,7 +117,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Going for INSERT INTO systems...")
     c.executemany('INSERT INTO systems VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL)', self._generate_systems(many))
     self._conn.commit()
-    log.debug("Done, {} rows inserted.".format(c.rowcount))
+    log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to systems for name, pos_x/pos_y/pos_z, edsm_id...")
     c.execute('CREATE INDEX idx_systems_name ON systems (name COLLATE NOCASE)')
     c.execute('CREATE INDEX idx_systems_pos ON systems (pos_x, pos_y, pos_z)')
@@ -133,7 +132,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Going for UPDATE systems...")
     c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=?, data=? WHERE edsm_id=?', self._generate_systems_update(many))
     self._conn.commit()
-    log.debug("Done, {} rows affected.".format(c.rowcount))
+    log.debug("Done, {} rows affected.", c.rowcount)
     log.debug("Going to add indexes to systems for eddb_id...")
     c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
     self._conn.commit()
@@ -144,7 +143,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Going for INSERT INTO stations...")
     c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', self._generate_stations(many))
     self._conn.commit()
-    log.debug("Done, {} rows inserted.".format(c.rowcount))
+    log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to stations for name, eddb_system_id...")
     c.execute('CREATE INDEX idx_stations_name ON stations (name COLLATE NOCASE)')
     c.execute('CREATE INDEX idx_stations_sysid ON stations (eddb_system_id)')
@@ -156,7 +155,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', self._generate_coriolis_fsds(many))
     self._conn.commit()
-    log.debug("Done, {} rows inserted.".format(c.rowcount))
+    log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to coriolis_fsds for id...")
     c.execute('CREATE INDEX idx_coriolis_fsds_id ON coriolis_fsds (id)')
     self._conn.commit()
@@ -165,7 +164,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def retrieve_fsd_list(self):
     c = self._conn.cursor()
     cmd = 'SELECT id, data FROM coriolis_fsds'
-    log.debug("Executing: {}".format(cmd))
+    log.debug("Executing: {}", cmd)
     c.execute(cmd)
     results = c.fetchall()
     log.debug("Done.")
@@ -178,7 +177,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     if fallback_name:
       cmd += ' OR name = ?'
       data = (id64, fallback_name)
-    log.debug("Executing: {}; id64 = {}, name = {}".format(cmd, id64, fallback_name))
+    log.debug("Executing: {}; id64 = {}, name = {}", cmd, id64, fallback_name)
     c.execute(cmd, data)
     result = c.fetchone()
     log.debug("Done.")
@@ -190,7 +189,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def get_system_by_name(self, name):
     c = self._conn.cursor()
     cmd = 'SELECT name, pos_x, pos_y, pos_z, id64, data FROM systems WHERE name = ?'
-    log.debug("Executing: {}; name = {}".format(cmd, name))
+    log.debug("Executing: {}; name = {}", cmd, name)
     c.execute(cmd, (name, ))
     result = c.fetchone()
     log.debug("Done.")
@@ -202,7 +201,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def get_systems_by_name(self, names):
     c = self._conn.cursor()
     cmd = 'SELECT name, pos_x, pos_y, pos_z, id64, data FROM systems WHERE name IN ({})'.format(','.join(['?'] * len(names)))
-    log.debug("Executing: {}; names = {}".format(cmd, names))
+    log.debug("Executing: {}; names = {}", cmd, names)
     c.execute(cmd, names)
     result = c.fetchall()
     log.debug("Done.")
@@ -214,7 +213,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def get_station_by_names(self, sysname, stnname):
     c = self._conn.cursor()
     cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.id64 AS id64, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.name = ? AND st.name = ? AND sy.eddb_id = st.eddb_system_id'
-    log.debug("Executing: {}; sysname = {}, stnname = {}".format(cmd, sysname, stnname))
+    log.debug("Executing: {}; sysname = {}, stnname = {}", cmd, sysname, stnname)
     c.execute(cmd, (sysname, stnname))
     result = c.fetchone()
     log.debug("Done.")
@@ -227,7 +226,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c = self._conn.cursor()
     extra_cmd = ' OR '.join(['sy.name = ? AND st.name = ?'] * len(names))
     cmd = 'SELECT sy.name AS name, sy.pos_x AS pos_x, sy.pos_y AS pos_y, sy.pos_z AS pos_z, sy.id64 AS id64, sy.data AS data, st.data AS stndata FROM systems sy, stations st WHERE sy.eddb_id = st.eddb_system_id AND ({})'.format(extra_cmd)
-    log.debug("Executing: {}; names = {}".format(cmd, names))
+    log.debug("Executing: {}; names = {}", cmd, names)
     c.execute(cmd, [n for sublist in names for n in sublist])
     result = c.fetchall()
     log.debug("Done.")
@@ -246,10 +245,10 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       sysids,
       filters)
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     results = c.fetchall()
-    log.debug("Done, {} results.".format(len(results)))
+    log.debug("Done, {} results.", len(results))
     return [{ k: v for d in [{ 'eddb_system_id': r[0] }, json.loads(r[1])] for k, v in d.items()} for r in results]
 
   def find_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z, filters = None):
@@ -261,10 +260,10 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       [min_x, max_x, min_y, max_y, min_z, max_z],
       filters)
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     results = c.fetchall()
-    log.debug("Done, {} results.".format(len(results)))
+    log.debug("Done, {} results.", len(results))
     return [_process_system_result(r) for r in results]
     
   def find_systems_by_name(self, namelist, mode = eb.FIND_EXACT, filters = None):
@@ -290,7 +289,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       names,
       filters)
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -309,7 +308,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       [name],
       filters)
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -326,7 +325,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       id64list,
       filters)
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -354,7 +353,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       names,
       filters)
-    log.debug("Executing (U): {}; params = {}".format(cmd, params))
+    log.debug("Executing (U): {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -375,7 +374,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       filters)
     c = self._conn.cursor()
-    log.debug("Executing (U): {}; params = {}".format(cmd, params))
+    log.debug("Executing (U): {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -393,7 +392,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       [],
       filters)
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -411,7 +410,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       [],
       [],
       filters) 
-    log.debug("Executing: {}; params = {}".format(cmd, params))
+    log.debug("Executing: {}; params = {}", cmd, params)
     c.execute(cmd, params)
     result = c.fetchone()
     log.debug("Done.")
@@ -422,7 +421,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def get_populated_systems(self):
     c = self._conn.cursor()
     cmd = 'SELECT name, pos_x, pos_y, pos_z, data FROM systems WHERE allegiance IS NOT NULL'
-    log.debug("Executing: {}".format(cmd))
+    log.debug("Executing: {}", cmd)
     c.execute(cmd)
     result = c.fetchone()
     log.debug("Done.")

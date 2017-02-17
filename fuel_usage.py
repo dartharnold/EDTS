@@ -4,14 +4,14 @@ from __future__ import print_function
 import argparse
 import calc
 import env
-import logging
 from math import log10, floor, fabs
 import sys
 import ship
+import util
 
 app_name = "fuel_usage"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 class Application(object):
@@ -55,7 +55,7 @@ class Application(object):
       systems = envdata.parse_systems(self.args.systems)
       for y in self.args.systems:
         if y not in systems or systems[y] is None:
-          log.error("Could not find system \"{0}\"!".format(y))
+          log.error("Could not find system \"{0}\"!", y)
           return
 
     cur_fuel = self.args.starting_fuel

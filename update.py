@@ -6,7 +6,6 @@ import argparse
 import defs
 import gc
 import json
-import logging
 import os
 import shutil
 import platform
@@ -17,7 +16,7 @@ import util
 import tempfile
 import env
 
-log = logging.getLogger("update")
+log = util.get_logger("update")
 
 class DownloadOnly(object):
   def ignore(self, many):
@@ -61,7 +60,7 @@ if args.batch or args.batch_size:
 download_only = args.download_only
 copy_local = download_only or args.copy_local
 if copy_local and args.local:
-  log.error("Invalid use of --local and --{}!".format("download-only" if download_only else "copy-local"))
+  log.error("Invalid use of --local and --{}!", "download-only" if download_only else "copy-local")
   sys.exit(1)
 
 def cleanup_local(f, scratch):
@@ -71,7 +70,7 @@ def cleanup_local(f, scratch):
     if scratch is not None:
       unlink(scratch)
   except:
-    log.error("Error cleanup up temporary file {}".format(scratch))
+    log.error("Error cleanup up temporary file {}", scratch)
 
 def import_json_from_url(url, filename, description, batch_size, key = None):
   if copy_local:
@@ -80,11 +79,11 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
       fd, scratch = tempfile.mkstemp('.tmp', os.path.basename(filename), dirname if dirname else '.')
       f = os.fdopen(fd, 'wb')
     except:
-      print('fail in the tmp')
+      log.error("Failed to create a temporary file")
       raise
   try:
     if batch_size is not None:
-      log.info("Batch downloading {0} list from {1} ... ".format(description, url))
+      log.info("Batch downloading {0} list from {1} ... ", description, url)
       sys.stdout.flush()
 
       start = int(time())
@@ -113,7 +112,7 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
         try:
           obj = json.loads(m.group(1))
         except ValueError:
-          log.debug("Line failed JSON parse: {0}".format(line))
+          log.debug("Line failed JSON parse: {0}", line)
           failed += 1
           continue
         batch.append(obj)
@@ -123,37 +122,37 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
           done += len(batch)
           elapsed = int(time()) - start
           if elapsed - last_elapsed >= 30:
-            log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
+            log.info("Loaded {0} row(s) of {1} data to DB...", done, description)
             last_elapsed = elapsed
           batch = []
         if len(batch) >= batch_size:
           for obj in batch:
             yield obj
           done += len(batch)
-          log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
+          log.info("Loaded {0} row(s) of {1} data to DB...", done, description)
       done += len(batch)
       if not download_only:
         for obj in batch:
           yield obj
         if failed:
-          log.info("Lines failing JSON parse: {0}".format(failed))
-        log.info("Loaded {0} row(s) of {1} data to DB...".format(done, description))
+          log.info("Lines failing JSON parse: {0}", failed)
+        log.info("Loaded {0} row(s) of {1} data to DB...", done, description)
         log.info("Done.")
     else:
-      log.info("Downloading {0} list from {1} ... ".format(description, url))
+      log.info("Downloading {0} list from {1} ... ", description, url)
       sys.stdout.flush()
       encoded = util.read_from_url(url)
       log.info("Done.")
       if copy_local:
-        log.info("Writing {0} local data...".format(description))
+        log.info("Writing {0} local data...", description)
         util.write_stream(f, encoded)
         log.info("Done.")
       if not download_only:
-        log.info("Loading {0} data...".format(description))
+        log.info("Loading {0} data...", description)
         sys.stdout.flush()
         obj = json.loads(encoded)
         log.info("Done.")
-        log.info("Adding {0} data to DB...".format(description))
+        log.info("Adding {0} data to DB...", description)
         if key is not None:
           obj = obj[key]
         for o in obj:
@@ -237,7 +236,7 @@ if __name__ == '__main__':
     if batch_size is None:
       log.error("Try the --batch flag for a slower but more memory-efficient method!")
     elif batch_size > 64:
-      log.error("Try --batch-size %d" % (batch_size / 2))
+      log.error("Try --batch-size {0}", batch_size / 2)
     if not download_only:
       cleanup_local(None, db_tmp_filename)
     sys.exit(1)

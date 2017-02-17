@@ -1,10 +1,10 @@
-import logging
 import math
 import random
 import sys
+import util
 import vector3
 
-log = logging.getLogger("solver")
+log = util.get_logger("solver")
 
 max_single_solve_size = 12
 cluster_size_max = 8
@@ -61,7 +61,7 @@ class Solver(object):
 
 
   def solve(self, stations, start, end, maxstops, preferred_mode = CLUSTERED):
-    log.debug("Solving set using preferred mode '{}'".format(preferred_mode))
+    log.debug("Solving set using preferred mode '{}'", preferred_mode)
     if preferred_mode == CLUSTERED_REPEAT and len(stations) > max_single_solve_size:
       return self.solve_clustered_repeat(stations, start, end, maxstops), False
     if preferred_mode == CLUSTERED and len(stations) > max_single_solve_size:
@@ -103,7 +103,7 @@ class Solver(object):
       route = route if (cost_normal <= cost_reversed) else route_reversed
 
       if mincost is None or cost < mincost:
-        log.debug("New minimum cost: {0} on viable route #{1}".format(cost, count))
+        log.debug("New minimum cost: {0} on viable route #{1}", cost, count)
         mincost = cost
         minroute = route
 
@@ -140,7 +140,7 @@ class Solver(object):
 
   def solve_clustered_with_cost(self, stations, start, end, maxstops):
     cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
-    log.debug("Splitting problem into {0} clusters...".format(cluster_count))
+    log.debug("Splitting problem into {0} clusters...", cluster_count)
     clusters = find_centers(stations, cluster_count)
     clusters = self._resolve_cluster_sizes(clusters)
 
@@ -155,7 +155,7 @@ class Solver(object):
     to_end, _ = self._get_closest_points(sclusters[-1].systems, [end])
     # For each cluster...
     for i in range(0, len(sclusters)-1):
-      log.debug("Solving for cluster at index {}...".format(i))
+      log.debug("Solving for cluster at index {}...", i)
       from_cluster = sclusters[i]
       to_cluster = sclusters[i+1]
       # Get the closest points, disallowing using from_start or to_end
@@ -199,7 +199,7 @@ class Solver(object):
         if c.is_supercluster:
           c.systems = self._resolve_cluster_sizes(c.systems)
         if len(c.systems) > cluster_size_max:
-          log.debug("Splitting oversized cluster {} into two".format(c))
+          log.debug("Splitting oversized cluster {} into two", c)
           del clusters[i]
           newclusters = find_centers(c.systems, 2)
           clusters += newclusters
@@ -212,13 +212,13 @@ class Solver(object):
         else:
           # Too many clusters, consolidate
           subdiv = int(math.ceil(float(len(clusters)) / supercluster_size_max))
-          log.debug("Consolidating from {} to {} superclusters".format(len(clusters), subdiv))
+          log.debug("Consolidating from {} to {} superclusters", len(clusters), subdiv)
           clusters = find_centers(clusters, subdiv)
           lengths = [len(c.systems) for c in clusters]
           # If everything is now valid...
           if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max and len(clusters) <= supercluster_size_max:
               break
-    log.debug("Using clusters of sizes {} after {} iterations".format(", ".join([str(len(c.systems)) for c in clusters]), iterations))
+    log.debug("Using clusters of sizes {} after {} iterations", ", ".join([str(len(c.systems)) for c in clusters]), iterations)
     return clusters
 
 
@@ -229,10 +229,10 @@ class Solver(object):
     for s in stations:
       for t in stations:
         if s.to_string() != t.to_string() and t not in legs[s]:
-          log.debug("Calculating leg: {0} -> {1}".format(s.name, t.name))
+          log.debug("Calculating leg: {0} -> {1}", s.name, t.name)
           leg = self._route.plot(s, t, self._jump_range)
           if leg is None:
-            log.warning("Hop route could not be calculated: {0} -> {1}".format(s.name, t.name))
+            log.warning("Hop route could not be calculated: {0} -> {1}", s.name, t.name)
           legs[s][t] = leg
           legs[t][s] = leg
 
@@ -275,10 +275,10 @@ class Solver(object):
       return list(clusters)
     first = min(clusters, key=lambda t: t.get_closest(start)[1])
     last = min([c for c in clusters if c != first], key=lambda t: t.get_closest(end)[1])
-    log.debug("Calculating supercluster route from {} --> {}".format(first, last))
-    log.debug("Clusters: {}".format(clusters))
+    log.debug("Calculating supercluster route from {} --> {}", first, last)
+    log.debug("Clusters: {}", clusters)
     if len(clusters) > 3:
-      log.debug("Calculating cluster route for {}".format(clusters))
+      log.debug("Calculating cluster route for {}", clusters)
       inter, _ = self._get_best_cluster_route([c for c in clusters if c not in [first, last]], first, last)
     else:
       inter = [c for c in clusters if c not in [first, last]]
@@ -286,7 +286,7 @@ class Solver(object):
     route = []
     for i,c in enumerate(proute):
       if isinstance(c, _Cluster) and c.is_supercluster:
-        log.debug("Going deeper... i={}, c={}".format(i, c))
+        log.debug("Going deeper... i={}, c={}", i, c)
         route += self._get_best_supercluster_route(c.systems, start if i == 0 else route[i-1], end if i >= len(route)-1 else route[i+1])
       else:
         route.append(c)
@@ -297,7 +297,7 @@ class Solver(object):
     best = None
     bestcost = sys.float_info.max
     if not route:
-      log.debug("In get_best_cluster_route, input = {}, start = {}, end = {}".format(clusters, start, end))
+      log.debug("In get_best_cluster_route, input = {}, start = {}, end = {}", clusters, start, end)
     if len(route) < len(clusters):
       startpt = route[-1].position if any(route) else start.position
       sclusters = sorted([c for c in clusters if c not in route], key=lambda t: (startpt - t.position).length)

@@ -4,7 +4,6 @@ from __future__ import print_function
 import argparse
 import env
 import filter
-import logging
 import os
 import shutil
 import starcache
@@ -14,7 +13,7 @@ import vector3
 
 app_name = "vsc"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 class Application(object):
 
@@ -68,7 +67,7 @@ class Application(object):
         data.append(d.strip())
 
     if not len(data):
-      log.warning("No stars in {}...".format(args.starfile))
+      log.warning("No stars in {}...", args.starfile)
       return
 
     cacheformat = 'VisitedStarsCache{}.dat'
@@ -80,14 +79,14 @@ class Application(object):
       if args.no_import:
         print(format(importfile))
         continue
-      log.info("Importing from {}".format(importfile))
+      log.info("Importing from {}", importfile)
       self.game_import({
         'cachefile': cachefile,
         'clean': args.clean,
         'directory': args.directory,
         'importfile': importfile
       })
-      log.info("Import from {} complete".format(importfile))
+      log.info("Import from {} complete", importfile)
 
     try:
       id64s = starcache.calculate_id64s_from_list_files(args.starfile, cacheformat.format('Full'), [cacheformat.format(n) for n in names if n != 'Full'])
@@ -107,7 +106,7 @@ class Application(object):
 
   def client_import(self, importsrc, importdst, imported, recent):
     try:
-      log.debug("Writing {}...".format(importdst))
+      log.debug("Writing {}...", importdst)
       shutil.copyfile(importsrc, importdst)
       spoke = False
       while not os.path.isfile(recent):
@@ -128,18 +127,18 @@ class Application(object):
           log.info("Waiting for game client to log out...")
           spoke = True
     except IOError:
-      log.error("Failed to copy {} to {}".format(importsrc, importdst))
+      log.error("Failed to copy {} to {}", importsrc, importdst)
     except KeyboardInterrupt:
       os.unlink(importdst)
       log.warning("Interrupted!")
 
   def game_import(self, args):
     if not os.path.isfile(args['importfile']):
-      log.error("Import list {} doesn't exist!".format(args['importfile']))
+      log.error("Import list {} doesn't exist!", args['importfile'])
       sys.exit(1)
 
     if not os.path.isdir(args['directory']):
-      log.error("Client directory {} doesn't exist!".format(args['directory']))
+      log.error("Client directory {} doesn't exist!", args['directory'])
       sys.exit(1)
 
     importfile = os.path.sep.join([args['directory'], starcache.IMPORTFILE])
@@ -150,21 +149,21 @@ class Application(object):
     if args['clean']:
       backup = None
     if backup is not None and os.path.isfile(backup):
-      log.error("Previous backup file {} exists!".format(backup))
+      log.error("Previous backup file {} exists!", backup)
       sys.exit(1)
 
     # Backup VisitedStarsCache.dat.
     if backup is not None:
       try:
-        log.debug("Backing up {}".format(cachefile))
+        log.debug("Backing up {}", cachefile)
         shutil.move(cachefile, backup)
       except IOError:
-        log.error("Failed to back up {} as {}!".format(cachefile, backup))
+        log.error("Failed to back up {} as {}!", cachefile, backup)
         sys.exit(1)
 
     if args['clean']:
       if os.path.isfile(cachefile):
-        log.info("Removing existing {} because --clean was used".format(cachefile))
+        log.info("Removing existing {} because --clean was used", cachefile)
         os.unlink(cachefile)
 
     num_imports = 0
@@ -173,47 +172,47 @@ class Application(object):
       with open(args['importfile'], 'r') as f:
         num_imports = len([n for n in f])
     except IOError:
-      log.error("Failed to validate {}".format(importfile))
+      log.error("Failed to validate {}", importfile)
 
     # Create ImportStars.txt.
     if num_imports:
       self.client_import(args['importfile'], importfile, importedfile, recentfile)
     else:
-      log.warning("Skipping {}".format(args['importfile']))
+      log.warning("Skipping {}", args['importfile'])
 
     # Delete old ImportStars.text.imported so it can be overridden.
     if os.path.isfile(importedfile):
-      log.info("Cleaning up {}".format(importedfile))
+      log.info("Cleaning up {}", importedfile)
       os.unlink(importedfile)
 
     # Extract VisitedStarsCache.dat.
     if os.path.isfile(cachefile):
       try:
-        log.info("Copying {} to {}".format(cachefile, args['cachefile']))
+        log.info("Copying {} to {}", cachefile, args['cachefile'])
         shutil.copyfile(cachefile, args['cachefile'])
       except IOError:
-        log.error("Failed to copy {} to {}".format(cachefile, args['cachefile']))
+        log.error("Failed to copy {} to {}", cachefile, args['cachefile'])
       if args['clean']:
         os.unlink(cachefile)
 
     # Restore backed up VisitedStarsCache.dat.
     if backup is not None:
       try:
-        log.debug("Restoring {}".format(cachefile))
+        log.debug("Restoring {}", cachefile)
         shutil.move(backup, cachefile)
       except IOError:
-        log.error("Failed to restore {} from {}!".format(cachefile, backup))
+        log.error("Failed to restore {} from {}!", cachefile, backup)
         sys.exit(1)
 
     try:
       num_cached = len(list(starcache.parse_visited_stars_cache(args['cachefile'])))
     except IOError:
-      log.error("Failed to validate {}".format(args['cachefile']))
+      log.error("Failed to validate {}", args['cachefile'])
 
     if num_cached < num_imports:
-      log.warning("Names in: {}; IDs out: {}".format(num_imports, num_cached))
+      log.warning("Names in: {}; IDs out: {}", num_imports, num_cached)
     else:
-      log.info("Mapped {} name(s)".format(num_cached))
+      log.info("Mapped {} name(s)", num_cached)
 
   def run_import(self, envdata, args):
     return self.game_import({

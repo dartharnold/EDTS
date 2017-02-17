@@ -4,13 +4,13 @@ from __future__ import print_function
 import argparse
 import calc
 import env
-import logging
 import math
 import sys
+import util
 
 app_name = "distance"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 class Application(object):
@@ -55,13 +55,13 @@ class Application(object):
       if self.args.start is not None:
         start_obj = envdata.parse_system(self.args.start)
         if start_obj is None:
-          log.error("Could not find start system \"{0}\"!".format(self.args.start))
+          log.error("Could not find start system \"{0}\"!", self.args.start)
           return
 
       systems = envdata.parse_systems(self.args.systems)
       for y in self.args.systems:
         if y not in systems or systems[y] is None:
-          log.error("Could not find system \"{0}\"!".format(y))
+          log.error("Could not find system \"{0}\"!", y)
           return
 
     print('')

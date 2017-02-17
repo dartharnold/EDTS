@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 import collections
-import logging
 import math
 import string
 import time
@@ -12,7 +11,7 @@ import util
 import vector3
 
 app_name = "pgnames"
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 
 # #
@@ -375,7 +374,7 @@ def _get_relpos_from_sysid(prefix, centre, suffix, mcode, number1, number2):
   soffset = _get_soffset_from_sysid(prefix, centre, suffix, number1)
   pos, uncertainty = _get_relpos_from_soffset(soffset, mcode)
   if any(v < 0 or v > (sector.sector_size + uncertainty*2) for v in (pos.x, pos.y, pos.z)):
-    log.warning("Identifier '{}{}-{} {}{}-{}' generated out-of-range coords {}; bad input?".format(prefix, centre, suffix, mcode, number1, number2, pos))
+    log.warning("Identifier '{}{}-{} {}{}-{}' generated out-of-range coords {}; bad input?", prefix, centre, suffix, mcode, number1, number2, pos)
   return (pos, uncertainty)
 
 def _get_soffset_from_sysid(prefix, centre, suffix, number1):
@@ -540,7 +539,7 @@ def _get_sector_pos_from_offset(offset, galsize):
   y = (offset // galsize[0]) % galsize[1]
   z = (offset // (galsize[0] * galsize[1]))
   if z >= galsize[2]:
-    log.warning("Sector position for offset {} is outside expected galaxy size!".format(offset))
+    log.warning("Sector position for offset {} is outside expected galaxy size!", offset)
   # Put it in "our" coordinate space
   x -= sector.base_sector_index[0]
   y -= sector.base_sector_index[1]
@@ -600,7 +599,7 @@ def _get_coords_from_name(raw_system_name, allow_ha = True):
   # Check if the relpos is invalid
   leeway = rel_pos_error if (sect.sector_class == 'ha') else 0
   if any([s > (sector.sector_size + leeway) for s in rel_pos]):
-    log.warning("RelPos for input {} was invalid: {}, uncertainty {}".format(system_name, rel_pos, rel_pos_error))
+    log.warning("RelPos for input {} was invalid: {}, uncertainty {}", system_name, rel_pos, rel_pos_error)
     return (None, None)
 
   if abs_pos is not None and rel_pos is not None:

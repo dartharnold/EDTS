@@ -3,13 +3,13 @@
 from __future__ import print_function
 import argparse
 import env
-import logging
 import sys
+import util
 import vector3
 
 app_name = "direction"
 
-log = logging.getLogger(app_name)
+log = util.get_logger(app_name)
 
 class Application(object):
 
@@ -34,13 +34,13 @@ class Application(object):
       systems = envdata.parse_systems(self.args.systems)
       for y in self.args.systems:
         if y not in systems or systems[y] is None:
-          log.error("Could not find system \"{0}\"!".format(y))
+          log.error("Could not find system \"{0}\"!", y)
           return
 
       if self.args.reference:
         reference = envdata.parse_system(self.args.reference)
         if reference is None:
-          log.error("Could not find reference system \"{0}\"!".format(self.args.reference))
+          log.error("Could not find reference system \"{0}\"!", self.args.reference)
           return
 
       a, b = [systems[y].position for y in self.args.systems]
@@ -48,7 +48,7 @@ class Application(object):
         v = (a - reference.position).get_normalised()
         w = (b - reference.position).get_normalised()
         d = v.dot(w)
-        log.debug('{0} vs {1} dot {2}'.format(v, w, d))
+        log.debug('{0} vs {1} dot {2}', v, w, d)
         if d >= 1.0 - float(self.args.tolerance) / 100:
           print('OK {0:.2f}% deviation'.format(100 * (1 - d)))
           sys.exit(0)
@@ -59,12 +59,12 @@ class Application(object):
         sys.exit(100)
       else:
         v = b - a
-        log.debug("From {0} to {1}".format(a, b))
+        log.debug("From {0} to {1}", a, b)
 
         if self.args.angle:
           print(v.angle_to(a - reference.position))
         elif self.args.normal:
-          log.debug("Normalising {0}".format(v))
+          log.debug("Normalising {0}", v)
           print(v.get_normalised())
         else:
           print(v)

@@ -1,9 +1,9 @@
-import logging
 import math
 import re
 import env
+import util
 
-log = logging.getLogger("fsd")
+log = util.get_logger("fsd")
 
 
 class FSD(object):
@@ -20,14 +20,14 @@ class FSD(object):
       drive_class = result.group(1)
 
     if drive_class is None or drive_rating is None:
-      log.error("Error: Invalid FSD specification '{0}'.  Try, eg, '2A'".format(classrating))
+      log.error("Error: Invalid FSD specification '{0}'.  Try, eg, '2A'", classrating)
       return None
 
     classrating = "{0}{1}".format(drive_class, drive_rating)
     # Ensure we have an environment to query
     with env.use() as data:
       if classrating not in data.coriolis_fsd_list:
-        log.error("Error: No definition available for '{0}' drive.".format(classrating))
+        log.error("Error: No definition available for '{0}' drive.", classrating)
         return None
       self.drive = classrating
       fsdobj = data.coriolis_fsd_list[self.drive]
@@ -50,20 +50,20 @@ class FSD(object):
         log.debug("Reading FSD from Coriolis dump")
         drive = data['components']['standard']['frameShiftDrive']
         classrating = '{}{}'.format(drive['class'], drive['rating'])
-        log.debug("Dumped FSD is {}".format(classrating))
+        log.debug("Dumped FSD is {}", classrating)
         fsd_info = FSD(classrating)
         if 'modifications' in drive:
           mods = drive['modifications']
           # Coriolis dump reports, eg, a 28.7910% bonus as 2879.10.
           if 'mass' in mods:
             fsd_info.mass *= 1.0 + mods['mass'] / 10000.0
-            log.debug("Dumped FSD modified mass is {}".format(fsd_info.mass))
+            log.debug("Dumped FSD modified mass is {}", fsd_info.mass)
           if 'maxfuel' in mods:
             fsd_info.maxfuel *= 1.0 + mods['maxfuel'] / 10000.0
-            log.debug("Dumped FSD modified maxfuel is {}".format(fsd_info.maxfuel))
+            log.debug("Dumped FSD modified maxfuel is {}", fsd_info.maxfuel)
           if 'optmass' in mods:
             fsd_info.optmass *= 1.0 + mods['optmass'] / 10000.0
-            log.debug("Dumped FSD modified optmass is {}".format(fsd_info.optmass))
+            log.debug("Dumped FSD modified optmass is {}", fsd_info.optmass)
         return fsd_info
       except KeyError:
         pass

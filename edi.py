@@ -3,17 +3,17 @@
 from __future__ import print_function
 import sys
 import shlex
-import logging
 import time
 import cmd
 import argparse
 import traceback
+import util
 
 if __name__ == '__main__':
   print("Loading environment...")
 import env
 
-log = logging.getLogger("edi")
+log = util.get_logger("edi")
 
 # Now env is loaded, import the apps
 import ship
@@ -47,7 +47,7 @@ class EDI(cmd.Cmd):
     except SystemExit:
       pass
     except Exception as e:
-      log.error("Error in application: {}".format(e))
+      log.error("Error in application: {}", e)
       log.debug(traceback.format_exc())
       pass
     return True
@@ -214,7 +214,7 @@ class EDI(cmd.Cmd):
   def postcmd(self, retval, line):
     if retval is False:
       return True
-    log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
+    log.debug("Command complete, time taken: {0:.4f}s", time.time() - self.start_time)
 
   # Prevent EOF showing up in the list of commands
   def print_topics(self, header, cmds, cmdlen, maxcol):
