@@ -86,14 +86,12 @@ class Solver(object):
       else:
         return [start, end], self._calc.solve_cost(start, end, 0)
 
-    log.debug("Calculating viable routes...")
-    vr = self._get_viable_routes([start], stations, end, maxstops)
-    log.debug("Viable routes: {0}".format(len(vr)))
-
     count = 0
-    costs = []
     mincost = None
     minroute = None
+
+    log.debug("Calculating and checking viable routes...")
+    vr = self._get_viable_routes([start], stations, end, maxstops)
 
     for route in vr:
       count += 1
@@ -104,9 +102,8 @@ class Solver(object):
       cost = cost_normal if (cost_normal <= cost_reversed) else cost_reversed
       route = route if (cost_normal <= cost_reversed) else route_reversed
 
-      costs.append(cost)
       if mincost is None or cost < mincost:
-        log.debug("New minimum cost: {0} on route {1}".format(cost, count))
+        log.debug("New minimum cost: {0} on viable route #{1}".format(cost, count))
         mincost = cost
         minroute = route
 
@@ -241,6 +238,7 @@ class Solver(object):
 
     return legs
 
+
   def _get_viable_routes(self, route, stations, end, maxstops):
     # If we have more non-end stops to go...
     if len(route) + 1 < maxstops:
@@ -261,21 +259,15 @@ class Solver(object):
 
       mindist = min(nexts.values())
 
-      vsnext = []
       for stn, dist in nexts.items():
         if dist < (mindist * self._diff_limit):
-          vsnext.append(stn)
-
-      vrnext = []
-      for stn in vsnext:
-        vrnext = vrnext + self._get_viable_routes(route + [stn], stations, end, maxstops)
-
-      return vrnext
+          # For each valid next stop, run
+          self._get_viable_routes(route + [stn], stations, end, maxstops)
 
     # We're at the end
     else:
       route.append(end)
-      return [route]
+      yield route
 
 
   def _get_best_supercluster_route(self, clusters, start, end):
@@ -353,10 +345,7 @@ def _cluster_points(X, mu):
 
 
 def _reevaluate_centers(mu, clusters):
-  newmu = []
-  for c in clusters:
-    newmu.append(vector3.mean([x.position for x in c]))
-  return newmu
+  return [vector3.mean([x.position for x in c]) for c in clusters]
 
 
 def _has_converged(mu, oldmu):
