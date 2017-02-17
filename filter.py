@@ -364,8 +364,8 @@ def generate_sql(filters):
           filter_params.append(entry.value)
         else:
           valid_values = [p for p in PadSize.values if entry.matches(p)]
-          filter_str.append(" OR ".join(["stations.max_pad_size = ?"] * len(valid_values)))
-          filter_params.append(valid_values)
+          filter_str.append("stations.max_pad_size IN ({0})".format(",".join(["?"] * len(valid_values))))
+          filter_params += valid_values
   if 'sc_distance' in filters:
     req_tables.add('stations')
     for oentry in filters['sc_distance']:
