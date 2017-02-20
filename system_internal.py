@@ -26,6 +26,15 @@ class System(object):
     return self._name
 
   @property
+  def pg_name(self):
+    if self.id64 is not None:
+      coords, cube_width, n2, _ = calculate_from_id64(self.id64)
+      sys_proto = pgnames.get_system(coords, cube_width, allow_ha=False)
+      return sys_proto.name + str(n2)
+    else:
+      return None
+
+  @property
   def id(self):
     return self._id
 
@@ -41,6 +50,10 @@ class System(object):
   @property
   def sector(self):
     return pgnames.get_sector(self.position)
+
+  @property
+  def pg_sector(self):
+    return pgnames.get_sector(self.position, allow_ha=False)
 
   @property
   def needs_permit(self):
@@ -79,9 +92,9 @@ class System(object):
     if self.id64 is None:
       return "MISSING ID64"
     if format == 'VSC':
-      return ' '.join(map(lambda b: '{0:02x}'.format(b).upper(), bytearray(struct.pack('<Q', self.id64))))
+      return ' '.join(map(lambda b: '{0:02X}'.format(b), bytearray(struct.pack('<Q', self.id64))))
     else:
-      return "{0}".format("{0:016x}" if format == 'HEX' else "{0:d}").format(self.id64).upper()
+      return ("{0:016X}" if format == 'HEX' else "{0:d}").format(self.id64)
 
   def __hash__(self):
     return self._hash

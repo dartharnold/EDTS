@@ -1,7 +1,8 @@
 import env
 import pgnames
 import util
-from system_internal import System, KnownSystem, PGSystem, PGSystemPrototype, calculate_from_id64, calculate_id64, mask_id64_as_system, mask_id64_as_body, combine_to_id64
+from system_internal import System, KnownSystem, PGSystem, PGSystemPrototype
+from system_internal import calculate_from_id64, calculate_id64, mask_id64_as_system, mask_id64_as_body, combine_to_id64
 
 
 def from_id64(id, allow_ha = True, allow_known = True):
