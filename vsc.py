@@ -9,6 +9,7 @@ import shutil
 import starcache
 import sys
 import time
+import util
 import vector3
 
 app_name = "vsc"
