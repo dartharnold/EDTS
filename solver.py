@@ -262,7 +262,8 @@ class Solver(object):
       for stn, dist in nexts.items():
         if dist < (mindist * self._diff_limit):
           # For each valid next stop, run
-          self._get_viable_routes(route + [stn], stations, end, maxstops)
+          for r in self._get_viable_routes(route + [stn], stations, end, maxstops):
+            yield r
 
     # We're at the end
     else:
