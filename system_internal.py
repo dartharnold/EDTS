@@ -166,8 +166,6 @@ def mask_id64_as_system(input):
   if util.is_str(input):
     result = int(result, 16)
   result &= (2**55) - 1
-  if util.is_str(input):
-    result = '{0:016X}'.format(result)
   return result
 
 
@@ -177,8 +175,6 @@ def mask_id64_as_body(input):
     result = int(result, 16)
   result >>= 55
   result &= (2**9)-1
-  if util.is_str(input):
-    result = '{0:X}'.format(result)
   return result
 
 
