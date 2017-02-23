@@ -174,6 +174,11 @@ def parse_number_or_add_percentage(value, basevalue):
     return float(value)
 
 
+def int2hex(i, len=64):
+  fmtlen = str(int(int(len)/4))
+  return ('{0:0'+fmtlen+'X}').format(i)
+
+
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
 # Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
 def jenkins32(key):
