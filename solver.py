@@ -106,6 +106,7 @@ class Solver(object):
         log.debug("New minimum cost: {0} on viable route #{1}", cost, count)
         mincost = cost
         minroute = route
+    log.debug("Checked {0} viable routes", count)
 
     return minroute, mincost
 
@@ -218,6 +219,7 @@ class Solver(object):
           # If everything is now valid...
           if min(lengths) >= cluster_size_min and max(lengths) <= cluster_size_max and len(clusters) <= supercluster_size_max:
               break
+    clusters = [c for c in clusters if any(c.systems)]
     log.debug("Using clusters of sizes {} after {} iterations", ", ".join([str(len(c.systems)) for c in clusters]), iterations)
     return clusters
 
@@ -260,7 +262,7 @@ class Solver(object):
       mindist = min(nexts.values())
 
       for stn, dist in nexts.items():
-        if dist < (mindist * self._diff_limit):
+        if dist <= (mindist * self._diff_limit):
           # For each valid next stop, run
           for r in self._get_viable_routes(route + [stn], stations, end, maxstops):
             yield r
