@@ -67,8 +67,12 @@ class Calc(object):
     else:
       raise Exception("Tried to calculate route fuel cost without a valid ship")
 
-  # An approximation of the cost (currently time taken in seconds) of doing an SC journey
+  # An approximation of the cost of doing an SC journey
   def sc_cost(self, distance):
+    return math.sqrt(self.sc_time(distance))
+
+  # An approximation of the time in seconds to do an SC journey
+  def sc_time(self, distance):
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
 
   # The cost to go from a to b, as used in simple (non-routed) solving
