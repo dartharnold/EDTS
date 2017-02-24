@@ -1,3 +1,4 @@
+import math
 import pgnames
 import sector
 import struct
@@ -67,6 +68,10 @@ class System(object):
   @property
   def uncertainty(self):
     return self._uncertainty
+
+  @property
+  def uncertainty3d(self):
+    return math.sqrt((self.uncertainty**2) * 3)
 
   def to_string(self, use_long = False):
     if use_long:
