@@ -68,10 +68,11 @@ class Calc(object):
       raise Exception("Tried to calculate route fuel cost without a valid ship")
 
   # An approximation of the cost of doing an SC journey
+  # This is now flattened to avoid massive distances skewing things
   def sc_cost(self, distance):
     return math.sqrt(self.sc_time(distance))
 
-  # An approximation of the time in seconds to do an SC journey
+  # An approximation of the amount of time taken to do an SC journey, in seconds
   def sc_time(self, distance):
     return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
 
