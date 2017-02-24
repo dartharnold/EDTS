@@ -107,7 +107,7 @@ class Application(object):
     for i in range(1, len(output_data)):
       leg = output_data[i]
       dist = leg['src'].distance_to(leg['dst'])
-      print(('    ={4}= {0: >'+d_max_len+'.2f}Ly / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
+      print(('    ={4}= {0: >'+d_max_len+'.2f}LY / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
             dist,
             leg['cost'],
             leg['remaining'],

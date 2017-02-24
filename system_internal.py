@@ -5,11 +5,12 @@ import util
 import vector3
 
 class System(object):
-  def __init__(self, x, y, z, name = None, id64 = None):
+  def __init__(self, x, y, z, name = None, id64 = None, uncertainty = 0.0):
     self._position = vector3.Vector3(float(x), float(y), float(z))
     self._name = name
     self._id = None
     self._id64 = id64
+    self._uncertainty = uncertainty
     self.uses_sc = False
     self._hash = u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
 
@@ -63,6 +64,10 @@ class System(object):
   def needs_system_permit(self):
     return False
 
+  @property
+  def uncertainty(self):
+    return self._uncertainty
+
   def to_string(self, use_long = False):
     if use_long:
       return u"{0} ({1:.2f}, {2:.2f}, {3:.2f})".format(self.name, self.position.x, self.position.y, self.position.z)
@@ -102,8 +107,7 @@ class System(object):
 
 class PGSystemPrototype(System):
   def __init__(self, x, y, z, name, sector, uncertainty):
-    super(PGSystemPrototype, self).__init__(x, y, z, name)
-    self.uncertainty = uncertainty
+    super(PGSystemPrototype, self).__init__(x, y, z, name, uncertainty=uncertainty)
     self._sector = sector
 
   @property

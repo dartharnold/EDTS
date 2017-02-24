@@ -37,7 +37,7 @@ class Application(object):
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
     ap.add_argument("-p", "--pad-size", default="M", type=str.upper, choices=['S','M','L'], help="The landing pad size of the ship (S/M/L)")
-    ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in Ly (e.g. due to taking on cargo)")
+    ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in LY (e.g. due to taking on cargo)")
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
@@ -48,8 +48,8 @@ class Application(object):
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
     ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
-    ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid stars for routing")
-    ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in Ly, used to search for valid next legs. Not used by the 'astar' strategy.")
+    ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
+    ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
     ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
@@ -89,7 +89,7 @@ class Application(object):
     if self.ship is not None:
       log.debug(str(self.ship))
     else:
-      log.debug("Static jump range {0:.2f}Ly", self.args.jump_range)
+      log.debug("Static jump range {0:.2f}LY", self.args.jump_range)
 
   def run(self):
     with env.use() as envdata:
@@ -286,7 +286,7 @@ class Application(object):
                     ld['max_tank'],
                     int(100.0*ld['min_tank']/self.ship.tank_size),
                     int(100.0*ld['max_tank']/self.ship.tank_size))
-              print(("    -{0}- {1: >"+d_max_len+".2f}Ly -{0}-> {2}{3}{4}").format(
+              print(("    -{0}- {1: >"+d_max_len+".2f}LY -{0}-> {2}{3}{4}").format(
                   "!" if ld['is_long'] else "-",
                   ld['ldist'],
                   ld['dst'].to_string(),
@@ -302,7 +302,7 @@ class Application(object):
                   int(100.0*ld['min_tank']/self.ship.tank_size),
                   int(100.0*ld['max_tank']/self.ship.tank_size))
 
-            print(("    ={0}= {1: >"+d_max_len+".2f}Ly ={0}=> {2}{5}{6} -- {3:.2f}Ly for {4:.2f}Ly").format(
+            print(("    ={0}= {1: >"+d_max_len+".2f}LY ={0}=> {2}{5}{6} -- {3:.2f}LY for {4:.2f}LY").format(
                 "!" if ld['is_long'] else "=",
                 ld['ldist'],
                 od['dst'].to_string(),
@@ -333,7 +333,7 @@ class Application(object):
                 fuel_str = " [{0:.2f}T{1}]".format(fuel_fewest, '+' if od['jumpcount_min'] > 1 else '')
               else:
                 fuel_str = " [{0:.2f}T+ - {1:.2f}T+]".format(min(fuel_fewest, fuel_most), max(fuel_fewest, fuel_most))
-            print(("    === {0: >"+d_max_len+".2f}Ly ({1}) ===> {2}{3}").format(od['legsldist'], jumps_str, route_str, fuel_str))
+            print(("    === {0: >"+d_max_len+".2f}LY ({1}) ===> {2}{3}").format(od['legsldist'], jumps_str, route_str, fuel_str))
 
       elif self.args.format == 'short':
         print("")
@@ -379,7 +379,7 @@ class Application(object):
         print_summary = False
 
       if print_summary:
-        totaldist_str = "{0:.2f}Ly ({1:.2f}Ly)".format(totaldist, totaldist_sl) if totaldist >= totaldist_sl else "{0:.2f}Ly".format(totaldist_sl)
+        totaldist_str = "{0:.2f}LY ({1:.2f}LY)".format(totaldist, totaldist_sl) if totaldist >= totaldist_sl else "{0:.2f}LY".format(totaldist_sl)
         fuel_str = "; fuel cost: {0:.2f}T{1}".format(total_fuel_cost, '+' if not total_fuel_cost_exact else '') if total_fuel_cost else ''
         print("")
         print("Total distance: {0}; total jumps: {1}".format(totaldist_str, totaljumps_str))

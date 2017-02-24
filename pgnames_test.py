@@ -56,7 +56,7 @@ def run_test(it):
             else:
               badha += 1
               absdiff = abs(coords - system.position)
-              log.info("BadHA{5}: {4}, {0} not close enough to {1} with {2:.0f}Ly/axis uncertainty, actually {3}", coords, system.position, rpe, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else "")
+              log.info("BadHA{5}: {4}, {0} not close enough to {1} with {2:.0f}LY/axis uncertainty, actually {3}", coords, system.position, rpe, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else "")
           else:
             noneha += 1
             is_noneha = True
@@ -68,9 +68,9 @@ def run_test(it):
             else:
               badhaname += 1
               if ha_name is not None:
-                log.info("BadHAName: {} ({}Ly) was predicted to be in {} ({}Ly)", system.name, sect.size, ha_name, pgdata.ha_regions[ha_name.lower()].size)
+                log.info("BadHAName: {} ({}LY) was predicted to be in {} ({}LY)", system.name, sect.size, ha_name, pgdata.ha_regions[ha_name.lower()].size)
               else:
-                log.info("BadHAName: {} ({}Ly) was predicted to not be in an HA sector", system.name, sect.size)
+                log.info("BadHAName: {} ({}LY) was predicted to not be in an HA sector", system.name, sect.size)
         else:
           cls = pgnames._get_sector_class(m.group("sector"))
           if isinstance(cls, int):
@@ -103,7 +103,7 @@ def run_test(it):
                 elif cls == 'c1':
                   bad1 += 1
                 absdiff = abs(coords - system.position)
-                log.info("Bad position{5}: {4}, {0} not close enough to {1} with {2:.0f}Ly/axis uncertainty, actually {3}", coords, system.position, dist, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else "")
+                log.info("Bad position{5}: {4}, {0} not close enough to {1} with {2:.0f}LY/axis uncertainty, actually {3}", coords, system.position, dist, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else "")
             else:
               if cls == 'c2':
                 bad2 += 1
@@ -136,7 +136,7 @@ if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "c1ot":
       test_data = {
-        'Mycapp': 623548, 'Lychoitl': 541608, 'Shruery': 410512, 'Phrauph': 574396,
+        'Mycapp': 623548, 'LYchoitl': 541608, 'Shruery': 410512, 'Phrauph': 574396,
         'Myreasp': 459657, 'Pythaics': 557994, 'Pythaipr': 803991, 'Styaill': 214060,
         'Styefs': 836644, 'Leeh': 99373, 'Keet': 99364, 'Schreang': 607155,
         'Sqeass': 263332, 'Squer': 639916, 'Cryaths': 246810, 'Phylur': 328741,
@@ -206,7 +206,7 @@ if __name__ == '__main__':
       syst = pgnames.get_system(input)
       if syst is not None:
         coords, relpos_confidence = syst.position, syst.uncertainty
-        print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
+        print("Est. position of {0}: {1} (+/- {2}LY)".format(input, coords, int(relpos_confidence)))
       else:
         sect = pgnames.get_sector(input)
         if sect is not None:

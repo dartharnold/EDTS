@@ -79,7 +79,7 @@ class Application(object):
       if len(self.args.systems) > 0:
         print(systems[self.args.systems[0]].to_string())
       for i in range(1, len(self.args.systems)):
-        print(('  === {0: >'+d_max_len+'.2f}Ly ===> {1}').format(distances[i-1], systems[self.args.systems[i]].to_string()))
+        print(('  === {0: >'+d_max_len+'.2f}LY ===> {1}').format(distances[i-1], systems[self.args.systems[i]].to_string()))
 
     elif self.args.start is not None and start_obj is not None:
       distances = {}
@@ -94,7 +94,7 @@ class Application(object):
       d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
       for s in self.args.systems:
         sobj = systems[s]
-        print((' {0} === {1: >'+d_max_len+'.2f}Ly ===> {2}').format(start_obj.to_string(), sobj.distance_to(start_obj), sobj.to_string()))
+        print((' {0} === {1: >'+d_max_len+'.2f}LY ===> {2}').format(start_obj.to_string(), sobj.distance_to(start_obj), sobj.to_string()))
 
     else:
       # If we have many systems, generate a Raikogram
@@ -135,7 +135,7 @@ class Application(object):
         end = systems[self.args.systems[1]]
 
         print(start.to_string())
-        print('    === {0: >7.2f}Ly ===> {1}'.format(start.distance_to(end), end.to_string()))
+        print('    === {0: >7.2f}LY ===> {1}'.format(start.distance_to(end), end.to_string()))
       else:
         log.error("For a simple distance calculation, at least two system names must be provided!")
         return

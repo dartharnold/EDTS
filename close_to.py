@@ -124,7 +124,7 @@ class Application(object):
         print("")
         for i in range(0, len(asys)):
           if len(self.args.system) == 1:
-            print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
+            print("    {0} ({1:.2f}LY)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
           else:
             print("    {0}".format(asys[i].name))
           if self.args.list_stations:
@@ -140,7 +140,7 @@ class Application(object):
             asys.sort(key=lambda t: t.distance_to(d['sysobj']))
             for i in range(0, len(asys)):
               # Print distance from the current candidate system to the current start system
-              print("    {0} ({1:.2f}Ly)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
+              print("    {0} ({1:.2f}LY)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
             print("")
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
