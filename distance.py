@@ -5,6 +5,7 @@ import argparse
 import calc
 import env
 import math
+import pgnames
 import sys
 import util
 
@@ -61,40 +62,70 @@ class Application(object):
       systems = envdata.parse_systems(self.args.systems)
       for y in self.args.systems:
         if y not in systems or systems[y] is None:
-          log.error("Could not find system \"{0}\"!", y)
-          return
+          pgsys = pgnames.get_system(y)
+          if pgsys is not None:
+            systems[y] = pgsys
+          else:
+            log.error("Could not find system \"{0}\"!", y)
+            return
 
     print('')
 
     if self.args.route:
       distances = []
       d_max_len = 1.0
+      u_max_len = 0.0
       for i in range(1, len(self.args.systems)):
         sobj1 = systems[self.args.systems[i-1]]
         sobj2 = systems[self.args.systems[i]]
         distances.append(sobj1.distance_to(sobj2))
         d_max_len = max(d_max_len, distances[-1])
+        u_max_len = max(u_max_len, sobj1.uncertainty3d + sobj2.uncertainty3d)
 
       d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
+      if u_max_len > 0.0:
+        u_max_len = int(math.floor(math.log10(u_max_len))) + 4
+      else:
+        u_max_len = 0
       if len(self.args.systems) > 0:
         print(systems[self.args.systems[0]].to_string())
       for i in range(1, len(self.args.systems)):
-        print(('  === {0: >'+d_max_len+'.2f}LY ===> {1}').format(distances[i-1], systems[self.args.systems[i]].to_string()))
+        sobj1 = systems[self.args.systems[i-1]]
+        sobj2 = systems[self.args.systems[i]]
+        if sobj1.uncertainty3d != 0.0 or sobj2.uncertainty3d != 0.0:
+          extrastr = (' +/- {0:>'+str(u_max_len)+'.2f}LY').format(sobj1.uncertainty3d + sobj2.uncertainty3d)
+        elif u_max_len > 0:
+          extrastr = (' ' * (u_max_len + 7))
+        else:
+          extrastr = ''
+        print(('  === {0: >'+d_max_len+'.2f}LY{2} ===> {1}').format(distances[i-1], systems[self.args.systems[i]].to_string(), extrastr))
 
     elif self.args.start is not None and start_obj is not None:
       distances = {}
       d_max_len = 1.0
+      u_max_len = 0.0
       for s in self.args.systems:
         distances[s] = systems[s].distance_to(start_obj)
         d_max_len = max(d_max_len, distances[s])
+        u_max_len = max(u_max_len, start_obj.uncertainty3d + systems[s].uncertainty3d)
 
       if not self.args.ordered:
         self.args.systems.sort(key=distances.get)
 
       d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
+      if u_max_len > 0.0:
+        u_max_len = int(math.floor(math.log10(u_max_len))) + 4
+      else:
+        u_max_len = 0
       for s in self.args.systems:
         sobj = systems[s]
-        print((' {0} === {1: >'+d_max_len+'.2f}LY ===> {2}').format(start_obj.to_string(), sobj.distance_to(start_obj), sobj.to_string()))
+        if start_obj.uncertainty3d != 0.0 or sobj.uncertainty3d != 0.0:
+          extrastr = (' +/- {0:>'+str(u_max_len)+'.2f}LY').format(start_obj.uncertainty3d + sobj.uncertainty3d)
+        elif u_max_len > 0:
+          extrastr = (' ' * (u_max_len + 7))
+        else:
+          extrastr = ''
+        print((' {0} === {1: >'+d_max_len+'.2f}LY{3} ===> {2}').format(start_obj.to_string(), sobj.distance_to(start_obj), sobj.to_string(), extrastr))
 
     else:
       # If we have many systems, generate a Raikogram
@@ -135,7 +166,8 @@ class Application(object):
         end = systems[self.args.systems[1]]
 
         print(start.to_string())
-        print('    === {0: >7.2f}LY ===> {1}'.format(start.distance_to(end), end.to_string()))
+        extrastr = ' +/- {0:.2f}LY'.format(start.uncertainty3d + end.uncertainty3d) if (start.uncertainty != 0.0 or end.uncertainty != 0.0) else ''
+        print('    === {0: >7.2f}LY{2} ===> {1}'.format(start.distance_to(end), end.to_string(), extrastr))
       else:
         log.error("For a simple distance calculation, at least two system names must be provided!")
         return

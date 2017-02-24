@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 import env
+import pgnames
 import util
 
 app_name = "coords"
@@ -25,14 +26,19 @@ class Application(object):
       for name in self.args.system:
         maxlen = max(maxlen, len(name))
         if name not in systems or systems[name] is None:
-          log.error("Could not find system \"{0}\"!", name)
-          return
+          pgsys = pgnames.get_system(name)
+          if pgsys is not None:
+            systems[name] = pgsys
+          else:
+            log.error("Could not find system \"{0}\"!", name)
+            return
 
     print("")
     for name in self.args.system:
       s = systems[name]
       fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>8.2f}, {2:>8.2f}, {3:>8.2f}]"
-      print(fmtstr.format(name, s.position.x, s.position.y, s.position.z))
+      extrastr = " +/- {0:.0f}LY in each axis".format(s.uncertainty) if s.uncertainty != 0.0 else ""
+      print(fmtstr.format(name, s.position.x, s.position.y, s.position.z) + extrastr)
     print("")
 
     return True
