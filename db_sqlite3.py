@@ -76,9 +76,15 @@ class SQLite3DBConnection(eb.EnvBackend):
   def __init__(self, conn):
     super(SQLite3DBConnection, self).__init__("db_sqlite3")
     self._conn = conn
+    self._is_closed = False
+
+  @property
+  def closed(self):
+    return self._is_closed
 
   def close(self):
     self._conn.close()
+    self._is_closed = True
     log.debug("DB connection closed")
 
   def _create_tables(self):
