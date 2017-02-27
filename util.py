@@ -187,6 +187,13 @@ def int2hex(i, len=64):
   return ('{0:0'+fmtlen+'X}').format(i)
 
 
+def get_bytes(s, enc = 'utf-8'):
+  if sys.version_info >= (3, 0):
+    return bytes(s, enc)
+  else:
+    return bytes(s)
+
+
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
 # Seemingly originally by Bob Jenkins <bob_jenkins-at-burtleburtle.net> in the 1990s
 def jenkins32(key):

@@ -59,6 +59,13 @@ def write_struct(f, format, n):
 def write_uint64(f, n):
   return write_struct(f, '<Q', n)
 
+def write_str(f, s):
+  try:
+    f.write(util.get_bytes(s, 'ascii'))
+  except:
+    log.error('Failed to write "{}" as string', s)
+    raise
+
 def read_visited_stars_cache_header(f):
   try:
     header = VisitedStarsCacheHeader()
@@ -106,7 +113,7 @@ def write_visited_stars_cache(filename, systems, recent = False):
     fd, scratch = tempfile.mkstemp('.tmp', os.path.basename(filename), dirname if dirname else '.')
     with os.fdopen(fd, 'wb') as f:
       header = VisitedStarsCacheHeader()
-      f.write(header.magic)
+      write_str(f, header.magic)
       if recent:
         write_uint32(f, header.recent_magic)
       else:
