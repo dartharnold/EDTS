@@ -27,6 +27,7 @@ class DownloadOnly(object):
   populate_table_stations = ignore
   populate_table_coriolis_fsds = ignore
   update_table_systems = ignore
+  def close(): pass
 
 edsm_systems_url  = "https://www.edsm.net/dump/systemsWithCoordinates.json"
 eddb_systems_url  = "https://eddb.io/archive/v5/systems_populated.jsonl"
@@ -63,16 +64,18 @@ if copy_local and args.local:
   log.error("Invalid use of --local and --{}!", "download-only" if download_only else "copy-local")
   sys.exit(1)
 
+
 def cleanup_local(f, scratch):
   try:
-    if f is not None:
+    if f is not None and not f.closed:
       f.close()
     if scratch is not None:
       unlink(scratch)
   except:
-    log.error("Error cleanup up temporary file {}", scratch)
+    log.error("Error cleaning up temporary file {}", scratch)
 
-def import_json_from_url(url, filename, description, batch_size, key = None):
+
+def import_json_from_url(url, filename, description, batch_size, is_url_local = False, key = None):
   if copy_local:
     try:
       dirname = os.path.dirname(filename)
@@ -93,7 +96,7 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
 
       batch = []
       encoded = ''
-      stream = util.open_url(url)
+      stream = util.open_url(url, allow_no_ssl=is_url_local)
       if stream is None:
         if copy_local:
           cleanup_local(f, scratch)
@@ -141,7 +144,7 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
     else:
       log.info("Downloading {0} list from {1} ... ", description, url)
       sys.stdout.flush()
-      encoded = util.read_from_url(url)
+      encoded = util.read_from_url(url, allow_no_ssl=is_url_local)
       log.info("Done.")
       if copy_local:
         log.info("Writing {0} local data...", description)
@@ -177,12 +180,6 @@ def import_json_from_url(url, filename, description, batch_size, key = None):
     if copy_local:
       cleanup_local(f, scratch)
     raise
-
-def import_jsonl(url, filename, description, batch_size, key = None):
-  return import_json_from_url(url, filename, description, batch_size, key)
-
-def import_json(url, filename, description, batch_size, key = None):
-  return import_json_from_url(url, filename, description, batch_size, key)
 
 if __name__ == '__main__':
   env.log_versions()
@@ -227,10 +224,10 @@ if __name__ == '__main__':
     eddb_stations_path = util.path_to_url(eddb_stations_local_path) if args.local else eddb_stations_url
     coriolis_fsds_path = util.path_to_url(coriolis_fsds_local_path) if args.local else coriolis_fsds_url
 
-    dbc.populate_table_systems(import_json(edsm_systems_path, edsm_systems_local_path, 'EDSM systems', batch_size))
-    dbc.update_table_systems(import_jsonl(eddb_systems_path, eddb_systems_local_path, 'EDDB systems', batch_size))
-    dbc.populate_table_stations(import_jsonl(eddb_stations_path, eddb_stations_local_path, 'EDDB stations', batch_size))
-    dbc.populate_table_coriolis_fsds(import_json(coriolis_fsds_url, coriolis_fsds_local_path, 'Coriolis FSDs', None, 'fsd'))
+    dbc.populate_table_systems(import_json_from_url(edsm_systems_path, edsm_systems_local_path, 'EDSM systems', batch_size, is_url_local=args.local))
+    dbc.update_table_systems(import_json_from_url(eddb_systems_path, eddb_systems_local_path, 'EDDB systems', batch_size, is_url_local=args.local))
+    dbc.populate_table_stations(import_json_from_url(eddb_stations_path, eddb_stations_local_path, 'EDDB stations', batch_size, is_url_local=args.local))
+    dbc.populate_table_coriolis_fsds(import_json_from_url(coriolis_fsds_path, coriolis_fsds_local_path, 'Coriolis FSDs', batch_size=None, is_url_local=args.local, key='fsd'))
   except MemoryError:
     log.error("Out of memory!")
     if batch_size is None:
