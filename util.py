@@ -58,7 +58,7 @@ def parse_coords(sysname):
   return None
 
 
-def open_url(url, allow_gzip = True):
+def open_url(url, allow_gzip = True, allow_no_ssl = False):
   response = None
   headers = {'User-Agent': USER_AGENT}
   if allow_gzip:
@@ -72,10 +72,18 @@ def open_url(url, allow_gzip = True):
       log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
       return None
   else:
-    sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-    # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
-    if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
-      sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
+    sslctx = None
+    try:
+      sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+      # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
+      if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
+        sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
+    except Exception as ex:
+      if allow_no_ssl:
+        log.warning("Failed to create SSL context ({0}), attempting to continue", str(ex))
+      else:
+        log.error("Failed to create SSL context: {0}", str(ex))
+        return None
     # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
     request = urllib2.Request(url, headers=headers)
     try:
@@ -120,8 +128,8 @@ def read_stream(stream, limit = None):
     else:
       raise
 
-def read_from_url(url):
-  return read_stream(open_url(url))
+def read_from_url(url, allow_gzip = True, allow_no_ssl = False):
+  return read_stream(open_url(url, allow_gzip=allow_gzip, allow_no_ssl=allow_no_ssl))
 
 def write_stream(stream, data):
   try:
