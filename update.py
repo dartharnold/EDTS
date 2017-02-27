@@ -209,7 +209,7 @@ if __name__ == '__main__':
     if db_dir and not os.path.exists(db_dir):
       os.makedirs(db_dir)
 
-    fd, db_tmp_filename = tempfile.mkstemp('.tmp', os.path.basename(db_file), db_dir if db_dir else '.')
+    db_tmp_filename = db_file + '.tmp'
 
     log.info("Initialising database...")
     sys.stdout.flush()
