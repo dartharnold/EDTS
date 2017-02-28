@@ -66,13 +66,16 @@ if copy_local and args.local:
 
 
 def cleanup_local(f, scratch):
-  try:
-    if f is not None and not f.closed:
+  if f is not None and not f.closed:
+    try:
       f.close()
-    if scratch is not None:
+    except:
+      log.error("Error closing temporary file{}", ' {}'.format(scratch) if scratch is not None else '')
+  if scratch is not None:
+    try:
       unlink(scratch)
-  except:
-    log.error("Error cleaning up temporary file {}", scratch)
+    except:
+      log.error("Error cleaning up temporary file {}", scratch)
 
 
 def import_json_from_url(url, filename, description, batch_size, is_url_local = False, key = None):
@@ -209,12 +212,12 @@ if __name__ == '__main__':
     if db_dir and not os.path.exists(db_dir):
       os.makedirs(db_dir)
 
-    db_tmp_filename = db_file + '.tmp'
+    # Open then close a temporary file, essentially reserving the name.
+    fd, db_tmp_filename = tempfile.mkstemp('.tmp', os.path.basename(db_file), db_dir if db_dir else '.')
+    os.close(fd)
 
     log.info("Initialising database...")
     sys.stdout.flush()
-    if os.path.isfile(db_tmp_filename):
-      os.unlink(db_tmp_filename)
     dbc = db.initialise_db(db_tmp_filename)
     log.info("Done.")
 
