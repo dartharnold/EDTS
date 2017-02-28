@@ -140,7 +140,7 @@ def write_visited_stars_cache(filename, systems, recent = False):
           log.error('Failed to seek to entry count offset!')
           raise RuntimeError
         write_uint32(f, header.num_entries)
-      shutil.move(scratch, filename)
+    shutil.move(scratch, filename)
   except:
     if scratch is not None:
       os.unlink(scratch)
