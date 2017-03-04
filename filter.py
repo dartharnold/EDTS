@@ -53,6 +53,13 @@ class PadSize(object):
     if not rhs in PadSize.values:
       raise ValueError('tried to compare pad size with an invalid value')
     return (PadSize.values.index(self.value) - PadSize.values.index(rhs))
+  # Python 3.x doesn't like __cmp__
+  def __lt__(self, rhs): return (self.__cmp__(rhs) < 0)
+  def __le__(self, rhs): return (self.__cmp__(rhs) <= 0)
+  def __gt__(self, rhs): return (self.__cmp__(rhs) > 0)
+  def __ge__(self, rhs): return (self.__cmp__(rhs) >= 0)
+  def __eq__(self, rhs): return (self.__cmp__(rhs) == 0)
+  def __ne__(self, rhs): return (self.__cmp__(rhs) != 0)
 
 class Operator(object):
   def __init__(self, op, value):
@@ -362,7 +369,7 @@ def generate_sql(filters):
           filter_str.append("stations.max_pad_size {} ?{}".format(entry.operator, extra_str if entry.operator == '!=' else ''))
           filter_params.append(entry.value)
         else:
-          valid_values = [p for p in PadSize.values if entry.matches(p)]
+          valid_values = [p for p in PadSize.values if entry.matches(PadSize(p))]
           filter_str.append("stations.max_pad_size IN ({0})".format(",".join(["?"] * len(valid_values))))
           filter_params += valid_values
   if 'sc_distance' in filters:
