@@ -129,7 +129,7 @@ class Application(object):
             print("    {0}".format(asys[i].name))
           if self.args.list_stations:
             stlist = envdata.find_stations(asys[i])
-            stlist.sort(key=lambda t: t.distance)
+            stlist.sort(key=lambda t: t.distance if t.distance else 0.0)
             for stn in stlist:
               print("        {0}".format(stn.to_string(False)))
         print("")
