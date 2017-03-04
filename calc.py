@@ -73,8 +73,13 @@ class Calc(object):
     return math.sqrt(self.sc_time(distance))
 
   # An approximation of the amount of time taken to do an SC journey, in seconds
-  def sc_time(self, distance):
-    return self.sc_constant + (math.pow(distance, self.sc_power) * self.sc_multiplier)
+  def sc_time(self, stn):
+    if isinstance(stn, int) or isinstance(stn, float):
+      return self.sc_constant + (math.pow(stn, self.sc_power) * self.sc_multiplier)
+    elif isinstance(stn, Station) and stn.name is not None:
+      return self.sc_time(stn.distance if stn.distance is not None else 0.0)
+    else:
+      return 0.0
 
   # The cost to go from a to b, as used in simple (non-routed) solving
   def solve_cost(self, a, b, prev_jcount):
@@ -158,13 +163,6 @@ class Calc(object):
           penalty += 20
 
     return (hs_jumps + hs_jdist + var + penalty)
-
-  # Gets the time taken to do an SC journey (defaulting to 0.0 for non-stations)
-  def sc_time(self, stn):
-    if isinstance(stn, Station) and stn.name is not None:
-      return self.sc_cost(stn.distance if stn.distance is not None else 0.0)
-    else:
-      return 0.0
 
   # Gets a very rough approximation of the time taken to stop at a starport/outpost
   def station_time(self, stn):
