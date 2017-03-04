@@ -316,7 +316,7 @@ def generate_sql(filters):
     req_tables.add('systems')
     for oentry in filters['close_to']:
       for entry in oentry[PosArgs]:
-        pos = entry.value.position
+        pos = util.get_as_position(entry.value)
         select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
         select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
         # For each operator and value...
@@ -327,7 +327,7 @@ def generate_sql(filters):
         idx += 1
         if 'direction' in oentry:
           for dentry in oentry['direction']:
-            dpos = dentry.value.position
+            dpos = util.get_as_position(dentry.value)
             select_str.append("vec3_angle(systems.pos_x-?,systems.pos_y-?,systems.pos_z-?,?-?,?-?,?-?) AS diff{}".format(idx))
             select_params += [pos.x, pos.y, pos.z, dpos.x, pos.x, dpos.y, pos.y, dpos.z, pos.z]
             if 'angle' in oentry:
@@ -402,7 +402,7 @@ def is_match(s, filters):
   if 'close_to' in filters:
     for oentry in filters['close_to']:
       for entry in oentry[PosArgs]:
-        pos = entry.value.position
+        pos = util.get_as_position(entry.value)
         # For each operator and value...
         if 'distance' in oentry:
           for opval in oentry['distance']:
@@ -410,7 +410,7 @@ def is_match(s, filters):
               return False
         if 'direction' in oentry:
           for dentry in oentry['direction']:
-            dpos = dentry.value.position
+            dpos = util.get_as_position(dentry.value)
             cur_angle = (sy.position - pos).angle_to(dpos - pos)
             if 'angle' in oentry:
               for aentry in oentry['angle']:
