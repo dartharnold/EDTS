@@ -14,9 +14,10 @@ log = util.get_logger("filter")
 default_direction_angle = 15.0
 
 entry_separator = ';'
-entry_subseparator = ','
-entry_kvseparator_re = re.compile('(=|!=|<>|<=|>=|<|>)')
-# Note: != allows null/None, <> does not
+# Split on ',' but keep anything inside '[1,2,3]' blocks as single elements
+entry_subelement_re = re.compile(r'(?:([^,\[]+?|\[[^\]]+?\])(?:,|$))+?')
+entry_kvseparator_re = re.compile(r'(=|!=|<>|<=|>=|<|>)')
+# Note: '!=' allows null/None, '<>' does not
 
 
 class AnyType(object):
@@ -169,7 +170,7 @@ def parse(s, extra_converters = {}):
       multiple = (_conversions[key]['max'] != 1)
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(key))
-    ksvlist = ksv[2].strip().split(entry_subseparator)
+    ksvlist = entry_subelement_re.findall(ksv[2].strip())
     # Do we have sub-entries, or just a simple key=value ?
     value = {}
     # For each sub-entry...
