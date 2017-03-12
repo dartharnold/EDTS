@@ -114,7 +114,8 @@ class Application(object):
         else:
           log.warning("Error: system/station {0} could not be found.", sname)
           return
-    stations = list(stations.values())
+    # Don't just take stations.values() in case a system/station was specified multiple times
+    stations = [stations[sname] for sname in self.args.stations]
 
     # Prefer a static jump range if provided, to allow user to override ship's range
     if self.args.jump_range is not None:
