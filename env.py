@@ -81,8 +81,8 @@ class Env(object):
   def filter_converters(self):
     return {'system': self.parse_system, 'station': self.parse_station}
 
-  def parse_filter_string(self, s):
-    return filter.parse(s, self.filter_converters)
+  def parse_filter_string(self, s, *args):
+    return filter.parse(s, *args, extra_converters=self.filter_converters)
 
   def _get_as_filters(self, s):
     if s is None:

@@ -13,6 +13,7 @@ log = util.get_logger("filter")
 
 default_direction_angle = 15.0
 
+value_literalarg = '?'
 entry_separator = ';'
 # Split on ',' but keep anything inside '[1,2,3]' blocks as single elements
 entry_subelement_re = re.compile(r'(?:([^,\[]+?|\[[^\]]+?\])(?:,|$))+?')
@@ -159,9 +160,11 @@ def _global_conv(val, specials = []):
     return (val, True)
 
 
-def parse(s, extra_converters = {}):
+def parse(s, *args, **kwargs):
+  extra_converters = kwargs.get('extra_converters', {})
   entries = s.split(entry_separator)
-  output = {}
+  # This needs to be ordered so that literal args ('?') are hit in the correct order
+  output = collections.OrderedDict()
   # For each separate filter entry...
   for entry in entries:
     ksv = entry_kvseparator_re.split(entry, 1)
@@ -172,7 +175,7 @@ def parse(s, extra_converters = {}):
       raise KeyError("Unexpected filter key provided: {0}".format(key))
     ksvlist = entry_subelement_re.findall(ksv[2].strip())
     # Do we have sub-entries, or just a simple key=value ?
-    value = {}
+    value = collections.OrderedDict()
     # For each sub-entry...
     for e in ksvlist:
       eksv = [s.strip() for s in entry_kvseparator_re.split(e, 1)]
@@ -191,6 +194,7 @@ def parse(s, extra_converters = {}):
       output[key] = []
     output[key].append(value)
 
+  literalarg_count = 0
   # For each result
   for k in output.keys():
     # Do we know about it?
@@ -219,7 +223,12 @@ def parse(s, extra_converters = {}):
               specials = _conversions[k]['fn'][ek]['special'] if (ek in _conversions[k]['fn'] and isinstance(_conversions[k]['fn'][ek], dict)) else []
               ev.value, continue_conv = _global_conv(ev.value, specials)
               if continue_conv:
-                if util.is_str(conv):
+                if ev.value == value_literalarg:
+                  if literalarg_count >= len(args):
+                    raise ValueError("Query included more literal args ('{}') than argument objects provided to parse function".format(value_literalarg))
+                  ev.value = args[literalarg_count]
+                  literalarg_count += 1
+                elif util.is_str(conv):
                   if conv in extra_converters:
                     ev.value = extra_converters[conv](ev.value)
                   else:
@@ -237,7 +246,12 @@ def parse(s, extra_converters = {}):
             # Do the conversions
             ov.value, continue_conv = _global_conv(ov.value, _conversions[k]['special'])
             if continue_conv:
-              if util.is_str(_conversions[k]['fn']):
+              if ov.value == value_literalarg:
+                if literalarg_count >= len(args):
+                  raise ValueError("Query included more literal args ('{}') than argument objects provided to parse function".format(value_literalarg))
+                ov.value = args[literalarg_count]
+                literalarg_count += 1
+              elif util.is_str(_conversions[k]['fn']):
                 if _conversions[k]['fn'] in extra_converters:
                   ov.value = extra_converters[_conversions[k]['fn']](ov.value)
                 else:
@@ -247,7 +261,8 @@ def parse(s, extra_converters = {}):
     else:
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
-  return output
+  # We don't need to return OrderedDicts once processing is done, so use normal ones
+  return {k: [dict(sv) for sv in v] for k, v in output.items()}
 
 
 def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
