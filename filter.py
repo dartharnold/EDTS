@@ -160,9 +160,9 @@ def _global_conv(val, specials = []):
     return (val, True)
 
 
-def parse(s, *args, **kwargs):
+def parse(filter_string, *args, **kwargs):
   extra_converters = kwargs.get('extra_converters', {})
-  entries = s.split(entry_separator)
+  entries = filter_string.split(entry_separator)
   # This needs to be ordered so that literal args ('?') are hit in the correct order
   output = collections.OrderedDict()
   # For each separate filter entry...
@@ -178,7 +178,7 @@ def parse(s, *args, **kwargs):
     value = collections.OrderedDict()
     # For each sub-entry...
     for e in ksvlist:
-      eksv = [s.strip() for s in entry_kvseparator_re.split(e, 1)]
+      eksv = [es.strip() for es in entry_kvseparator_re.split(e, 1)]
       # Is this sub-part a subkey=value?
       if len(eksv) > 1:
         if eksv[0] not in value:
@@ -213,6 +213,7 @@ def parse(s, *args, **kwargs):
             for i in range(0, len(outentry[ek])):
               ev = outentry[ek][i]
               # Check we have a valid conversion for the provided name
+              print("ek = {}, i = {}".format(ek, i))
               conv = _get_valid_conversion(_conversions[k]['fn'], ek, i)
               if not conv:
                 raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
@@ -238,6 +239,9 @@ def parse(s, *args, **kwargs):
       else:
         # For each entry associated with this key...
         for ovl in output[k]:
+          nonpos_subkeys = [posk for posk in ovl.keys() if posk is not PosArgs]
+          if any(nonpos_subkeys):
+            raise KeyError("Unexpected filter subkey(s) provided: {0}".format(nonpos_subkeys))
           # For each entry in the positional args list...
           for ov in ovl[PosArgs]:
             # Check the provided operator is valid in this scenario
