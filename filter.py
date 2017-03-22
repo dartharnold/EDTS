@@ -213,7 +213,6 @@ def parse(filter_string, *args, **kwargs):
             for i in range(0, len(outentry[ek])):
               ev = outentry[ek][i]
               # Check we have a valid conversion for the provided name
-              print("ek = {}, i = {}".format(ek, i))
               conv = _get_valid_conversion(_conversions[k]['fn'], ek, i)
               if not conv:
                 raise KeyError("Unexpected filter subkey provided: {0}".format(ek))
