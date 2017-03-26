@@ -135,12 +135,13 @@ class KnownSystem(System):
   def __init__(self, obj):
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'], obj['id64'])
     self._id = obj['id'] if 'id' in obj else None
-    self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else False
+    self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else None
     self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
+    self._arrival_star_class = obj['arrival_star_class'] if 'arrival_star_class' in obj else None
 
   @property
   def needs_permit(self):
-    return (self._needs_permit or self.sector.needs_permit)
+    return (self.needs_system_permit or self.sector.needs_permit)
 
   @property
   def needs_system_permit(self):
@@ -149,6 +150,10 @@ class KnownSystem(System):
   @property
   def allegiance(self):
     return self._allegiance
+
+  @property
+  def arrival_star_class(self):
+    return self._arrival_star_class
 
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
