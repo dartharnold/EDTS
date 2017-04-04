@@ -13,6 +13,7 @@ import fsd
 import pgnames
 import pgdata
 import sector
+import system
 import vector3
 del sys.path[1]
 
@@ -129,6 +130,26 @@ def api_system(name):
     syst = data.get_system(name, keep_data=True)
     if syst is not None:
       result = syst.data
+    else:
+      bottle.response.status = 400
+      result = None
+  bottle.response.content_type = 'application/json'
+  return {'result': result}
+
+@bottle.route('/api/v2/system/<id64:int>')
+def api_v2_system_id64(id64):
+  syst = system.from_id64(id64)
+  return api_v2_system_name(syst.name)
+
+@bottle.route('/api/v2/system/<name>')
+def api_v2_system_name(name):
+  syst = system.from_name(name)
+  if syst is not None:
+    result = collections.OrderedDict([('name', syst.name), ('x', syst.position.x), ('y', syst.position.y), ('z', syst.position.z),
+              ('uncertainty', syst.uncertainty), ('pg_name', syst.pg_name), ('id64', syst.id64)])
+  else:
+    bottle.response.status = 400
+    result = None
   bottle.response.content_type = 'application/json'
   return {'result': result}
 
@@ -185,6 +206,10 @@ def api_find_station(glob):
   return {'result': result}
 
 if __name__ == '__main__':
+  port = 8080
+  if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+
   env.start(data_path)
-  bottle.run(host='localhost', port=8080)
+  bottle.run(host='localhost', port=port)
   env.stop(data_path)
