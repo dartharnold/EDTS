@@ -173,11 +173,19 @@ class EDI(cmd.Cmd):
     ap.add_argument("-m", "--mass", type=float, required=True, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=True, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="The ship's cargo capacity")
+    ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including % sign)")
+    ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including % sign)")
+    ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including % sign)")
     try:
       argobj = ap.parse_args(shlex.split(args))
     except SystemExit:
       return True
     s = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, argobj.cargo)
+    if argobj.fsd_optmass is not None or argobj.fsd_mass is not None or argobj.fsd_maxfuel is not None:
+      fsd_optmass = util.parse_number_or_add_percentage(argobj.fsd_optmass, s.fsd.stock_optmass)
+      fsd_mass = util.parse_number_or_add_percentage(argobj.fsd_mass, s.fsd.stock_mass)
+      fsd_maxfuel = util.parse_number_or_add_percentage(argobj.fsd_maxfuel, s.fsd.stock_maxfuel)
+      s = s.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
     self.state['ship'] = s
 
     print("")
