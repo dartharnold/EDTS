@@ -318,16 +318,16 @@ Get the grid (1/32LY) coordinates for the given position.
 
 Args:
   pos: The position to get the grid position for.
-  is_global: If true, gives the galaxy-wide grid position. Otherwise, gives the grid position within this sector.
+  mcode: The mass code to return the relative boxel coords for, or None to get global coords
 
 Returns:
   A tuple of the grid position in (x, y, z) form.
 """
-def get_grid_coords(pos, is_global = False):
+def get_grid_coords(pos, mcode):
   pos = util.get_as_position(pos)
   if pos is None:
     return None
-  origin = sector.internal_origin_offset if is_global else get_sector(pos, allow_ha=False, get_name=False).origin
+  origin = sector.internal_origin_offset if not mcode else get_boxel_origin(pos, mcode)
   mx = int(round((pos.x - origin.x) * 32))
   my = int(round((pos.y - origin.y) * 32))
   mz = int(round((pos.z - origin.z) * 32))
@@ -347,8 +347,8 @@ def get_closest_grid_position(pos):
   pos = util.get_as_position(pos)
   if pos is None:
     return None
-  mx, my, mz = get_grid_coords(pos)
-  return vector3.Vector3(mx/32.0, my/32.0, mz/32.0)
+  mx, my, mz = get_grid_coords(pos, None)  # get global coords
+  return sector.internal_origin_offset + vector3.Vector3(mx/32.0, my/32.0, mz/32.0)
 
 
 # #
