@@ -31,8 +31,6 @@ class Application(object):
     self._max_heading = 1000 if self.args.full_width else 10
     self._padding_width = 2
 
-    self._calc = calc.Calc()
-
   def print_system(self, name, is_line_start, max_len = None):
     if self.args.csv:
       sys.stdout.write('%s%s' % ('' if is_line_start else ',', name))
@@ -155,7 +153,7 @@ class Application(object):
         if self.args.ordered:
           print('')
           self.print_system('Total:', True)
-          total_dist = self._calc.route_dist([systems[x] for x in self.args.systems])
+          total_dist = calc.route_dist([systems[x] for x in self.args.systems])
           self.print_system(self.format_distance(total_dist), False, self._max_heading)
 
         print('')

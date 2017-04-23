@@ -6,6 +6,8 @@ import util
 
 log = util.get_logger("route")
 
+strategies = ["astar", "trunkle", "trundle"]
+default_strategy = "astar"
 default_rbuffer_ly = 40.0
 default_hbuffer_ly = 10.0
 hbuffer_relax_increment = 5.0
@@ -14,7 +16,7 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, calc, rbuf_base, hbuf_base, route_strategy):
+  def __init__(self, calc, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_strategy):
     self._calc = calc
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base

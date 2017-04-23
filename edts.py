@@ -41,13 +41,13 @@ class Application(object):
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
-    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=c.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
+    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=c.default_jump_time, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
-    ap.add_argument("--route-strategy", default=c.default_strategy, help="The strategy to use for route plotting. Valid options are 'trundle', 'trunkle' and 'astar'")
+    ap.add_argument("--route-strategy", default=rx.default_strategy, choices=rx.strategies, help="The strategy to use for route plotting")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
     ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
@@ -125,7 +125,7 @@ class Application(object):
       full_jump_range = self.ship.range()
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
-    calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, route_strategy=self.args.route_strategy, slf=self.args.slf)
+    calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, slf=self.args.slf)
     r = rx.Routing(calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
     s = solver.Solver(calc, r, jump_range, self.args.diff_limit)
 
@@ -221,7 +221,7 @@ class Application(object):
           totaldist += cur_data['legdist']
 
         if route[i].name is not None:
-          cur_data['sc_time'] = "{0:.0f}".format(calc.sc_cost(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
+          cur_data['sc_time'] = "{0:.0f}".format(c.sc_time(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
         # Add current route to list
         output_data.append(cur_data)
 
