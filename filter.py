@@ -63,6 +63,14 @@ class PadSize(object):
   def __eq__(self, rhs): return (self.__cmp__(rhs) == 0)
   def __ne__(self, rhs): return (self.__cmp__(rhs) != 0)
 
+def parse_star_class(s):
+  if s.upper() in ['NS','BH']:
+    return ['X{}'.format(s.upper())]
+  elif s.lower() == 'scoopable':
+    return ['K','G','B','F','O','A','M']
+  else:
+    return [s.upper()]
+
 class Operator(object):
   def __init__(self, op, value):
     self.value = value
@@ -95,6 +103,8 @@ def _get_valid_ops(fn):
     return _get_valid_ops(fn['fn'])
   if fn is int or fn is float or fn is PadSize:
     return ['=','!=','<','>','<=','>=']
+  if fn == parse_star_class:
+    return ['=','!=','<>']
   if isinstance(fn, dict):
     return ['=']
   else:
@@ -140,6 +150,11 @@ _conversions = {
                    'special': [Any, None],
                    'fn': str
                  },
+  'arrival_star':{
+                   'max': 1,
+                   'special': [Any],
+                   'fn': parse_star_class
+                 },
   'limit':       {
                    'max': 1,
                    'special': [],
@@ -169,9 +184,7 @@ def parse(filter_string, *args, **kwargs):
   for entry in entries:
     ksv = entry_kvseparator_re.split(entry, 1)
     key = ksv[0].strip()
-    if key in _conversions:
-      multiple = (_conversions[key]['max'] != 1)
-    else:
+    if key not in _conversions:
       raise KeyError("Unexpected filter key provided: {0}".format(key))
     ksvlist = entry_subelement_re.findall(ksv[2].strip())
     # Do we have sub-entries, or just a simple key=value ?
@@ -375,6 +388,19 @@ def generate_sql(filters):
           extra_str = " OR systems.allegiance IS NULL OR systems.allegiance == 'None'"
           filter_str.append("(systems.allegiance {} ?{})".format(entry.operator, extra_str if entry.operator == '!=' else ''))
           filter_params.append(entry.value)
+  if 'arrival_star' in filters:
+    req_tables.add('systems')
+    for oentry in filters['arrival_star']:
+      for entry in oentry[PosArgs]:
+        if (entry.operator == '=' and entry.value is Any):
+          filter_str.append("systems.arrival_star_class IS NOT NULL")
+        elif (entry.operator in ['!=','<>'] and entry.value is Any):
+          filter_str.append("systems.arrival_star_class IS NULL")
+        else:
+          extra_str = " OR systems.arrival_star_class IS NULL"
+          sql_op = "IN" if entry.operator == '=' else "NOT IN"
+          filter_str.append("(systems.arrival_star_class {0} ({1}) {2})".format(sql_op, ','.join(["?"] * len(entry.value)), extra_str if entry.operator == '!=' else ''))
+          filter_params += entry.value
   if 'pad' in filters:
     req_tables.add('stations')
     for oentry in filters['pad']:
@@ -453,6 +479,16 @@ def is_match(s, filters):
           if sy.allegiance is not None and sy.allegiance != 'None':
             return False
         elif not entry.matches(sy.allegiance):
+          return False
+  if 'arrival_star' in filters:
+    for oentry in filters['arrival_star']:
+      for entry in oentry[PosArgs]:
+        # Handle Any/None carefully
+        if (entry.operator == '=' and entry.value is Any) and sy.arrival_star_class is None:
+            return False
+        elif (entry.operator in ['!=','<>'] and entry.value is Any) and sy.arrival_star_class is not None:
+            return False
+        elif sy.arrival_star_class not in entry.value:
           return False
   if 'pad' in filters:
     for oentry in filters['pad']:

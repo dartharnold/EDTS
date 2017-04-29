@@ -10,6 +10,7 @@ import socket
 import ssl
 import sys
 import vector3
+import zlib
 
 if sys.version_info >= (3, 0):
   import urllib.parse
@@ -192,6 +193,19 @@ def get_bytes(s, enc = 'utf-8'):
     return bytes(s, enc)
   else:
     return bytes(s)
+
+
+def zlib_compress(s):
+  if sys.version_info >= (3, 0):
+    return zlib.compress(s.encode('utf-8'))
+  else:
+    return zlib.compress(s)
+
+def zlib_decompress(b):
+  if sys.version_info >= (3, 0):
+    return zlib.decompress(b).decode('utf-8')
+  else:
+    return zlib.decompress(b)
 
 
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
