@@ -3,9 +3,9 @@
 from __future__ import print_function
 import argparse
 
-from . import env
-from . import pgnames
-from . import util
+import env
+import pgnames
+import util
 
 app_name = "coords"
 

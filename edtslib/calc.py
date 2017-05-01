@@ -1,8 +1,8 @@
 import math
 import sys
-from . import ship
+import ship
 from .station import Station
-from . import util
+import util
 
 log = util.get_logger("calc")
 

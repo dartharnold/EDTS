@@ -2,8 +2,8 @@ import math
 import random
 import sys
 
-from . import util
-from . import vector3
+import util
+import vector3
 
 log = util.get_logger("solver")
 

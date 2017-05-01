@@ -5,9 +5,9 @@ import argparse
 import math
 import sys
 
-from . import env
-from . import filter
-from . import util
+import env
+import filter
+import util
 
 app_name = "close_to"
 

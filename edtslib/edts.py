@@ -4,12 +4,12 @@ from __future__ import print_function
 import argparse
 import math
 import sys
-from . import env
-from . import calc as c
-from . import ship
-from . import routing as rx
-from . import util
-from . import solver
+import env
+import calc as c
+import ship
+import routing as rx
+import util
+import solver
 from .station import Station
 from .fsd import FSD
 
@@ -40,6 +40,7 @@ class Application(object):
     ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in LY (e.g. due to taking on cargo)")
     ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
+    ap.add_argument("-O", "--tour", metavar="system[/station]", action='append', type=str, nargs='*', help="Following stations must be visited in order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
     ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
@@ -53,10 +54,6 @@ class Application(object):
     ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
-
-    # If the user hasn't provided a number of stops to use, assume we're stopping at all provided
-    if self.args.num_jumps is None:
-      self.args.num_jumps = len(self.args.stations)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
       # If user has provided full ship data in this invocation, use it
@@ -91,6 +88,25 @@ class Application(object):
     else:
       log.debug("Static jump range {0:.2f}LY", self.args.jump_range)
 
+    # stations will always be parsed before any tours, because -O is greedy.
+    if self.args.ordered:
+      self.tours = [self.args.stations]
+      if self.args.tour:
+        for tour in self.args.tour:
+          self.tours[0] += tour
+    else:
+      self.tours = [[station] for station in self.args.stations]
+      if self.args.tour:
+        self.tours += self.args.tour
+    self.stations = []
+    for stations in self.tours:
+      self.stations += stations
+
+    # If the user hasn't provided a number of stops to use, assume we're stopping at all provided
+    if self.args.num_jumps is None:
+      self.args.num_jumps = len(self.stations)
+
+
   def run(self):
     with env.use() as envdata:
       start = envdata.parse_station(self.args.start)
@@ -104,8 +120,8 @@ class Application(object):
         return
 
       # Locate all the systems/stations provided and ensure they're valid for our ship
-      stations = envdata.parse_stations(self.args.stations)
-      for sname in self.args.stations:
+      stations = envdata.parse_stations(self.stations)
+      for sname in self.stations:
         if sname in stations and stations[sname] is not None:
           sobj = stations[sname]
           log.debug("Adding system/station: {0}", sobj.to_string())
@@ -115,6 +131,7 @@ class Application(object):
           log.warning("Error: system/station {0} could not be found.", sname)
           return
     # Don't just take stations.values() in case a system/station was specified multiple times
+    tours = [[stations[sname] for sname in tour] for tour in self.tours]
     stations = [stations[sname] for sname in self.args.stations]
 
     # Prefer a static jump range if provided, to allow user to override ship's range
@@ -129,11 +146,11 @@ class Application(object):
     r = rx.Routing(calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
     s = solver.Solver(calc, r, jump_range, self.args.diff_limit)
 
-    if self.args.ordered:
+    if len(tours) == 1:
       route = [start] + stations + [end]
     else:
       # Add 2 to the jump count for start + end
-      route, is_definitive = s.solve(stations, start, end, self.args.num_jumps + 2, self.args.solve_mode)
+      route, is_definitive = s.solve(tours, stations, start, end, self.args.num_jumps + 2, self.args.solve_mode)
 
     if self.args.reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]

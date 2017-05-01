@@ -5,10 +5,10 @@ import argparse
 from math import log10, floor, fabs
 import sys
 
-from . import calc
-from . import env
-from . import ship
-from . import util
+import calc
+import env
+import ship
+import util
 
 app_name = "fuel_usage"
 

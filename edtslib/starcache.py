@@ -5,7 +5,7 @@ import struct
 import sys
 import tempfile
 
-from . import util
+import util
 
 log = util.get_logger('starcache')
 

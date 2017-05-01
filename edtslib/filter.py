@@ -5,10 +5,10 @@ import random
 import re
 import sys
 
-from . import vector3
-from . import station
-from . import system_internal as system
-from . import util
+import vector3
+import station
+import system_internal as system
+import util
 
 log = util.get_logger("filter")
 

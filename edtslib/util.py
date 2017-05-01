@@ -8,8 +8,8 @@ import socket
 import ssl
 import sys
 
-from . import defs
-from . import vector3
+import defs
+import vector3
 from .thirdparty import gzipinputstream as gzis
 
 if sys.version_info >= (3, 0):
