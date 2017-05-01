@@ -1,7 +1,7 @@
 import json
 import sys
-import util
-from fsd import FSD
+from . import util
+from .fsd import FSD
 
 log = util.get_logger("ship")
 
@@ -45,6 +45,9 @@ class Ship(object):
 
   def __str__(self):
     return "Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}LY ({4:.2f}LY)".format(str(self.fsd), self.mass, self.tank_size, self.range(), self.max_range())
+
+  def __repr__(self):
+    return "Ship({}, {}T, {}T)".format(str(self.fsd), self.mass, self.tank_size)
 
   def max_range(self, cargo = 0):
     return self.fsd.max_range(self.mass, cargo)

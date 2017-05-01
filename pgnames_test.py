@@ -1,13 +1,18 @@
-import pgdata
-import pgnames
-import sector
+#!/usr/bin/env python
+
 import json
 import math
 import sys
 import time
-import env
-from pgnames import log
-import system
+
+from edtslib import env
+from edtslib import pgdata
+from edtslib import pgnames
+from edtslib import sector
+from edtslib import system
+from edtslib.pgnames import log
+
+  env.configure_logging(env.global_args.log_level)
 
 def run_test(it):
   teststart = time.clock()

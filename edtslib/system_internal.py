@@ -1,9 +1,10 @@
 import math
-import pgnames
-import sector
 import struct
-import util
-import vector3
+
+from . import pgnames
+from . import sector
+from . import util
+from . import vector3
 
 class System(object):
   def __init__(self, x, y, z, name = None, id64 = None, uncertainty = 0.0):

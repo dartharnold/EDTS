@@ -1,6 +1,4 @@
 import collections
-import defs
-import thirdparty.gzipinputstream as gzis
 import logging
 import numbers
 import os
@@ -9,7 +7,10 @@ import re
 import socket
 import ssl
 import sys
-import vector3
+
+from . import defs
+from . import vector3
+from .thirdparty import gzipinputstream as gzis
 
 if sys.version_info >= (3, 0):
   import urllib.parse
@@ -30,6 +31,25 @@ class _StyleAdapter(logging.LoggerAdapter):
 
 def get_logger(name):
   return _StyleAdapter(logging.getLogger(name))
+
+
+def configure_logging(log_level):
+  logging.basicConfig(level=convert_log_level(log_level), format="[%(asctime)-8s.%(msecs)03d] [%(name)-10s] [%(levelname)7s] %(message)s", datefmt=defs.log_dateformat)
+
+def set_verbosity(level):
+  logging.getLogger().setLevel(convert_log_level(level))
+
+def convert_log_level(level):
+  if level >= 3:
+    return logging.DEBUG
+  elif level >= 2:
+    return logging.INFO
+  elif level >= 1:
+    return logging.WARN
+  elif level >= 0:
+    return logging.ERROR
+  else:
+    return logging.CRITICAL
 
 log = get_logger("util")
 

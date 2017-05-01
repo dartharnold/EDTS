@@ -3,11 +3,12 @@ import collections
 import math
 import random
 import re
-import vector3
-import station
-import system_internal as system
 import sys
-import util
+
+from . import vector3
+from . import station
+from . import system_internal as system
+from . import util
 
 log = util.get_logger("filter")
 
@@ -410,7 +411,7 @@ def generate_sql(filters):
         filter_params.append(entry.value)
     order_str.append("stations.sc_distance")
   if 'limit' in filters:
-    limit = int(filters['limit'])
+    limit = int(filters['limit'][0][PosArgs][0].value)
 
   return {
     'select': (select_str, select_params),
@@ -423,7 +424,7 @@ def generate_sql(filters):
 
 
 def filter(s_list, filters):
-  limit = int(filters['limit']) if 'limit' in filters else None
+  limit = int(filters['limit'][0][PosArgs][0].value) if 'limit' in filters else None
   count = 0
   for s in s_list:
     if is_match(s, filters):

@@ -7,25 +7,27 @@ import time
 import cmd
 import argparse
 import traceback
-import util
+
+from edtslib import util
+from edtslib import ship
 
 if __name__ == '__main__':
   print("Loading environment...")
-import env
+from edtslib import env
 
+env.configure_logging(env.global_args.log_level)
 log = util.get_logger("edi")
 
 # Now env is loaded, import the apps
-import ship
-import edts
-import close_to
-import coords
-import direction
-import distance
-import find
-import galmath
-import fuel_usage
-import vsc
+from edtslib import edts
+from edtslib import close_to
+from edtslib import coords
+from edtslib import direction
+from edtslib import distance
+from edtslib import find
+from edtslib import galmath
+from edtslib import fuel_usage
+from edtslib import vsc
 
 
 class EDI(cmd.Cmd):

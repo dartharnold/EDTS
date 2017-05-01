@@ -1,7 +1,8 @@
 import math
 import re
-import env
-import util
+
+from . import env
+from . import util
 
 log = util.get_logger("fsd")
 

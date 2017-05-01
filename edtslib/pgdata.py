@@ -1,8 +1,9 @@
 from __future__ import division
 import collections
 import re
-import sector
-import vector3
+
+from . import sector
+from . import vector3
 
 # "Imagine the galaxy is a giant slice of Battenberg
 #  which for reasons beyond our ken has had small chunks
@@ -653,8 +654,8 @@ ha_regions = collections.OrderedDict([
     sector.HASphere(vector3.Vector3(106, -95, 0), 40),
   ])),
   # Permit regions
-  ("bleia1", sector.HARegion("Bleia1", 512, [sector.HASphere(vector3.Vector3(-43, 155, 37500), 512)], needs_permit=True)),
   ("bleia2", sector.HARegion("Bleia2", 512, [sector.HASphere(vector3.Vector3(-43, 155, 37000), 512)], needs_permit=True)),
+  ("bleia1", sector.HARegion("Bleia1", 512, [sector.HASphere(vector3.Vector3(-43, 155, 37500), 512)], needs_permit=True)),
   ("bleia3", sector.HARegion("Bleia3", 512, [sector.HASphere(vector3.Vector3(-43, 155, 36500), 512)], needs_permit=True)),
   ("bleia4", sector.HARegion("Bleia4", 512, [sector.HASphere(vector3.Vector3(450, 155, 37000), 512)], needs_permit=True)),
   ("bleia5", sector.HARegion("Bleia5", 512, [sector.HASphere(vector3.Vector3(-450, 155, 37000), 512)], needs_permit=True)),
@@ -662,9 +663,9 @@ ha_regions = collections.OrderedDict([
   ("dryman", sector.HARegion("Dryman", 512, [sector.HASphere(vector3.Vector3(19100, 20, 21160), 512)], needs_permit=True)),
   ("froadik", sector.HARegion("Froadik", 512, [sector.HASphere(vector3.Vector3(-18860, -200, 14300), 512)], needs_permit=True)),
   ("hyponia", sector.HARegion("Hyponia", 512, [sector.HASphere(vector3.Vector3(-23020, -10, 24080), 512)], needs_permit=True)),
+  ("praei3", sector.HARegion("Praei3", 512, [sector.HASphere(vector3.Vector3(-1000, -155, 53600), 512)], needs_permit=True)),
   ("praei1", sector.HARegion("Praei1", 512, [sector.HASphere(vector3.Vector3(-1000, -155, 54000), 512)], needs_permit=True)),
   ("praei2", sector.HARegion("Praei2", 512, [sector.HASphere(vector3.Vector3(-1000, -155, 54400), 512)], needs_permit=True)),
-  ("praei3", sector.HARegion("Praei3", 512, [sector.HASphere(vector3.Vector3(-1000, -155, 53600), 512)], needs_permit=True)),
   ("praei4", sector.HARegion("Praei4", 512, [sector.HASphere(vector3.Vector3(-1000, -555, 54000), 512)], needs_permit=True)),
   ("praei5", sector.HARegion("Praei5", 512, [sector.HASphere(vector3.Vector3(-1000, 455, 54000), 512)], needs_permit=True)),
   ("praei6", sector.HARegion("Praei6", 512, [sector.HASphere(vector3.Vector3(-500, -100, 53500), 512)], needs_permit=True)),

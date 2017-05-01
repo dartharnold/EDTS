@@ -2,9 +2,9 @@ import unittest
 import sys
 
 sys.path.insert(0, '../..')
-import env
-import ship
-import vector3 as v3
+from edtslib import env
+from edtslib import ship
+from edtslib import vector3 as v3
 del sys.path[0]
 
 

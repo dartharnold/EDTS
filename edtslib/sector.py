@@ -3,8 +3,9 @@
 import math
 import numbers
 import sys
-import util
-import vector3
+
+from . import util
+from . import vector3
 
 sector_size = 1280.0
 galaxy_size = [128, 128, 128]
@@ -112,6 +113,7 @@ class HARegion(Sector):
     self._origin = vector3.Vector3(o)
 
   def get_origin(self, cube_width):
+    cube_width = get_mcode_cube_width(cube_width)
     o = self._origin
     o = [int(math.floor(v)) for v in o]
     o[0] -= (o[0] - int(base_coords.x)) % cube_width

@@ -1,21 +1,22 @@
-import logging
-import defs
-logging.basicConfig(level = logging.INFO, format="[%(asctime)-8s.%(msecs)03d] [%(name)-10s] [%(levelname)7s] %(message)s", datefmt=defs.log_dateformat)
-
 import argparse
 import collections
+import logging
 import os
 import platform
 import sys
 import threading
 import time
-import util
-import pgnames
-import system_internal
-import station
-import db_sqlite3
-import env_backend as eb
-import filter
+
+from . import defs
+from . import util
+from . import pgnames
+from . import system_internal
+from . import station
+from . import db_sqlite3
+from . import env_backend as eb
+from . import filter
+# Convenience and backwards compatibility
+from .util import configure_logging, set_verbosity
 
 log = util.get_logger("env")
 
@@ -39,8 +40,19 @@ def _get_default_backend(path):
   db_path = os.path.join(os.path.normpath(path), os.path.normpath(global_args.db_file))
   db_sqlite3.log_versions()
   if not os.path.isfile(db_path):
-    log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
-    return None
+    # Check for DB file in the previous location (../data)
+    old_db_path = os.path.join(default_path, os.pardir, os.path.normpath(global_args.db_file))
+    if path == default_path and os.path.isfile(old_db_path):
+      log.info("Moving existing database file to expected location...")
+      try:
+        os.renames(old_db_path, db_path)
+        log.info("Done.")
+      except Exception as ex:
+        log.error("Could not move existing database file to updated location: {}".format(str(ex)))
+        return None
+    else:
+      log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
+      return None
   return db_sqlite3.open_db(db_path)
 
 register_backend(default_backend_name, _get_default_backend)
@@ -333,23 +345,7 @@ def use(path = default_path, backend = default_backend_name):
   return EnvWrapper(path, backend)
 
 
-def set_verbosity(level):
-  if level >= 3:
-    logging.getLogger().setLevel(logging.DEBUG)
-  elif level >= 2:
-    logging.getLogger().setLevel(logging.INFO)
-  elif level >= 1:
-    logging.getLogger().setLevel(logging.WARN)
-  elif level >= 0:
-    logging.getLogger().setLevel(logging.ERROR)
-  else:
-    logging.getLogger().setLevel(logging.CRITICAL)
-
-arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Tools", fromfile_prefix_chars="@", add_help=False)
-arg_parser.add_argument("-v", "--verbose", type=int, default=2, help="Increases the logging output")
+arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Travel Scripts", fromfile_prefix_chars="@", add_help=False)
+arg_parser.add_argument("-v", "--verbose", dest='log_level', type=int, default=2, help="Increases the logging output")
 arg_parser.add_argument("--db-file", type=str, default=defs.default_db_file, help="Specifies the database file to use")
 global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])    
-
-# Only try to parse args/set verbosity in non-interactive mode
-if not util.is_interactive():
-  set_verbosity(global_args.verbose)

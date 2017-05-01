@@ -4,11 +4,11 @@ import math
 import string
 import time
 
-import pgdata
-import sector
-import system_internal as system
-import util
-import vector3
+from . import pgdata
+from . import sector
+from . import system_internal as system
+from . import util
+from . import vector3
 
 app_name = "pgnames"
 log = util.get_logger(app_name)
@@ -706,6 +706,10 @@ def _c1_get_offset_from_name(input):
 
   sufs = _get_suffixes(frags[0:-1], True)
   suf_len = len(sufs)
+  
+  if frags[-1] not in sufs:
+    log.warning("Failed to find suffix in C1 suffix list; bad sector name?")
+    return None
   
   # Add the total length of all the infixes we've already passed over
   if len(frags) > 3:

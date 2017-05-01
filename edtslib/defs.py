@@ -3,7 +3,7 @@ import os
 name = "EDTS"
 
 version_major = 1
-version_minor = 0
+version_minor = 1
 version_patch = 0
 version_pre   = ''
 
