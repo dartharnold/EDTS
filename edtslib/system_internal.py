@@ -1,7 +1,10 @@
 import math
 import struct
 
-from . import pgnames
+from .pgnames import get_system as pg_get_system
+from .pgnames import get_system_fragments as pg_get_system_fragments
+from .pgnames import get_sector as pg_get_sector
+from .pgnames import get_boxel_origin as pg_get_boxel_origin
 from . import sector
 from . import util
 from . import vector3
@@ -32,7 +35,7 @@ class System(object):
   def pg_name(self):
     if self.id64 is not None:
       coords, cube_width, n2, _ = calculate_from_id64(self.id64)
-      sys_proto = pgnames.get_system(coords, cube_width, allow_ha=False)
+      sys_proto = pg_get_system(coords, cube_width, allow_ha=False)
       return sys_proto.name + str(n2)
     else:
       return None
@@ -45,18 +48,18 @@ class System(object):
   def id64(self):
     if self._id64 is None:
       if self.name is not None:
-        m = pgnames.get_system_fragments(self.name)
+        m = pg_get_system_fragments(self.name)
         if m is not None:
           self._id64 = calculate_id64(self.position, m['MCode'], m['N2'])
     return self._id64
 
   @property
   def sector(self):
-    return pgnames.get_sector(self.position)
+    return pg_get_sector(self.position)
 
   @property
   def pg_sector(self):
-    return pgnames.get_sector(self.position, allow_ha=False)
+    return pg_get_sector(self.position, allow_ha=False)
 
   @property
   def needs_permit(self):
@@ -228,7 +231,7 @@ def calculate_id64(pos, mcode, n2, body = 0):
   # Get the data we need to start with (mc as 0-7, cube width, boxel X/Y/Z coords)
   mc = ord(sector.get_mcode(mcode)) - ord('a')
   cube_width = sector.get_mcode_cube_width(mcode)
-  boxel_coords = (pgnames.get_boxel_origin(pos, mcode) - sector.internal_origin_offset) / cube_width
+  boxel_coords = (pg_get_boxel_origin(pos, mcode) - sector.internal_origin_offset) / cube_width
   # Populate each field, shifting as required
   output = util.pack_and_shift(0, int(body), 9)
   output = util.pack_and_shift(output, int(n2), 11+mc*3)

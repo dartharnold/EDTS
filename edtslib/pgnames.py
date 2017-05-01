@@ -6,7 +6,6 @@ import time
 
 from . import pgdata
 from . import sector
-from . import system_internal as system
 from . import util
 from . import vector3
 
@@ -366,6 +365,8 @@ _expected_fragment_limit = 4
 # #
 # Internal functions: shared/HA
 # #
+
+from . import system_internal as system
 
 # Get a system's relative position within a sector
 # Original version by CMDR Jackie Silver
