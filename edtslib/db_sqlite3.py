@@ -287,7 +287,7 @@ class SQLite3DBConnection(eb.EnvBackend):
   def find_systems_by_name_safe(self, namelist, mode = eb.FIND_EXACT, filters = None):
     names = util.flatten(namelist)
     if mode == eb.FIND_GLOB and _find_operators[mode] == 'LIKE':
-      names = map(lambda name: name.replace('*','%').replace('?','_'), names)
+      names = [name.replace('*','%').replace('?','_') for name in names]
     c = self._conn.cursor()
     cmd, params = _construct_query(
       ['systems'],
