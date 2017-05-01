@@ -625,7 +625,7 @@ def _get_system_from_pos(input, mcode, allow_ha = True):
 
 def _get_system_from_name(input, allow_ha = True):
   m = get_system_fragments(input)
-  if m is not None:
+  if m is not None and m['SectorName'] is not None:
     sect = get_sector(m['SectorName'])
     rel_pos, uncertainty = _get_relpos_from_sysid(m['L1'], m['L2'], m['L3'], m['MCode'], m['N1'], m['N2'])
     if sect is not None and rel_pos is not None and uncertainty is not None:
