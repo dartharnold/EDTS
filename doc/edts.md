@@ -73,6 +73,7 @@ Common optional arguments:
 * `-r`/`--route`: causes a full route to be computed (for every jump, not just the legs). The route is generated from the available EDDB data, and thus may not be optimal.
 * `-a`/`--accurate`: only used with `-r`; makes routing use a different algorithm (`trunkle`) which produces more accurate and efficient routes, but sometimes is slightly slower and may be unable to calculate some routes.
 * `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
+* `-O`/`--tour`: partial ordered, for calculating the optimal route for passenger tours; each time this flag appears any subsequent system[/station] arguments will be routed in order.
 * `system[/station] ...` - additional systems/stations to travel via
 
 Other optional arguments:
