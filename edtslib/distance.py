@@ -5,10 +5,10 @@ import argparse
 import math
 import sys
 
-import calc
-import env
-import pgnames
-import util
+from . import calc
+from . import env
+from . import pgnames
+from . import util
 
 app_name = "distance"
 

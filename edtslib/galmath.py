@@ -5,7 +5,7 @@ import argparse
 import math
 import sys
 
-import util
+from . import util
 
 app_name = "galmath"
 

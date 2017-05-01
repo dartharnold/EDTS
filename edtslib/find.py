@@ -6,8 +6,8 @@ import fnmatch
 import re
 import sys
 
-import env
-import util
+from . import env
+from . import util
 
 app_name = "find"
 

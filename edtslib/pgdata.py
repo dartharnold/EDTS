@@ -2,8 +2,8 @@ from __future__ import division
 import collections
 import re
 
-import sector
-import vector3
+from . import sector
+from . import vector3
 
 # "Imagine the galaxy is a giant slice of Battenberg
 #  which for reasons beyond our ken has had small chunks

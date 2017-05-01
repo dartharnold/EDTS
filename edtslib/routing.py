@@ -1,9 +1,9 @@
 import math
 import sys
 
-import calc
-import env
-import util
+from . import calc
+from . import env
+from . import util
 
 log = util.get_logger("route")
 

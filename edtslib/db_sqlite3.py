@@ -7,12 +7,12 @@ import re
 import sqlite3
 import time
 
-import defs
-import env_backend as eb
-import filter
-import pgnames
-import util
-import vector3
+from . import defs
+from . import env_backend as eb
+from . import filter
+from . import pgnames
+from . import util
+from . import vector3
 
 log = util.get_logger("db_sqlite3")
 
@@ -102,7 +102,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done.")
 
   def _generate_systems(self, systems):
-    import id64data
+    from . import id64data
     for s in systems:
       s_id64 = id64data.known_systems.get(s['name'].lower(), None)
       yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']), s_id64)

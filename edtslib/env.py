@@ -7,14 +7,14 @@ import sys
 import threading
 import time
 
-import defs
-import util
-import pgnames
-import system_internal
-import station
-import db_sqlite3
-import env_backend as eb
-import filter
+from . import defs
+from . import util
+from . import pgnames
+from . import system_internal
+from . import station
+from . import db_sqlite3
+from . import env_backend as eb
+from . import filter
 # Convenience and backwards compatibility
 from .util import configure_logging, set_verbosity
 

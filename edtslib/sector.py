@@ -4,8 +4,8 @@ import math
 import numbers
 import sys
 
-import util
-import vector3
+from . import util
+from . import vector3
 
 sector_size = 1280.0
 galaxy_size = [128, 128, 128]

@@ -1,6 +1,6 @@
 import json
 import sys
-import util
+from . import util
 from .fsd import FSD
 
 log = util.get_logger("ship")

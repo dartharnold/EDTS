@@ -12,10 +12,10 @@ import re
 import sys
 import tempfile
 
-import db_sqlite3 as db
-import defs
-import env
-import util
+from . import db_sqlite3 as db
+from . import defs
+from . import env
+from . import util
 
 log = util.get_logger("update")
 

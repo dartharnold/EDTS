@@ -12,7 +12,7 @@ travel and exploration in Elite: Dangerous.
 
 """
 
-import defs
+from . import defs
 
 __title__ = 'EDTS'
 __author__ = 'Alot'

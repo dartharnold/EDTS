@@ -7,11 +7,11 @@ import shutil
 import sys
 import time
 
-import env
-import filter
-import starcache
-import util
-import vector3
+from . import env
+from . import filter
+from . import starcache
+from . import util
+from . import vector3
 
 app_name = "vsc"
 

@@ -4,11 +4,11 @@ import math
 import string
 import time
 
-import pgdata
-import sector
-import system_internal as system
-import util
-import vector3
+from . import pgdata
+from . import sector
+from . import system_internal as system
+from . import util
+from . import vector3
 
 app_name = "pgnames"
 log = util.get_logger(app_name)

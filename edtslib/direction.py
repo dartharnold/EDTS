@@ -4,9 +4,9 @@ from __future__ import print_function
 import argparse
 import sys
 
-import env
-import util
-import vector3
+from . import env
+from . import util
+from . import vector3
 
 app_name = "direction"
 
