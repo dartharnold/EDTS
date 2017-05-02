@@ -91,17 +91,22 @@ class Solver(object):
     mincost = None
     minroute = None
 
+    reversible = all([len(tour) == 1 for tour in tours])
+
     log.debug("Calculating and checking viable routes...")
     vr = self._get_viable_routes([start], tours, stations, end, maxstops)
 
     for route in vr:
       count += 1
       cost_normal = self._calc.solve_route_cost(route)
-      route_reversed = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
-      cost_reversed = self._calc.solve_route_cost(route_reversed)
+      if reversible:
+        route_reversed = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
+        cost_reversed = self._calc.solve_route_cost(route_reversed)
 
-      cost = cost_normal if (cost_normal <= cost_reversed) else cost_reversed
-      route = route if (cost_normal <= cost_reversed) else route_reversed
+        cost = cost_normal if (cost_normal <= cost_reversed) else cost_reversed
+        route = route if (cost_normal <= cost_reversed) else route_reversed
+      else:
+        cost = cost_normal
 
       if mincost is None or cost < mincost:
         log.debug("New minimum cost: {0} on viable route #{1}", cost, count)
