@@ -251,26 +251,30 @@ class Solver(object):
 
   def _check_tour_route(self, route, tours, station):
     for tour in tours:
+      # Tour must have at least two elements to form a valid constraint.
       if len(tour) < 2:
         continue
       try:
         index = tour.index(station)
       except ValueError:
+        # This station is not part of the tour.
         continue
-      if len(route) < index:
+      if len(route) <= index:
+        # The station is the nth in the tour but there are at most n
+        # elements in the route already, so the station cannot be valid.
         return False
-      newroute = route + [station]
-      last_index = -1
-      for t, i in enumerate(tour):
+      indices = []
+      for t in tour:
         try:
-          index = newroute.index(t)
-          if index < i:
-            return False
-          if index < last_index:
-            return False
-          last_index = index
+          indices.append(route.index(t))
         except ValueError:
-          pass
+          indices.append(None)
+      appearing = list(filter(None, indices))
+      if not len(appearing):
+        # None of the elements from the tour are in the route.
+        # This station may only be the first one.
+        if index > 0:
+          return False
     return True
 
   def _get_viable_routes(self, route, tours, stations, end, maxstops):
