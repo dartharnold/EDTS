@@ -274,8 +274,6 @@ class Solver(object):
       nexts = {}
 
       for stn in stations:
-        if not self._check_tour_route(route[1:], tours, stn):
-          continue
         # If this station already appears in the route, do more checks
         if stn in route or stn == end:
           # If stn is in the route at least the number of times it's in the original list, ignore it
@@ -284,6 +282,9 @@ class Solver(object):
           stn_matches = len([rs for rs in stations if rs == stn]) + (1 if stn == route[0] else 0)
           if route_matches >= stn_matches:
             continue
+        # Check that adding this station would not break any tour constraints.
+        if not self._check_tour_route(route[1:], tours, stn):
+          continue
 
         dist = self._calc.solve_cost(route[-1], stn, len(route)-1)
         nexts[stn] = dist
