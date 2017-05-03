@@ -38,11 +38,22 @@ class FSD(object):
     self.fuelmul    = float(fsdobj['fuelmul'])
     self.fuelpower  = float(fsdobj['fuelpower'])
     self.mass       = float(fsdobj['mass'])
+    self.boost      = 1.0
     self.stock_mass      = self.mass
     self.stock_optmass   = self.optmass
     self.stock_maxfuel   = self.maxfuel
     self.stock_fuelmul   = self.fuelmul
     self.stock_fuelpower = self.fuelpower
+
+  def clone(self):
+    f = FSD(self.drive)
+    f.optmass = self.optmass
+    f.maxfuel = self.maxfuel
+    f.fuelmul = self.fuelmul
+    f.fuelpower = self.fuelpower
+    f.mass = self.mass
+    f.boost = self.boost
+    return f
 
   @classmethod
   def from_dict(self, data):
@@ -101,21 +112,35 @@ class FSD(object):
       fsd.maxfuel *= (1.0 + maxfuel_percent/100.0)
     return fsd
 
+  def supercharge(self, boost):
+    if not boost:
+      self.boost = 1.0
+    elif str(boost).upper() == 'D':
+      self.boost = 1.25
+    elif str(boost).upper() == 'N':
+      self.boost = 4.0
+    else:
+      try:
+        self.boost = [1.0, 1.25, 1.5, 2.0][int(boost)]
+      except:
+        log.error("Invalid boost value {}", boost)
+        self.boost = 1.0
+
   def range(self, mass, fuel, cargo = 0):
     cur_maxfuel = min(self.maxfuel, float(fuel))
-    return (self.optmass / (float(mass) + float(max(0.0, fuel)) + float(max(0.0, cargo)))) * math.pow((cur_maxfuel / self.fuelmul), (1.0 / self.fuelpower))
+    return ((self.optmass * self.boost) / (float(mass) + float(max(0.0, fuel)) + float(max(0.0, cargo)))) * math.pow((cur_maxfuel / self.fuelmul), (1.0 / self.fuelpower))
 
   def cost(self, dist, mass, fuel, cargo = 0):
-    return self.fuelmul * math.pow(dist * ((float(mass) + float(max(0.0, fuel)) + float(max(0.0, cargo))) / self.optmass), self.fuelpower)
+    return self.fuelmul * math.pow(dist * ((float(mass) + float(max(0.0, fuel)) + float(max(0.0, cargo))) / (self.optmass * self.boost)), self.fuelpower)
 
   def max_range(self, mass, cargo = 0):
     return self.range(mass, self.maxfuel, cargo)
 
   def max_fuel_weight(self, dist, mass, cargo = 0, allow_invalid = False):
-    # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
-    # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / self.optmass), self.fuelpower)
-    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * self.optmass / dist == (mass + fuel + cargo)
-    result = math.pow(self.maxfuel / self.fuelmul, 1.0 / self.fuelpower) * (self.optmass / float(dist)) - (float(mass) + float(cargo))
+    # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / (self.optmass * self.boost)), self.fuelpower)
+    # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / (self.optmass * self.boost)), self.fuelpower)
+    # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * (self.optmass * self.boost) / dist == (mass + fuel + cargo)
+    result = math.pow(self.maxfuel / self.fuelmul, 1.0 / self.fuelpower) * ((self.optmass * self.boost) / float(dist)) - (float(mass) + float(cargo))
     if allow_invalid or result >= self.maxfuel:
       return result
     else:

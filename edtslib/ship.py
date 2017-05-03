@@ -14,6 +14,9 @@ class Ship(object):
     self.tank_size = tank
     self.cargo_capacity = max_cargo
 
+  def clone(self):
+    return Ship(self.fsd.clone(), self.mass, self.tank_size, self.cargo_capacity)
+
   @classmethod
   def from_dict(self, data):
     fsd_info = FSD.from_dict(data)
@@ -48,6 +51,9 @@ class Ship(object):
 
   def __repr__(self):
     return "Ship({}, {}T, {}T)".format(str(self.fsd), self.mass, self.tank_size)
+
+  def supercharge(self, boost):
+    self.fsd.supercharge(boost)
 
   def max_range(self, cargo = 0):
     return self.fsd.max_range(self.mass, cargo)
