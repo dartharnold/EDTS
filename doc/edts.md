@@ -65,6 +65,7 @@ Ship Mode arguments:
 * `-m N`/`--mass=N` (required): the mass of the ship, in tonnes, with an empty fuel tank.
 * `-t N`/`--tank=N` (required): the size of the ship's fuel tank, in tonnes.
 * `-c N`/`--cargo=N` (optional): the amount of cargo to pick up at each stop. Default: `0`
+* `-C N`/`--initial-cargo=N` (optional): the amount of cargo carried at the start of the journey. Default: `0`
 
 Common optional arguments:
 

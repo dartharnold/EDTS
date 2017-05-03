@@ -28,6 +28,7 @@ class Application(object):
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
+    ap.add_argument("-C", "--initial-cargo", type=int, default=0, help="Cargo already carried at the start of the journey")
     ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
     ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
     ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including %% sign)")
@@ -177,8 +178,8 @@ class Application(object):
           full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
           cur_max_jump = full_max_jump
         else:
-          full_max_jump = self.ship.range(cargo = self.args.cargo * (i-1))
-          cur_max_jump = self.ship.max_range(cargo = self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
+          full_max_jump = self.ship.range(cargo = self.args.initial_cargo + self.args.cargo * (i-1))
+          cur_max_jump = self.ship.max_range(cargo = self.args.initial_cargo + self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], i-1, self.args.long_jumps)
         if self.args.route:
@@ -222,7 +223,7 @@ class Application(object):
             max_tank = None
             if cur_fuel is not None:
               fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
-              min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.cargo * (i-1))
+              min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.initial_cargo + self.args.cargo * (i-1))
               if max_tank is not None and max_tank >= self.ship.tank_size:
                 max_tank = None
               total_fuel_cost += fuel_cost
