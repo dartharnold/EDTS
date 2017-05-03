@@ -196,6 +196,17 @@ class EDI(cmd.Cmd):
 
     return True
 
+  def help_ship(self):
+    print("Show the current ship")
+    return True
+
+  def do_ship(self, args):
+    if 'ship' in self.state:
+      print(str(self.state['ship']))
+    else:
+      print("No saved ship")
+    return True
+
   def help_quit(self):
     print("Exit this shell by typing \"exit\", \"quit\" or Control-D.")
     return True

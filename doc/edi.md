@@ -48,6 +48,9 @@ Required arguments:
 * `-m N`/`--mass=N`: set the mass of the ship with no fuel or cargo on board
 * `-t N`/`--tank=N`: set the full fuel tank size of the ship
 
+### ship ###
+This command shows the saved ship, if any.
+
 ### set_verbosity ###
 This command allows you to set the verbosity level from within EDI; it's equivalent to running edi.py with the `-v` flag.
 
