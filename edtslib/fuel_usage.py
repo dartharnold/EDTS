@@ -22,6 +22,7 @@ class Application(object):
     ap = argparse.ArgumentParser(description = "Plot jump distance matrix", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
     ap.add_argument(      "--ship", metavar="filename", type=str, required=False, help="Load ship data from export file")
     ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
+    ap.add_argument("-b", "--boost", type=str.upper, choices=['0', '1', '2', '3', 'D', 'N'], help="FSD boost level (0 for none, D for white dwarf, N for neutron")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
@@ -56,6 +57,9 @@ class Application(object):
       fsd_mass = util.parse_number_or_add_percentage(self.args.fsd_mass, self.ship.fsd.stock_mass)
       fsd_maxfuel = util.parse_number_or_add_percentage(self.args.fsd_maxfuel, self.ship.fsd.stock_maxfuel)
       self.ship = self.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
+
+    if self.args.boost:
+      self.ship.supercharge(self.args.boost)
 
     if self.args.starting_fuel is None:
       self.args.starting_fuel = self.ship.tank_size

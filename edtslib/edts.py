@@ -25,6 +25,7 @@ class Application(object):
     ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
     ap.add_argument(      "--ship", metavar="filename", type=str, required=False, help="Load ship data from export file")
     ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
+    ap.add_argument("-b", "--boost", type=str.upper, choices=['0', '1', '2', '3', 'D', 'N'], help="FSD boost level (0 for none, D for white dwarf, N for neutron")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
@@ -85,8 +86,13 @@ class Application(object):
       else:
         self.ship = None
     if self.ship is not None:
+      if self.args.boost:
+        self.ship.supercharge(self.args.boost)
       log.debug(str(self.ship))
     else:
+      if self.args.boost:
+        log.error("Error: FSD boost requires --ship or all of --fsd, --mass and --tank.")
+        sys.exit(1)
       log.debug("Static jump range {0:.2f}LY", self.args.jump_range)
 
     # stations will always be parsed before any tours, because -O is greedy.
