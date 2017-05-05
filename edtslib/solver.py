@@ -261,20 +261,24 @@ class Solver(object):
         continue
       if len(route) <= index:
         # The station is the nth in the tour but there are at most n
-        # elements in the route already, so the station cannot be valid.
-        return False
+        # elements in the route already, so the station can only be
+        # valid if it's the first in the route.
+        if len(route) or index:
+          # Optimisation: The station would be rejected anyway after
+          # building the list of tour elements already in the route,
+          # but rejecting it here saves building that list, which is
+          # done more often and takes longer as the number of total
+          # stations grows.
+          return False
       indices = []
       for t in tour:
         try:
           indices.append(route.index(t))
         except ValueError:
-          indices.append(None)
-      appearing = list(filter(None, indices))
-      if not len(appearing):
-        # None of the elements from the tour are in the route.
-        # This station may only be the first one.
-        if index > 0:
-          return False
+          pass
+      if index > len(indices):
+        # The station would be inserted out of sequence.
+        return False
     return True
 
   def _get_viable_routes(self, route, tours, stations, end, maxstops):
