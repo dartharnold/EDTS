@@ -77,6 +77,7 @@ class Application(object):
           'src': prev, 'dst': s,
           'distance': distance, 'cost': fuel_cost,
           'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
+      prev = s
 
     d_max_len = 1.0
     c_max_len = 1.0
