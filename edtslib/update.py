@@ -86,10 +86,13 @@ class Application(object):
 
     if self.args.print_urls:
       if self.args.local:
-        print(edsm_systems_local_path)
-        print(eddb_systems_local_path)
-        print(eddb_stations_local_path)
-        print(coriolis_fsds_local_path)
+        # Get the relative path to the "edtslib" base directory from the current directory
+        relpath = util.get_relative_path(os.getcwd(), os.path.dirname(__file__))
+        # Local path hard-specifies "/" so do the same here
+        print(relpath + "/" + edsm_systems_local_path)
+        print(relpath + "/" + eddb_systems_local_path)
+        print(relpath + "/" + eddb_stations_local_path)
+        print(relpath + "/" + coriolis_fsds_local_path)
       else:
         print(edsm_systems_url)
         print(eddb_systems_url)

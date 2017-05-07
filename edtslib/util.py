@@ -166,6 +166,11 @@ def path_to_url(path):
   else:
     return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
 
+def get_relative_path(p1, p2):
+  common_prefix = os.path.commonprefix([os.path.abspath(p1), os.path.abspath(p2)])
+  p1r = os.path.relpath(p1, common_prefix)
+  p2r = os.path.relpath(p2, common_prefix)
+  return p1r if len(p1r) >= len(p2r) else p2r
 
 def is_interactive():
   return hasattr(sys, 'ps1')
