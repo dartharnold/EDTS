@@ -12,7 +12,7 @@ from edtslib import sector
 from edtslib import system
 from edtslib.pgnames import log
 
-  env.configure_logging(env.global_args.log_level)
+env.configure_logging(env.global_args.log_level)
 
 def run_test(it):
   teststart = time.clock()
