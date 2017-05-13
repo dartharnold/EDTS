@@ -84,10 +84,11 @@ class Application(object):
     env.log_versions()
     db.log_versions()
 
+    # Get the relative path to the "edtslib" base directory from the current directory
+    relpath = util.get_relative_path(os.getcwd(), os.path.dirname(__file__))
+
     if self.args.print_urls:
       if self.args.local:
-        # Get the relative path to the "edtslib" base directory from the current directory
-        relpath = util.get_relative_path(os.getcwd(), os.path.dirname(__file__))
         # Local path hard-specifies "/" so do the same here
         print(relpath + "/" + edsm_systems_local_path)
         print(relpath + "/" + eddb_systems_local_path)
@@ -121,10 +122,10 @@ class Application(object):
       log.info("Done.")
 
     try:
-      edsm_systems_path  = util.path_to_url(edsm_systems_local_path)  if self.args.local else edsm_systems_url
-      eddb_systems_path  = util.path_to_url(eddb_systems_local_path)  if self.args.local else eddb_systems_url
-      eddb_stations_path = util.path_to_url(eddb_stations_local_path) if self.args.local else eddb_stations_url
-      coriolis_fsds_path = util.path_to_url(coriolis_fsds_local_path) if self.args.local else coriolis_fsds_url
+      edsm_systems_path  = util.path_to_url(relpath + "/" + edsm_systems_local_path)  if self.args.local else edsm_systems_url
+      eddb_systems_path  = util.path_to_url(relpath + "/" + eddb_systems_local_path)  if self.args.local else eddb_systems_url
+      eddb_stations_path = util.path_to_url(relpath + "/" + eddb_stations_local_path) if self.args.local else eddb_stations_url
+      coriolis_fsds_path = util.path_to_url(relpath + "/" + coriolis_fsds_local_path) if self.args.local else coriolis_fsds_url
 
       dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local))
       dbc.update_table_systems(self.import_json_from_url(eddb_systems_path, eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local))
