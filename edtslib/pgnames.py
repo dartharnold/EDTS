@@ -709,17 +709,20 @@ def _c1_get_offset_from_name(input):
     sufs = _get_suffixes(frags[0:-1], True)
     suf_len = len(sufs)
   
+    # STEP 1: Acquire the offset for suffix runs, and adjust it
+    suf_offset = sufs.index(frags[-1])
+    # Assume suffix is fragment 3 unless we override that
+    f3_offset = suf_offset
+
     # Add the total length of all the infixes we've already passed over
     if len(frags) > 3:
       # We have a 4-phoneme name, which means we have to handle adjusting our "coordinates"
       # from individual suffix runs up to fragment3 runs and then to fragment2 runs
       
-      # STEP 1: Acquire the offset for suffix runs, and adjust it
-      suf_offset = sufs.index(frags[-1])
       # Check which fragment3 run we're on, and jump us up by that many total run lengths if not the first
       suf_offset += (sufs.index(frags[-1]) // _c1_get_infix_run_length(frags[2])) * _c1_get_infix_total_run_length(frags[2])
       
-      # STEP 2: Take our current offset from "suffix space" to "fragment3 space"
+      # STEP 1.5: Take our current offset from "suffix space" to "fragment3 space"
       # Divide by the current fragment3's run length
       # Remember the offset that we're at on the current suffix-run
       f3_offset, f3_offset_mod = divmod(suf_offset, _c1_get_infix_run_length(frags[2]))
@@ -730,43 +733,20 @@ def _c1_get_offset_from_name(input):
       # Add the offset of the current fragment3, to give us our overall position in the f3-sequence
       f3_offset += _c1_infix_offsets[frags[2]][0]
      
-      # STEP 3: Take our current offset from "fragment3 space" to "fragment2 space"
-      # Divide by the current fragment2's run length
-      # Remember the offset that we're at on the current f3-run
-      f2_offset, f2_offset_mod = divmod(f3_offset, _c1_get_infix_run_length(frags[1]))
-      # Multiply by the total run length for this series of fragment2s
-      f2_offset *= _c1_get_infix_total_run_length(frags[1])
-      # Reapply the f2 offset from earlier
-      f2_offset += f2_offset_mod
-      # Add the offset of the current fragment2, to give us our overall position in the f2-sequence
-      f2_offset += _c1_infix_offsets[frags[1]][0]
-      
-      # Set this as the global offset to be manipulated by the prefix step
-      offset = f2_offset
-    else:
-      # We have a 3-phoneme name, which means we just have to adjust our coordinates
-      # from "suffix space" to "fragment2 space" (since there is no fragment3)
-      
-      # STEP 1: Acquire the offset for suffix runs, and adjust it
-      suf_offset = sufs.index(frags[-1])
-      
-      # STEP 2: Take our current offset from "suffix space" to "fragment2 space"
-      # Divide by the current fragment2's run length
-      # Remember the offset we're at on the current suffix-run
-      f2_offset, f2_offset_mod = divmod(suf_offset, _c1_get_infix_run_length(frags[1]))
-      # Multiply by the total run length for this series of fragment2s
-      f2_offset *= _c1_get_infix_total_run_length(frags[1])
-      # Reapply the f2 offset from earlier
-      f2_offset += f2_offset_mod
-      # Add the offset of the current fragment2, to give us our overall position in the f2-sequence
-      f2_offset += _c1_infix_offsets[frags[1]][0]
-      
-      # Set this as the global offset to be manipulated by the prefix step
-      offset = f2_offset
+    # STEP 2: Take our current offset from "fragment3 space" to "fragment2 space"
+    # Divide by the current fragment2's run length
+    # Remember the offset that we're at on the current f3-run
+    f2_offset, f2_offset_mod = divmod(f3_offset, _c1_get_infix_run_length(frags[1]))
+    # Multiply by the total run length for this series of fragment2s
+    f2_offset *= _c1_get_infix_total_run_length(frags[1])
+    # Reapply the f2 offset from earlier
+    f2_offset += f2_offset_mod
+    # Add the offset of the current fragment2, to give us our overall position in the f2-sequence
+    f2_offset += _c1_infix_offsets[frags[1]][0]
 
     # Divide by the current prefix's run length, this is now how many iterations of the full 3037 we should have passed over
     # Also remember the current offset's position within a prefix run
-    offset, offset_mod = divmod(offset, _get_prefix_run_length(frags[0]))
+    offset, offset_mod = divmod(f2_offset, _get_prefix_run_length(frags[0]))
     # Now multiply by the total run length (3037) to get the actual offset of this run
     offset *= pgdata.cx_prefix_total_run_length
     # Add the infixes/suffix's position within this prefix's part of the overall prefix run
