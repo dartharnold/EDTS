@@ -14,6 +14,12 @@ internal_origin_offset = vector3.Vector3(-49985, -40985, -24105)
 base_sector_index = [39, 32, 18]
 base_coords = internal_origin_offset + (vector3.Vector3(base_sector_index) * sector_size)
 
+# If I add enough of these I will be able to remember what this variable is called
+internal_galaxy_offset = internal_origin_offset
+internal_galaxy_origin = internal_origin_offset
+galaxy_offset = internal_origin_offset
+galaxy_origin = internal_origin_offset
+
 
 def get_mcode_cube_width(mcode):
   if util.is_str(mcode):
