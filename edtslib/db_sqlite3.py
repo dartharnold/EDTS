@@ -28,12 +28,6 @@ def _regexp(expr, item):
   return rgx.search(item) is not None
 
 
-def _vec3_len(x1, y1, z1, x2, y2, z2):
-  xdiff = (x2-x1)
-  ydiff = (y2-y1)
-  zdiff = (z2-z1)
-  return math.sqrt(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff)
-
 def _list_clause(field, mode, names):
   if mode in [eb.FIND_GLOB, eb.FIND_REGEX]:
     operator = _find_operators[mode]
@@ -53,7 +47,6 @@ def open_db(filename = defs.default_db_path, check_version = True):
   conn = sqlite3.connect(filename)
   conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
-  conn.create_function("vec3_len", 6, _vec3_len)
   conn.create_function("vec3_angle", 6, _vec3_angle)
  
   if check_version:
