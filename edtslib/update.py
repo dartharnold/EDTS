@@ -122,15 +122,21 @@ class Application(object):
       log.info("Done.")
 
     try:
-      edsm_systems_path  = util.path_to_url(relpath + "/" + edsm_systems_local_path)  if self.args.local else edsm_systems_url
-      eddb_systems_path  = util.path_to_url(relpath + "/" + eddb_systems_local_path)  if self.args.local else eddb_systems_url
-      eddb_stations_path = util.path_to_url(relpath + "/" + eddb_stations_local_path) if self.args.local else eddb_stations_url
-      coriolis_fsds_path = util.path_to_url(relpath + "/" + coriolis_fsds_local_path) if self.args.local else coriolis_fsds_url
+      # Repoint local paths to use the right relative path
+      cur_edsm_systems_local_path  = os.path.join(relpath, edsm_systems_local_path)
+      cur_eddb_systems_local_path  = os.path.join(relpath, eddb_systems_local_path)
+      cur_eddb_stations_local_path = os.path.join(relpath, eddb_stations_local_path)
+      cur_coriolis_fsds_local_path = os.path.join(relpath, coriolis_fsds_local_path)
+      # Decide whether to source data from local paths or remote URLs
+      edsm_systems_path  = util.path_to_url(cur_edsm_systems_local_path)  if self.args.local else edsm_systems_url
+      eddb_systems_path  = util.path_to_url(cur_eddb_systems_local_path)  if self.args.local else eddb_systems_url
+      eddb_stations_path = util.path_to_url(cur_eddb_stations_local_path) if self.args.local else eddb_stations_url
+      coriolis_fsds_path = util.path_to_url(cur_coriolis_fsds_local_path) if self.args.local else coriolis_fsds_url
 
-      dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local))
-      dbc.update_table_systems(self.import_json_from_url(eddb_systems_path, eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local))
-      dbc.populate_table_stations(self.import_json_from_url(eddb_stations_path, eddb_stations_local_path, 'EDDB stations', self.args.batch_size, is_url_local=self.args.local))
-      dbc.populate_table_coriolis_fsds(self.import_json_from_url(coriolis_fsds_path, coriolis_fsds_local_path, 'Coriolis FSDs', None, is_url_local=self.args.local, key='fsd'))
+      dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, cur_edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local))
+      dbc.update_table_systems(self.import_json_from_url(eddb_systems_path, cur_eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local))
+      dbc.populate_table_stations(self.import_json_from_url(eddb_stations_path, cur_eddb_stations_local_path, 'EDDB stations', self.args.batch_size, is_url_local=self.args.local))
+      dbc.populate_table_coriolis_fsds(self.import_json_from_url(coriolis_fsds_path, cur_coriolis_fsds_local_path, 'Coriolis FSDs', None, is_url_local=self.args.local, key='fsd'))
     except MemoryError:
       log.error("Out of memory!")
       if self.args.batch_size is None:
