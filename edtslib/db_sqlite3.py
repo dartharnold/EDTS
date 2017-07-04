@@ -16,7 +16,7 @@ from . import vector3
 
 log = util.get_logger("db_sqlite3")
 
-schema_version = 7
+schema_version = 8
 
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
@@ -87,9 +87,9 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.execute('CREATE TABLE edts_info (db_version INTEGER, db_mtime INTEGER)')
     c.execute('INSERT INTO edts_info VALUES (?, ?)', (schema_version, int(time.time())))
 
-    c.execute('CREATE TABLE systems (edsm_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, eddb_id INTEGER, id64 INTEGER, needs_permit BOOLEAN, allegiance TEXT, data TEXT)')
-    c.execute('CREATE TABLE stations (eddb_id INTEGER NOT NULL, eddb_system_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, data TEXT)')
-    c.execute('CREATE TABLE coriolis_fsds (id TEXT NOT NULL, data TEXT NOT NULL)')
+    c.execute('CREATE TABLE systems (edsm_id INTEGER NOT NULL UNIQUE, name TEXT COLLATE NOCASE NOT NULL, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, eddb_id INTEGER, id64 INTEGER, needs_permit BOOLEAN, allegiance TEXT, data TEXT)')
+    c.execute('CREATE TABLE stations (eddb_id INTEGER NOT NULL UNIQUE, eddb_system_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, data TEXT)')
+    c.execute('CREATE TABLE coriolis_fsds (id TEXT NOT NULL PRIMARY KEY, data TEXT NOT NULL)')
 
     self._conn.commit()
     log.debug("Done.")
@@ -97,8 +97,9 @@ class SQLite3DBConnection(eb.EnvBackend):
   def _generate_systems(self, systems):
     from . import id64data
     for s in systems:
-      s_id64 = id64data.known_systems.get(s['name'].lower(), None)
-      yield (int(s['id']), s['name'], float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']), s_id64)
+      pos = vector3.Vector3(float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
+      s_id64 = id64data.get_id64(s['name'].lower(), pos)
+      yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, s_id64)
 
   def _generate_systems_update(self, systems):
     for s in systems:
@@ -114,8 +115,8 @@ class SQLite3DBConnection(eb.EnvBackend):
 
   def populate_table_systems(self, many):
     c = self._conn.cursor()
-    log.debug("Going for INSERT INTO systems...")
-    c.executemany('INSERT INTO systems VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL)', self._generate_systems(many))
+    log.debug("Going for REPLACE INTO systems...")
+    c.executemany('REPLACE INTO systems VALUES (?, ?, ?, ?, ?, NULL, ?, NULL, NULL, NULL)', self._generate_systems(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to systems for name, pos_x/pos_y/pos_z, edsm_id...")
@@ -140,8 +141,8 @@ class SQLite3DBConnection(eb.EnvBackend):
 
   def populate_table_stations(self, many):
     c = self._conn.cursor()
-    log.debug("Going for INSERT INTO stations...")
-    c.executemany('INSERT INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', self._generate_stations(many))
+    log.debug("Going for REPLACE INTO stations...")
+    c.executemany('REPLACE INTO stations VALUES (?, ?, ?, ?, ?, ?, ?)', self._generate_stations(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to stations for name, eddb_system_id...")
@@ -151,9 +152,9 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Indexes added.")
 
   def populate_table_coriolis_fsds(self, many):
-    log.debug("Going for INSERT INTO coriolis_fsds...")
+    log.debug("Going for REPLACE INTO coriolis_fsds...")
     c = self._conn.cursor()
-    c.executemany('INSERT INTO coriolis_fsds VALUES (?, ?)', self._generate_coriolis_fsds(many))
+    c.executemany('REPLACE INTO coriolis_fsds VALUES (?, ?)', self._generate_coriolis_fsds(many))
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to coriolis_fsds for id...")
