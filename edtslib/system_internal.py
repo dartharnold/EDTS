@@ -196,6 +196,15 @@ def mask_id64_as_body(input):
   return result
 
 
+def mask_id64_as_boxel(input):
+  result = input
+  if util.is_str(input):
+    result = int(result, 16)
+  numbits = 44 - 3*(result & 2**3-1) # 44 - 3*mc
+  result &= (2**numbits) - 1
+  return result
+
+
 def combine_to_id64(system, body):
   return (system & (2**55-1)) + ((body & (2**9-1)) << 55)
 
