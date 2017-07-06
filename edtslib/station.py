@@ -9,7 +9,6 @@ class Station(object):
     self.has_fuel = bool(obj['has_refuel']) if obj is not None else False
     self.max_pad_size = obj['max_landing_pad_size'] if obj is not None else 'L'
     self.is_planetary = obj['is_planetary'] if obj is not None else False
-    self.data = obj
 
   def __str__(self):
     if self.name is not None:
