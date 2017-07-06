@@ -7,7 +7,6 @@ import gc
 import json
 import os
 import shutil
-import platform
 import re
 import sys
 import tempfile
@@ -21,14 +20,14 @@ log = util.get_logger("update")
 
 class DownloadOnly(object):
   def ignore(self, many):
-    for one in many:
+    for _ in many:
       continue
 
   populate_table_systems = ignore
   populate_table_stations = ignore
   populate_table_coriolis_fsds = ignore
   update_table_systems = ignore
-  def close(): pass
+  def close(self): pass
 
 edsm_systems_url  = "https://www.edsm.net/dump/systemsWithCoordinates.json"
 eddb_systems_url  = "https://eddb.io/archive/v5/systems_populated.jsonl"
@@ -51,7 +50,7 @@ def cleanup_local(f, scratch):
       log.error("Error closing temporary file{}", ' {}'.format(scratch) if scratch is not None else '')
   if scratch is not None:
     try:
-      unlink(scratch)
+      os.unlink(scratch)
     except:
       log.error("Error cleaning up temporary file {}", scratch)
 
@@ -70,7 +69,6 @@ class Application(object):
     ap.add_argument('-l', '--local', required=False, action='store_true', help='Instead of downloading, update from local files in the data directory')
     ap.add_argument('--print-urls', required=False, action='store_true', help='Do not download anything, just print the URLs which we would fetch from')
     args = ap.parse_args(sys.argv[1:])
-    batch_size = None
     if args.batch or args.batch_size:
       args.batch_size = args.batch_size if args.batch_size is not None else 1024
       if not args.batch_size > 0:

@@ -5,7 +5,6 @@ import argparse
 from math import log10, floor, fabs
 import sys
 
-from . import calc
 from . import env
 from . import ship
 from . import util

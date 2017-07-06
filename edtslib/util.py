@@ -26,11 +26,10 @@ class _BraceString(str):
   def __mod__(self, other): return self.format(*other)
   def __str__(self): return self
 class _StyleAdapter(logging.LoggerAdapter):
-  def __init__(self, logger, extra=None): super(_StyleAdapter, self).__init__(logger, extra)
   def process(self, msg, kwargs): return _BraceString(msg), kwargs
 
 def get_logger(name):
-  return _StyleAdapter(logging.getLogger(name))
+  return _StyleAdapter(logging.getLogger(name), None)
 
 
 def configure_logging(log_level):
@@ -207,8 +206,8 @@ def parse_number_or_add_percentage(value, basevalue):
     return float(value)
 
 
-def int2hex(i, len=64):
-  fmtlen = str(int(int(len)/4))
+def int2hex(i, l=64):
+  fmtlen = str(int(int(l)/4))
   return ('{0:0'+fmtlen+'X}').format(i)
 
 

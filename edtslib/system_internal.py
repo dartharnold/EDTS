@@ -102,13 +102,13 @@ class System(object):
     else:
       return NotImplemented
 
-  def pretty_id64(self, format = 'INT'):
+  def pretty_id64(self, fmt = 'INT'):
     if self.id64 is None:
       return "MISSING ID64"
-    if format == 'VSC':
-      return ' '.join(map(lambda b: '{0:02X}'.format(b), bytearray(struct.pack('<Q', self.id64))))
+    if fmt == 'VSC':
+      return ' '.join('{0:02X}'.format(b) for b in bytearray(struct.pack('<Q', self.id64)))
     else:
-      return ("{0:016X}" if format == 'HEX' else "{0:d}").format(self.id64)
+      return ("{0:016X}" if fmt == 'HEX' else "{0:d}").format(self.id64)
 
   def __hash__(self):
     return self._hash
@@ -170,35 +170,32 @@ class KnownSystem(System):
     else:
       return NotImplemented
 
-  def __hash__(self):
-    return super(KnownSystem, self).__hash__()
-
 
     
 #
 # System ID calculations
 #
 
-def mask_id64_as_system(input):
-  result = input
-  if util.is_str(input):
+def mask_id64_as_system(i):
+  result = i
+  if util.is_str(result):
     result = int(result, 16)
   result &= (2**55) - 1
   return result
 
 
-def mask_id64_as_body(input):
-  result = input
-  if util.is_str(input):
+def mask_id64_as_body(i):
+  result = i
+  if util.is_str(result):
     result = int(result, 16)
   result >>= 55
   result &= (2**9)-1
   return result
 
 
-def mask_id64_as_boxel(input):
-  result = input
-  if util.is_str(input):
+def mask_id64_as_boxel(i):
+  result = i
+  if util.is_str(result):
     result = int(result, 16)
   numbits = 44 - 3*(result & 2**3-1) # 44 - 3*mc
   result &= (2**numbits) - 1
@@ -209,22 +206,21 @@ def combine_to_id64(system, body):
   return (system & (2**55-1)) + ((body & (2**9-1)) << 55)
 
 
-def calculate_from_id64(input):
-  # If input is a string, assume hex
-  if util.is_str(input):
-    input = int(input, 16)
+def calculate_from_id64(i):
+  # If i is a string, assume hex
+  if util.is_str(i):
+    i = int(i, 16)
   # Calculate the shifts we need to do to get the individual fields out
-  # Can't tell how long N2 field is (or if the start moves!), assuming ~16 for now
   len_used = 0
-  input, mc       = util.unpack_and_shift(input, 3);    len_used += 3    # mc = 0-7 for a-h
-  input, boxel_z  = util.unpack_and_shift(input, 7-mc); len_used += 7-mc
-  input, sector_z = util.unpack_and_shift(input, 7);    len_used += 7
-  input, boxel_y  = util.unpack_and_shift(input, 7-mc); len_used += 7-mc
-  input, sector_y = util.unpack_and_shift(input, 6);    len_used += 6
-  input, boxel_x  = util.unpack_and_shift(input, 7-mc); len_used += 7-mc
-  input, sector_x = util.unpack_and_shift(input, 7);    len_used += 7
-  input, n2       = util.unpack_and_shift(input, 55-len_used)
-  input, body_id  = util.unpack_and_shift(input, 9)
+  i, mc       = util.unpack_and_shift(i, 3);    len_used += 3    # mc = 0-7 for a-h
+  i, boxel_z  = util.unpack_and_shift(i, 7-mc); len_used += 7-mc
+  i, sector_z = util.unpack_and_shift(i, 7);    len_used += 7
+  i, boxel_y  = util.unpack_and_shift(i, 7-mc); len_used += 7-mc
+  i, sector_y = util.unpack_and_shift(i, 6);    len_used += 6
+  i, boxel_x  = util.unpack_and_shift(i, 7-mc); len_used += 7-mc
+  i, sector_x = util.unpack_and_shift(i, 7);    len_used += 7
+  i, n2       = util.unpack_and_shift(i, 55-len_used)
+  i, body_id  = util.unpack_and_shift(i, 9)
   # Multiply each X/Y/Z value by the cube width to get actual coords
   boxel_size = 10 * (2**mc)
   coord_x = (sector_x * sector.sector_size) + (boxel_x * boxel_size) + (boxel_size / 2)

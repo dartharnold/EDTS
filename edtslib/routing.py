@@ -1,5 +1,4 @@
 import math
-import sys
 
 from . import calc
 from . import env
@@ -17,8 +16,8 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, calc, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_strategy):
-    self._calc = calc
+  def __init__(self, cobj, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_strategy):
+    self._calc = cobj
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
@@ -104,7 +103,6 @@ class Routing(object):
     # search_radius = self.lerp(100.0, 200.0, self._trunkle_search_radius_min, self._trunkle_search_radius_max, sys_from.distance_to(sys_to))
 
     sys_cur = sys_from
-    next_centre_star = None
     next_stars = []
     failed_attempts = []
     force_intermediate = False
@@ -170,7 +168,7 @@ class Routing(object):
       if self._ocount_reset_full:
         optimistic_count = best_jump_count - self._ocount_initial_boost
       else:
-        optimistic_count = math.max(1.0, self._ocount_reset_dec)
+        optimistic_count = max(1.0, self._ocount_reset_dec)
       # If we've hit the destination, return with successful route
       if sys_cur == sys_to:
         log.debug("Arrived at {0}", sys_to.to_string())

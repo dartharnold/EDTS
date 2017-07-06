@@ -191,7 +191,7 @@ class Solver(object):
   def solve_clustered_repeat_with_cost(self, tours, stations, start, end, maxstops, iterations = cluster_repeat_limit):
     minroute = None
     mincost = sys.float_info.max
-    for i in range(0, iterations):
+    for _ in range(0, iterations):
       route, cost = self.solve_clustered_with_cost(tours, stations, start, end, maxstops)
       if cost < mincost:
         mincost = cost

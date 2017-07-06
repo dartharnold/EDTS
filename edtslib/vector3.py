@@ -1,4 +1,4 @@
-from math import *
+from math import acos, sqrt
 
 
 class Vector3(object):
@@ -144,7 +144,7 @@ class Vector3(object):
     def __truediv__(self, rhs):
         return self.__div__(rhs)
 
-    def __idiv__(self, rhs):
+    def __idiv__(self, _):
         raise TypeError("this class does not allow in-place modifications")
 
     def __rdiv__(self, lhs):
@@ -217,9 +217,6 @@ class Vector3(object):
 
 
 class Vector3M(Vector3):
-    def __init__(self, *args):
-        super(Vector3M, self).__init__(*args)
-
     def _set_x(self, x):
         assert isinstance(x, float), "Must be a float"
         self._v[0] = x
@@ -300,6 +297,7 @@ class Vector3M(Vector3):
         """Divide this vector by another vector, or a scalar (single number)."""
         v = self._v
         if hasattr(rhs, "__getitem__"):
+            ox, oy, oz = rhs
             v[0] /= ox
             v[1] /= oy
             v[2] /= oz
@@ -309,7 +307,7 @@ class Vector3M(Vector3):
             v[2] /= rhs
         return self
  
-    def scale(self, scale):
+    def scale(self, rhs):
         v = self._v
         if hasattr(rhs, "__getitem__"):
             ox, oy, oz = rhs
