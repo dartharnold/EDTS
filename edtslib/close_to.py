@@ -6,7 +6,7 @@ import math
 import sys
 
 from . import env
-from . import filter
+from . import filtering
 from . import util
 
 app_name = "close_to"
@@ -85,9 +85,9 @@ class Application(object):
 
     close_to_list = []
     for s in self.args.system:
-      min_dist = [filter.Operator('>=', s['min_dist'])] if 'min_dist' in s else []
-      max_dist = [filter.Operator('<',  s['max_dist'])] if 'max_dist' in s else []
-      close_to_list.append({filter.PosArgs: [filter.Operator('=', s['sysobj'])], 'distance': min_dist + max_dist})
+      min_dist = [filtering.Operator('>=', s['min_dist'])] if 'min_dist' in s else []
+      max_dist = [filtering.Operator('<',  s['max_dist'])] if 'max_dist' in s else []
+      close_to_list.append({filtering.PosArgs: [filtering.Operator('=', s['sysobj'])], 'distance': min_dist + max_dist})
     if not any([('max_dist' in s) for s in self.args.system]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
@@ -95,18 +95,18 @@ class Application(object):
     filters['close_to'] = close_to_list
     if self.args.pad_size is not None:
       # Retain previous behaviour: 'M' counts as 'any'
-      filters['pad'] = [{filter.PosArgs: [filter.Operator('>=', filter.PadSize('L') if self.args.pad_size == 'L' else filter.Any)]}]
+      filters['pad'] = [{filtering.PosArgs: [filtering.Operator('>=', filtering.PadSize('L') if self.args.pad_size == 'L' else filtering.Any)]}]
     if self.args.max_sc_distance is not None:
-      filters['sc_distance'] = [{filter.PosArgs: [filter.Operator('<', self.args.max_sc_distance)]}]
+      filters['sc_distance'] = [{filtering.PosArgs: [filtering.Operator('<', self.args.max_sc_distance)]}]
     if self.args.allegiance is not None:
-      filters['allegiance'] = [{filter.PosArgs: [filter.Operator('=', self.args.allegiance)]}]
+      filters['allegiance'] = [{filtering.PosArgs: [filtering.Operator('=', self.args.allegiance)]}]
     if self.args.num is not None:
       # Get extras, in case we get our reference systems as a result
-      filters['limit'] = [{filter.PosArgs: [filter.Operator('=', self.args.num + len(self.args.system))]}]
+      filters['limit'] = [{filtering.PosArgs: [filtering.Operator('=', self.args.num + len(self.args.system))]}]
     if self.args.direction is not None:
       for entry in filters['close_to']:
-        entry['direction'] = [filter.Operator('=', direction_obj)]
-        entry['angle'] = [filter.Operator('<', self.args.direction_angle)]
+        entry['direction'] = [filtering.Operator('=', direction_obj)]
+        entry['angle'] = [filtering.Operator('<', self.args.direction_angle)]
 
     with env.use() as envdata:
       # Filter out our reference systems from the results

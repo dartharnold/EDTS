@@ -14,7 +14,7 @@ from . import system_internal
 from . import station
 from . import db_sqlite3
 from . import env_backend as eb
-from . import filter
+from . import filtering
 # Convenience and backwards compatibility
 from .util import configure_logging, set_verbosity
 
@@ -94,7 +94,7 @@ class Env(object):
     return {'system': self.parse_system, 'station': self.parse_station}
 
   def parse_filter_string(self, s, *args):
-    return filter.parse(s, *args, extra_converters=self.filter_converters)
+    return filtering.parse(s, *args, extra_converters=self.filter_converters)
 
   def _get_as_filters(self, s):
     if s is None:

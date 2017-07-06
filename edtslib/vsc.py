@@ -8,7 +8,7 @@ import sys
 import time
 
 from . import env
-from . import filter
+from . import filtering
 from . import starcache
 from . import util
 from . import vector3
@@ -236,7 +236,7 @@ class Application(object):
       self.batch_read(envdata, id64list)
 
   def run_write(self, envdata, args):
-    filters = filter.entry_separator.join(args.filters) if len(args.filters) else None
+    filters = filtering.entry_separator.join(args.filters) if len(args.filters) else None
     if args.importfile:
       with open(args.importfile, 'r') as f:
         iterator = envdata.find_systems_by_name([n.strip() for n in f], filters)

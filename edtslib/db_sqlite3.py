@@ -9,7 +9,7 @@ import time
 
 from . import defs
 from . import env_backend as eb
-from . import filter
+from . import filtering
 from . import pgnames
 from . import util
 from . import vector3
@@ -446,7 +446,7 @@ def _construct_query(qtables, select, qfilter, select_params = [], filter_params
   qmodifier_params = []
   # Apply any user-defined filters
   if filters:
-    fsql = filter.generate_sql(filters)
+    fsql = filtering.generate_sql(filters)
     tables = set(qtables + fsql['tables'])
     select = select + fsql['select'][0]
     qfilter = qfilter + fsql['filter'][0]
