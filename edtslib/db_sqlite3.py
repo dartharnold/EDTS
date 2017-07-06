@@ -98,7 +98,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     from . import id64data
     for s in systems:
       pos = vector3.Vector3(float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
-      s_id64 = id64data.get_id64(s['name'].lower(), pos)
+      s_id64 = id64data.get_id64(s['name'], pos)
       yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, s_id64)
 
   def _generate_systems_update(self, systems):
