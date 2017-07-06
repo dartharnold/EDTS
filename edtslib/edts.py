@@ -11,7 +11,6 @@ from . import routing as rx
 from . import util
 from . import solver
 from .station import Station
-from .fsd import FSD
 
 app_name = "edts"
 

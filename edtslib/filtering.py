@@ -1,13 +1,9 @@
-import argparse
 import collections
 import math
-import random
 import re
 import sys
 
-from . import vector3
 from . import station
-from . import system_internal as system
 from . import util
 
 log = util.get_logger("filter")
@@ -160,7 +156,8 @@ _conversions = {
 }
 
 
-def _global_conv(val, specials = []):
+def _global_conv(val, specials = None):
+  specials = specials or []
   if isinstance(val, Operator):
     return (Operator(value=_global_conv(val.value, specials), op=val.operator), False)
 
@@ -181,9 +178,7 @@ def parse(filter_string, *args, **kwargs):
   for entry in entries:
     ksv = entry_kvseparator_re.split(entry, 1)
     key = ksv[0].strip()
-    if key in _conversions:
-      multiple = (_conversions[key]['max'] != 1)
-    else:
+    if key not in _conversions:
       raise KeyError("Unexpected filter key provided: {0}".format(key))
     ksvlist = entry_subelement_re.findall(ksv[2].strip())
     # Do we have sub-entries, or just a simple key=value ?
