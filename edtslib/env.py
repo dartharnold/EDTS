@@ -1,11 +1,8 @@
 import argparse
 import collections
-import logging
 import os
 import platform
 import sys
-import threading
-import time
 
 from . import defs
 from . import util
@@ -20,7 +17,8 @@ from .util import configure_logging, set_verbosity
 
 log = util.get_logger("env")
 
-def log_versions(extra = []):
+def log_versions(extra = None):
+  extra = extra or []
   sep = ' / '
   log.debug("Python: {} {}{}OS: {}, {} {}{}", platform.python_version(), platform.architecture()[0], sep, platform.system(), platform.platform(), platform.machine(), sep + sep.join(extra) if extra else '')
 
@@ -145,9 +143,9 @@ class Env(object):
       if sysdata is not None and stndata is not None:
         return _make_station(sysdata, stndata, keep_data)
     else:
-      sys = self.get_system(sysname, keep_data)
-      if sys is not None:
-        return station.Station.none(sys)
+      syst = self.get_system(sysname, keep_data)
+      if syst is not None:
+        return station.Station.none(syst)
     return None
   get_station = get_station_by_names
 

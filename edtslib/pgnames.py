@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 import collections
-import math
 import string
 import time
 
@@ -445,7 +444,6 @@ def _get_sysid_from_soffset(position, mcode, format_output=False):
 # Get the canonical name fragments of a system/sector
 def _get_canonical_name_fragments(name, sector_only = False):
   sectname = None
-  sysid = None
 
   # See if we have a full system name
   m = pgdata.pg_system_regex.match(name)
@@ -646,7 +644,7 @@ def _get_system_from_name(input, allow_ha = True):
 
 # Get which HA sector this position would be part of, if any
 def _ha_get_name(pos):
-  for (sname, s) in pgdata.ha_regions.items():
+  for (_, s) in pgdata.ha_regions.items():
     if s.contains(pos):
       return s.name
   return None
@@ -707,7 +705,6 @@ def _c1_get_offset_from_name(input):
   
   try:
     sufs = _get_suffixes(frags[0:-1], True)
-    suf_len = len(sufs)
   
     # STEP 1: Acquire the offset for suffix runs, and adjust it
     suf_offset = sufs.index(frags[-1])

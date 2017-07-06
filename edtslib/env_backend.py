@@ -35,30 +35,30 @@ class EnvBackend(object):
     # return [(SystemResult, StationResult), ...]
     raise NotImplementedError("Invalid use of base EnvBackend get_stations_by_names method")
 
-  def find_stations_by_system_id(self, args, filter = None):
+  def find_stations_by_system_id(self, args, filters = None):
     # return [StationResult + {"eddb_station_id": int}, ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_stations_by_system_id method")
 
-  def find_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z, filter = None):
+  def find_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z, filters = None):
     # return [SystemResult, ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_systems_by_aabb method")
 
-  def find_systems_by_name(self, name, mode = FIND_EXACT, filter = None):
+  def find_systems_by_name(self, namelist, mode = FIND_EXACT, filters = None):
     # return [SystemResult, ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_systems_by_name method")
 
-  def find_systems_by_id64(self, name, filter = None):
+  def find_systems_by_id64(self, id64list, filters = None):
     # return [SystemResult, ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_systems_by_id64 method")
 
-  def find_stations_by_name(self, name, mode = FIND_EXACT, filter = None):
+  def find_stations_by_name(self, name, mode = FIND_EXACT, filters = None):
     # return [(SystemResult, StationResult), ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_stations_by_name method")
 
-  def find_all_systems(self, filter = None):
+  def find_all_systems(self, filters = None):
     # return [SystemResult, ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_all_systems method")
 
-  def find_all_stations(self, filter = None):
+  def find_all_stations(self, filters = None):
     # return [(SystemResult, StationResult), ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_all_stations method")

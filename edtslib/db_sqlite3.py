@@ -1,8 +1,5 @@
 import collections
-import decimal
 import json
-import math
-import os
 import re
 import sqlite3
 import time
@@ -10,7 +7,6 @@ import time
 from . import defs
 from . import env_backend as eb
 from . import filtering
-from . import pgnames
 from . import util
 from . import vector3
 
@@ -20,7 +16,7 @@ schema_version = 8
 
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
-_bad_char_regex = re.compile("[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -|\[\]]")
+_bad_char_regex = re.compile(r"[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -|\[\]]")
 
 
 def _regexp(expr, item):
@@ -236,6 +232,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     else:
       return (None, None)
 
+
   def find_stations_by_system_id(self, args, filters = None):
     sysids = args if isinstance(args, collections.Iterable) else [args]
     c = self._conn.cursor()
@@ -440,7 +437,9 @@ def _process_system_result(result):
   else:
     return {'name': result['name'], 'x': result['pos_x'], 'y': result['pos_y'], 'z': result['pos_z'], 'id64': result['id64']}
 
-def _construct_query(qtables, select, qfilter, select_params = [], filter_params = [], filters = None):
+def _construct_query(qtables, select, qfilter, select_params = None, filter_params = None, filters = None):
+  select_params = select_params or []
+  filter_params = filter_params or []
   tables = qtables
   qmodifier = []
   qmodifier_params = []

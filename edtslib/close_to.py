@@ -2,8 +2,6 @@
 
 from __future__ import print_function
 import argparse
-import math
-import sys
 
 from . import env
 from . import filtering
@@ -72,8 +70,6 @@ class Application(object):
         if d['sysobj'] is None:
           log.error("Could not find start system \"{0}\"!", d['system'])
           return
-      # Create a list of names for quick checking in the main loop
-      start_names = [d['system'].lower() for d in self.args.system]
 
       if self.args.direction is not None:
         direction_obj = envdata.parse_system(self.args.direction)

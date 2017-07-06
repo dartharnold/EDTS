@@ -11,7 +11,6 @@ from . import env
 from . import filtering
 from . import starcache
 from . import util
-from . import vector3
 
 app_name = "vsc"
 
