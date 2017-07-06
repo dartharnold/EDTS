@@ -16,7 +16,7 @@ class FSD(object):
     if result is not None:
       drive_rating = result.group(1)
 
-    result = re.search('(\d+)', classrating)
+    result = re.search(r'(\d+)', classrating)
     if result is not None:
       drive_class = result.group(1)
 
@@ -153,7 +153,7 @@ class FSD(object):
     clast = self.maxfuel
     c = clast
     # 15 iterations seems to result in at least 6 decimal places accuracy
-    for i in range(0, 15):
+    for _ in range(15):
       c = self.cost(dist, mass, clast, cargo)
       clast = c + (clast - c) / 4.0
       if clast > 10**10:

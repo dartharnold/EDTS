@@ -30,11 +30,11 @@ def get_mcode_cube_width(mcode):
     raise ValueError("First argument to get_mcode_cube_width must be string or numeric")
 
 
-def get_mcode(input):
-  if util.is_str(input) and len(input) == 1:
-    return input.lower()
-  elif isinstance(input, numbers.Number) and (int(input) % 10) == 0:
-    return chr(int(math.log(input / 10, 2)) + ord('a'))
+def get_mcode(mc):
+  if util.is_str(mc) and len(mc) == 1:
+    return mc.lower()
+  elif isinstance(mc, numbers.Number) and (int(mc) % 10) == 0:
+    return chr(int(math.log(mc / 10, 2)) + ord('a'))
   else:
     raise ValueError("First argument to get_mcode must be string or numeric and multiple of 10")
 
@@ -88,7 +88,8 @@ class HASphere(object):
   def origin(self):
     return self._origin
 
-  def contains(self, pos):
+  def contains(self, other):
+    pos = util.get_as_position(other)
     return ((self.centre - pos).length <= self.radius)
   
   def __str__(self):
@@ -98,7 +99,7 @@ class HASphere(object):
     return self.__str__()
 
   def __eq__(self, rhs):
-    return (self.centre == rhs.centre and self.radius == other.radius)
+    return (self.centre == rhs.centre and self.radius == rhs.radius)
 
   def __ne__(self, rhs):
     return not self.__eq__(rhs)
@@ -152,7 +153,8 @@ class HARegion(Sector):
   def needs_permit(self):
     return self._needs_permit
 
-  def contains(self, pos):
+  def contains(self, other):
+    pos = util.get_as_position(other)
     return any([s.contains(pos) for s in self.spheres])
 
   def __str__(self):
@@ -241,9 +243,10 @@ class PGSector(Sector):
   def sector_class(self):
     return self._class
 
-  def contains(self, pos):
+  def contains(self, other):
     o = self.origin
-    return (pos[0] >= o.x and pos[0] < (o.x + sector_size)
-        and pos[1] >= o.y and pos[1] < (o.y + sector_size)
-        and pos[2] >= o.z and pos[2] < (o.z + sector_size))
+    pos = util.get_as_position(other)
+    return (pos.x >= o.x and pos.x < (o.x + sector_size)
+        and pos.y >= o.y and pos.y < (o.y + sector_size)
+        and pos.z >= o.z and pos.z < (o.z + sector_size))
 

@@ -5,15 +5,15 @@ from .system_internal import System, KnownSystem, PGSystem, PGSystemPrototype
 from .system_internal import calculate_from_id64, calculate_id64, mask_id64_as_system, mask_id64_as_body, mask_id64_as_boxel, combine_to_id64
 
 
-def from_id64(id, allow_ha = True, allow_known = True):
-  if util.is_str(id):
-    id = int(id, 16)
+def from_id64(id64, allow_ha = True, allow_known = True):
+  if util.is_str(id64):
+    id64 = int(id64, 16)
   if allow_known:
     with env.use() as data:
-      ks = data.get_system_by_id64(mask_id64_as_system(id))
+      ks = data.get_system_by_id64(mask_id64_as_system(id64))
       if ks is not None:
         return ks
-  coords, cube_width, n2, _ = calculate_from_id64(id)
+  coords, cube_width, n2, _ = calculate_from_id64(id64)
   # Get a system prototype to steal its name
   sys_proto = pgnames.get_system(coords, cube_width, allow_ha)
   name = sys_proto.name + str(n2)
