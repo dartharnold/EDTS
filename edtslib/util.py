@@ -77,40 +77,44 @@ def parse_coords(sysname):
   return None
 
 
+def _open_url_inner_py3(url, headers, allow_no_ssl):
+  # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
+  request = urllib.request.Request(url, headers=headers)
+  try:
+    return urllib.request.urlopen(request)
+  except urllib.error.HTTPError as err:
+    log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
+    return None
+
+def _open_url_inner_py2(url, headers, allow_no_ssl):
+  sslctx = None
+  try:
+    sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+    # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
+    if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
+      sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
+  except Exception as ex:
+    if allow_no_ssl:
+      log.warning("Failed to create SSL context ({0}), attempting to continue", str(ex))
+    else:
+      log.error("Failed to create SSL context: {0}", str(ex))
+      return None
+  # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
+  request = urllib2.Request(url, headers=headers)
+  try:
+    return urllib2.urlopen(request, context=sslctx)
+  except urllib2.HTTPError as err:
+    log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
+    return None
+
+_open_url_inner = _open_url_inner_py3 if sys.version_info >= (3, 0) else _open_url_inner_py2
+
 def open_url(url, allow_gzip = True, allow_no_ssl = False):
-  response = None
   headers = {'User-Agent': USER_AGENT}
   if allow_gzip:
     headers['Accept-Encoding'] = 'gzip'
-  if sys.version_info >= (3, 0):
-    # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib.request.Request(url, headers=headers)
-    try:
-      response = urllib.request.urlopen(request)
-    except urllib.error.HTTPError as err:
-      log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
-      return None
-  else:
-    sslctx = None
-    try:
-      sslctx = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
-      # If we're on OSX with OpenSSL 0.9.x, manually specify preferred ciphers so CloudFlare can negotiate successfully
-      if platform.system() == 'Darwin' and ssl.OPENSSL_VERSION_INFO[0] < 1:
-        sslctx.set_ciphers("ECCdraft:HIGH:!aNULL")
-    except Exception as ex:
-      if allow_no_ssl:
-        log.warning("Failed to create SSL context ({0}), attempting to continue", str(ex))
-      else:
-        log.error("Failed to create SSL context: {0}", str(ex))
-        return None
-    # Specify our own user agent as Cloudflare doesn't seem to like the urllib one
-    request = urllib2.Request(url, headers=headers)
-    try:
-      response = urllib2.urlopen(request, context=sslctx)
-    except urllib2.HTTPError as err:
-      log.error("Error {0} opening {1}: {2}", err.code, url, err.reason)
-      return None
-  if response.info().get('Content-Encoding') == 'gzip':
+  response = _open_url_inner(url, headers, allow_no_ssl)
+  if response and response.info().get('Content-Encoding') == 'gzip':
     try:
       return gzis.GzipInputStream(response)
     except:
@@ -119,12 +123,14 @@ def open_url(url, allow_gzip = True, allow_no_ssl = False):
   else:
     return response
 
+
+def _read_stream_line_inner_py3(stream): return stream.readline().decode("utf-8")
+def _read_stream_line_inner_py2(stream): return stream.readline()
+_read_stream_line_inner = _read_stream_line_inner_py3 if sys.version_info >= (3, 0) else _read_stream_line_inner_py2
+
 def read_stream_line(stream):
   try:
-    if sys.version_info >= (3, 0):
-      return stream.readline().decode("utf-8")
-    else:
-      return stream.readline()
+    return _read_stream_line_inner(stream)
   except socket.error as e:
     if e.errno == socket.errno.ECONNRESET:
       log.warning("Received ECONNRESET while reading line from socket-based stream")
@@ -132,14 +138,17 @@ def read_stream_line(stream):
     else:
       raise
 
+def _read_stream_inner_py3(stream, limit):
+  return stream.read(limit).decode("utf-8")
+def _read_stream_inner_py2(stream, limit):
+  if limit is None and not isinstance(stream, gzis.GzipInputStream):
+    limit = -1
+  return stream.read(limit)
+_read_stream_inner = _read_stream_inner_py3 if sys.version_info >= (3, 0) else _read_stream_inner_py2
+
 def read_stream(stream, limit = None):
   try:
-    if sys.version_info >= (3, 0):
-      return stream.read(limit).decode("utf-8")
-    else:
-      if limit is None and not isinstance(stream, gzis.GzipInputStream):
-        limit = -1
-      return stream.read(limit)
+    return _read_stream_inner(stream, limit)
   except socket.error as e:
     if e.errno == socket.errno.ECONNRESET:
       log.warning("Received ECONNRESET while reading from socket-based stream")
@@ -150,20 +159,13 @@ def read_stream(stream, limit = None):
 def read_from_url(url, allow_gzip = True, allow_no_ssl = False):
   return read_stream(open_url(url, allow_gzip=allow_gzip, allow_no_ssl=allow_no_ssl))
 
-def write_stream(stream, data):
-  try:
-    if sys.version_info >= (3, 0):
-      return stream.write(data.encode("utf-8"))
-    else:
-      return stream.write(data)
-  except:
-    raise
+def _write_stream_py3(stream, data): return stream.write(data.encode("utf-8"))
+def _write_stream_py2(stream, data): return stream.write(data)
+write_stream = _write_stream_py3 if sys.version_info >= (3, 0) else _write_stream_py2
 
-def path_to_url(path):
-  if sys.version_info >= (3, 0):
-    return urllib.parse.urljoin('file:', urllib.request.pathname2url(os.path.abspath(path)))
-  else:
-    return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
+def _path_to_url_py3(path): return urllib.parse.urljoin('file:', urllib.request.pathname2url(os.path.abspath(path)))
+def _path_to_url_py2(path): return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
+path_to_url = _path_to_url_py3 if sys.version_info >= (3, 0) else _path_to_url_py2
 
 def get_relative_path(p1, p2):
   common_prefix = os.path.commonprefix([os.path.abspath(p1), os.path.abspath(p2)])
@@ -174,19 +176,13 @@ def get_relative_path(p1, p2):
 def is_interactive():
   return hasattr(sys, 'ps1')
 
+def _is_str_py3(s): return isinstance(s, str)
+def _is_str_py2(s): return isinstance(s, basestring)
+is_str = _is_str_py3 if sys.version_info >= (3, 0) else _is_str_py2
 
-def is_str(s):
-  if sys.version_info >= (3, 0):
-    return isinstance(s, str)
-  else:
-    return isinstance(s, basestring)
-
-
-def download_file(url, file):
-  if sys.version_info >= (3, 0):
-    urllib.request.urlretrieve(url, file)
-  else:
-    urllib2.urlretrieve(url, file)
+def _download_file_py3(url, file): return urllib.request.urlretrieve(url, file)
+def _download_file_py2(url, file): return urllib2.urlretrieve(url, file)
+download_file = _download_file_py3 if sys.version_info >= (3, 0) else _download_file_py2
 
 
 def string_bool(s):
@@ -210,12 +206,9 @@ def int2hex(i, l=64):
   fmtlen = str(int(int(l)/4))
   return ('{0:0'+fmtlen+'X}').format(i)
 
-
-def get_bytes(s, enc = 'utf-8'):
-  if sys.version_info >= (3, 0):
-    return bytes(s, enc)
-  else:
-    return bytes(s)
+def _get_bytes_py3(s, enc = 'utf-8'): return bytes(s, enc)
+def _get_bytes_py2(s, enc = 'utf-8'): return bytes(s)
+get_bytes = _get_bytes_py3 if sys.version_info >= (3, 0) else _get_bytes_py2
 
 
 # 32-bit hashing algorithm found at http://papa.bretmulvey.com/post/124027987928/hash-functions
