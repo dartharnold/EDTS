@@ -126,6 +126,9 @@ class PGSystemPrototype(System):
   def __repr__(self):
     return u"PGSystemPrototype({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
 
+  def __hash__(self):
+    return super(PGSystemPrototype, self).__hash__()
+
 
 class PGSystem(PGSystemPrototype):
   def __init__(self, x, y, z, name, sector, uncertainty):
@@ -133,6 +136,9 @@ class PGSystem(PGSystemPrototype):
 
   def __repr__(self):
     return u"PGSystem({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
+
+  def __hash__(self):
+    return super(PGSystem, self).__hash__()
 
 
 class KnownSystem(System):
@@ -170,6 +176,8 @@ class KnownSystem(System):
     else:
       return NotImplemented
 
+  def __hash__(self):
+    return super(KnownSystem, self).__hash__()
 
     
 #
