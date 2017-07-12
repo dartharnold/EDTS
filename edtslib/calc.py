@@ -84,7 +84,6 @@ class Calc(object):
   def trundle_cost(self, route):
     # Prioritise jump count: we should always be returning the shortest route
     jump_count = (len(route)-1) * 1000
-    dist = route_dist(route)
     if self.ship is not None:
       # If we have ship info, use the real fuel calcs to generate the cost
       # Scale the result by the FSD's maxfuel to try and keep the magnitude consistent
