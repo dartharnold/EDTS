@@ -90,9 +90,9 @@ class Calc(object):
       # Scale the result by the FSD's maxfuel to try and keep the magnitude consistent
       var = self.ship.range() * (self.route_fuel_cost(route, False) / self.ship.fsd.maxfuel)
     else:
-      # Without ship info, use the legs' standard deviation to try and generate a balanced route
-      var = route_stdev(route, dist)
-    return (jump_count + dist + var)
+      # Without ship info, use a function of the square of the jump distances to try to create a balanced route
+      var = math.sqrt(sum(l*l for l in [route[i+1].distance_to(route[i]) for i in range(len(route)-1)]))
+    return (jump_count + var)
 
   # Gets the route cost for an A* route
   def astar_cost(self, a, b, route, dist_threshold = None):
