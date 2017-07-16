@@ -33,7 +33,7 @@ def _process_system_result(r):
 def _process_station_result(r):
   return {
     'name': r['station_name'], 'type': r['station_type'], 'distance_to_star': r['sc_distance'],
-    'has_refuel': r['has_refuel'], 'max_pad_size': r['max_pad_size'], 'is_planetary': r['is_planetary'],
+    'has_refuel': r['has_refuel'], 'max_landing_pad_size': r['max_pad_size'], 'is_planetary': r['is_planetary'],
   }
 
 _find_method_systems_entries = [
