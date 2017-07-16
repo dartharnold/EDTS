@@ -133,6 +133,21 @@ def _get_valid_conversion(fndict, idx, subidx = None):
   return None
 
 _conversions = {
+  'x':           {
+                   'max': None,
+                   'special': [Any],
+                   'fn': float
+                 },
+  'y':           {
+                   'max': None,
+                   'special': [Any],
+                   'fn': float
+                 },
+  'z':           {
+                   'max': None,
+                   'special': [Any],
+                   'fn': float
+                 },
   'sc_distance': {
                    'max': None,
                    'special': [Any],
@@ -362,6 +377,13 @@ def generate_sql(filters):
   req_tables = set()
   idx = 0
 
+  for axis in ('x', 'y', 'z'):
+    if axis in filters:
+      req_tables.add('systems')
+      for oentry in filters[axis]:
+        for entry in oentry[PosArgs]:
+          filter_str.append('systems.pos_{} {} ?'.format(axis, entry.operator))
+          filter_params.append(entry.value)
   if 'close_to' in filters:
     start_idx = idx
     req_tables.add('systems')
