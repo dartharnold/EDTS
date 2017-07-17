@@ -20,11 +20,11 @@ from . import util
 
 log = util.get_logger("update")
 
+
 class DownloadOnly(object):
   def ignore(self, many, systems_source = None):
     for _ in many:
       continue
-
   populate_table_systems = ignore
   populate_table_stations = ignore
   populate_table_coriolis_fsds = ignore
@@ -53,6 +53,24 @@ default_steps = ['clean', 'systems', 'systems_populated', 'stations', 'fsds']
 extra_steps   = ['id64', 'bodies']
 valid_steps   = default_steps + extra_steps
 all_steps     = valid_steps + ['default', 'extra', 'all']
+
+def step_type(s):
+  step_names = s.lower().split(',') if s else []
+  steps = []
+  for step in step_names:
+    if step not in all_steps:
+      raise ValueError('Invalid step "{}".  Valid steps are: {}', step, ','.join(all_steps))
+    if step == 'default':
+      steps += default_steps
+    elif step == 'extra':
+      steps += extra_steps
+    elif step == 'default':
+      steps += default_steps
+    elif step == 'all':
+      return valid_steps
+    else:
+      steps.append(step)
+  return steps
 
 
 class StreamingStringIO(object):
@@ -120,7 +138,7 @@ class Application(object):
     ap.add_argument('-d', '--download-only', required=False, action='store_true', help='Do not import, just download files - implies --copy-local')
     ap.add_argument('-s', '--batch-size', required=False, type=int, help='Batch size; higher sizes are faster but consume more memory')
     ap.add_argument('-l', '--local', required=False, action='store_true', help='Instead of downloading, update from local files in the data directory')
-    ap.add_argument(      '--steps', required=False, type=str.lower, help='Manually (re-)perform comma-separated steps of the update process.')
+    ap.add_argument(      '--steps', required=False, type=step_type, default=default_steps, help='Manually (re-)perform comma-separated steps of the update process.')
     ap.add_argument(      '--systems-source', required=False, type=str.lower, default='edsm', choices=['edsm','eddb'], help='The source to get main system data from.')
     ap.add_argument(      '--print-urls', required=False, action='store_true', help='Do not download anything, just print the URLs which we would fetch from')
     args = ap.parse_args(sys.argv[1:])
@@ -131,22 +149,6 @@ class Application(object):
     args.copy_local = args.download_only or args.copy_local
     if args.copy_local and args.local:
       raise ValueError("Invalid use of --local and --{}!", "download-only" if args.download_only else "copy-local")
-    steps = []
-    for step in args.steps.split(','):
-      if step not in all_steps:
-        raise ValueError('Invalid step "{}".  Valid steps are: {}', step, ','.join(all_steps))
-      if step == 'default':
-        steps += default_steps
-      elif step == 'extra':
-        steps += extra_steps
-      elif step == 'default':
-        steps += default_steps
-      elif step == 'all':
-        steps = valid_steps
-        break
-      else:
-        steps.append(step)
-    args.steps = steps if len(steps) else default_steps
     self.args = args
 
   def run(self):
