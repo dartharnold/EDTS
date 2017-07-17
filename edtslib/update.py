@@ -235,7 +235,7 @@ class Application(object):
       if 'id64' in self.args.steps:
         log.info('Setting known system ID64s...')
         sys.stdout.flush()
-        t = start_timer()
+        t = util.start_timer()
         dbc.update_table_systems_with_id64()
         log.info('Done in {}.'.format(util.format_timer(t)))
       if 'bodies' in self.args.steps:
