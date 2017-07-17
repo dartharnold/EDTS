@@ -54,7 +54,7 @@ extra_steps   = ['id64', 'bodies']
 valid_steps   = default_steps + extra_steps
 all_steps     = valid_steps + ['default', 'extra', 'all']
 
-def step_type(s):
+def steps_type(s):
   step_names = s.lower().split(',') if s else []
   steps = []
   for step in step_names:
@@ -138,7 +138,7 @@ class Application(object):
     ap.add_argument('-d', '--download-only', required=False, action='store_true', help='Do not import, just download files - implies --copy-local')
     ap.add_argument('-s', '--batch-size', required=False, type=int, help='Batch size; higher sizes are faster but consume more memory')
     ap.add_argument('-l', '--local', required=False, action='store_true', help='Instead of downloading, update from local files in the data directory')
-    ap.add_argument(      '--steps', required=False, type=step_type, default=default_steps, help='Manually (re-)perform comma-separated steps of the update process.')
+    ap.add_argument(      '--steps', required=False, type=steps_type, default=default_steps, help='Manually (re-)perform comma-separated steps of the update process.')
     ap.add_argument(      '--systems-source', required=False, type=str.lower, default='edsm', choices=['edsm','eddb'], help='The source to get main system data from.')
     ap.add_argument(      '--print-urls', required=False, action='store_true', help='Do not download anything, just print the URLs which we would fetch from')
     args = ap.parse_args(sys.argv[1:])
