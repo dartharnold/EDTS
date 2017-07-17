@@ -39,17 +39,20 @@ eddb_stations_url = "https://eddb.io/archive/v5/stations.jsonl"
 eddb_bodies_url   = "https://eddb.io/archive/v5/bodies.jsonl"
 coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
-edsm_systems_local_path  = "data/systemsWithCoordinates.json"
-eddb_systems_local_path  = "data/systems.csv"
-eddb_syspop_local_path   = "data/systems_populated.jsonl"
-eddb_stations_local_path = "data/stations.jsonl"
-eddb_bodies_local_path   = "data/bodies.jsonl"
-coriolis_fsds_local_path = "data/frame_shift_drive.json"
+local_path = 'data'
+edsm_systems_local_path  = os.path.join(local_path, "systemsWithCoordinates.json")
+eddb_systems_local_path  = os.path.join(local_path, "systems.csv")
+eddb_syspop_local_path   = os.path.join(local_path, "systems_populated.jsonl")
+eddb_stations_local_path = os.path.join(local_path, "stations.jsonl")
+eddb_bodies_local_path   = os.path.join(local_path, "bodies.jsonl")
+coriolis_fsds_local_path = os.path.join(local_path, "frame_shift_drive.json")
 
 _re_json_line = re.compile(r'^\s*(\{.*\})[\s,]*$')
 
 default_steps = ['clean', 'systems', 'systems_populated', 'stations', 'fsds']
-valid_steps   = default_steps + ['id64', 'bodies']
+extra_steps   = ['id64', 'bodies']
+valid_steps   = default_steps + extra_steps
+all_steps     = valid_steps + ['default', 'extra', 'all']
 
 
 class StreamingStringIO(object):
@@ -108,7 +111,7 @@ def cleanup_local(f, scratch):
 class Application(object):
 
   def __init__(self, arg, hosted, state = {}):
-    ap = argparse.ArgumentParser(description = 'Update local database', parents = [env.arg_parser], prog = "update")
+    ap = argparse.ArgumentParser(description = 'Update local database', parents = [env.arg_parser], prog = "update", epilog='Valid choices for --steps: {}'.format(','.join(all_steps)))
     ap.add_argument_group("Processing options")
     bex = ap.add_mutually_exclusive_group()
     bex.add_argument('-b', '--batch', dest='batch', action='store_true', default=True, help='Import data in batches')
@@ -117,7 +120,7 @@ class Application(object):
     ap.add_argument('-d', '--download-only', required=False, action='store_true', help='Do not import, just download files - implies --copy-local')
     ap.add_argument('-s', '--batch-size', required=False, type=int, help='Batch size; higher sizes are faster but consume more memory')
     ap.add_argument('-l', '--local', required=False, action='store_true', help='Instead of downloading, update from local files in the data directory')
-    ap.add_argument(      '--step', required=False, type=str, help='Manually perform/re-perform a single step of the update process.')
+    ap.add_argument(      '--steps', required=False, type=str.lower, help='Manually (re-)perform comma-separated steps of the update process.')
     ap.add_argument(      '--systems-source', required=False, type=str.lower, default='edsm', choices=['edsm','eddb'], help='The source to get main system data from.')
     ap.add_argument(      '--print-urls', required=False, action='store_true', help='Do not download anything, just print the URLs which we would fetch from')
     args = ap.parse_args(sys.argv[1:])
@@ -128,6 +131,22 @@ class Application(object):
     args.copy_local = args.download_only or args.copy_local
     if args.copy_local and args.local:
       raise ValueError("Invalid use of --local and --{}!", "download-only" if args.download_only else "copy-local")
+    steps = []
+    for step in args.steps.split(','):
+      if step not in all_steps:
+        raise ValueError('Invalid step "{}".  Valid steps are: {}', step, ','.join(all_steps))
+      if step == 'default':
+        steps += default_steps
+      elif step == 'extra':
+        steps += extra_steps
+      elif step == 'default':
+        steps += default_steps
+      elif step == 'all':
+        steps = valid_steps
+        break
+      else:
+        steps.append(step)
+    args.steps = steps if len(steps) else default_steps
     self.args = args
 
   def run(self):
@@ -139,25 +158,14 @@ class Application(object):
 
     if self.args.print_urls:
       if self.args.local:
-        # Local path hard-specifies "/" so do the same here
-        if args.systems_source == 'edsm':
-          print(relpath + "/" + edsm_systems_local_path)
-        elif args.systems_source == 'eddb':
-          print(relpath + "/" + eddb_systems_local_path)
-        print(relpath + "/" + eddb_syspop_local_path)
-        print(relpath + "/" + eddb_stations_local_path)
-        print(relpath + "/" + coriolis_fsds_local_path)
+        for path in [edsm_systems_local_path if args.systems_source == 'edsm' else eddb_systems_local_path, eddb_syspop_local_path, eddb_stations_local_path, coriolis_fsds_local_path]:
+          print(path)
       else:
-        if args.systems_source == 'edsm':
-          print(edsm_systems_url)
-        elif args.systems_source == 'eddb':
-          print(eddb_systems_url)
-        print(eddb_syspop_url)
-        print(eddb_stations_url)
-        print(coriolis_fsds_url)
+        for path in [edsm_systems_url if args.systems_source == 'edsm' else eddb_systems_url, eddb_syspop_url, eddb_stations_url, coriolis_fsds_url]:
+          print(path)
       return
 
-    steps = [self.args.step] if self.args.step else default_steps
+    g = util.start_timer()
 
     if self.args.download_only:
       log.info("Downloading files locally...")
@@ -170,22 +178,25 @@ class Application(object):
       if db_dir and not os.path.exists(db_dir):
         os.makedirs(db_dir)
 
-      if 'clean' in steps:
+      if 'clean' in self.args.steps:
         # Open then close a temporary file, essentially reserving the name.
         fd, db_tmp_filename = tempfile.mkstemp('.tmp', os.path.basename(db_file), db_dir if db_dir else '.')
         os.close(fd)
 
         log.info("Initialising database...")
         sys.stdout.flush()
+        t = util.start_timer()
         dbc = db.initialise_db(db_tmp_filename)
         db_open_filename = db_tmp_filename
-        log.info("Done.")
+        log.info("Done in {}.", util.format_timer(t))
       else:
         log.info("Opening existing database...")
+        sys.stdout.flush()
+        t = util.start_timer()
         dbc = db.open_db(db_file)
         db_open_filename = db_file
         if dbc:
-          log.info("Done.")
+          log.info("Done in {}.", util.format_timer(t))
         else:
           log.error("Failed to open existing DB!")
           sys.exit(2)
@@ -206,22 +217,26 @@ class Application(object):
       eddb_bodies_path   = util.path_to_url(cur_eddb_bodies_local_path)   if self.args.local else eddb_bodies_url
       coriolis_fsds_path = util.path_to_url(cur_coriolis_fsds_local_path) if self.args.local else coriolis_fsds_url
 
-      if 'systems' in steps:
+      if 'systems' in self.args.steps:
         if self.args.systems_source == 'edsm':
           dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, cur_edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
         elif self.args.systems_source == 'eddb':
           dbc.populate_table_systems(self.import_csv_from_url(eddb_systems_path, cur_eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
         else:
           raise Exception("invalid systems source option provided")
-      if 'systems_populated' in steps:
+      if 'systems_populated' in self.args.steps:
         dbc.update_table_systems(self.import_json_from_url(eddb_syspop_path, cur_eddb_syspop_local_path, 'EDDB populated systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
-      if 'stations' in steps:
+      if 'stations' in self.args.steps:
         dbc.populate_table_stations(self.import_json_from_url(eddb_stations_path, cur_eddb_stations_local_path, 'EDDB stations', self.args.batch_size, is_url_local=self.args.local))
-      if 'fsds' in steps:
+      if 'fsds' in self.args.steps:
         dbc.populate_table_coriolis_fsds(self.import_json_from_url(coriolis_fsds_path, cur_coriolis_fsds_local_path, 'Coriolis FSDs', None, is_url_local=self.args.local, key='fsd'))
-      if 'id64' in steps:
+      if 'id64' in self.args.steps:
+        log.info('Setting known system ID64s...')
+        sys.stdout.flush()
+        t = start_timer()
         dbc.update_table_systems_with_id64()
-      if 'bodies' in steps:
+        log.info('Done in {}.'.format(util.format_timer(t)))
+      if 'bodies' in self.args.steps:
         dbc.populate_table_bodies(self.import_json_from_url(eddb_bodies_path, cur_eddb_bodies_local_path, 'EDDB bodies', self.args.batch_size, is_url_local=self.args.local))
     except MemoryError:
       log.error("Out of memory!")
@@ -230,14 +245,14 @@ class Application(object):
       elif self.args.batch_size > 64:
         log.error("Try --batch-size {0}", self.args.batch_size / 2)
       if not self.args.download_only:
-        if 'clean' in steps:
+        if 'clean' in self.args.steps:
           cleanup_local(None, db_open_filename)
         else:
           log.warning("Update operation on existing database cancelled - database state could be invalid")
       return
     except:
       if not self.args.download_only:
-        if 'clean' in steps:
+        if 'clean' in self.args.steps:
           cleanup_local(None, db_open_filename)
         else:
           log.warning("Update operation on existing database cancelled - database state could be invalid")
@@ -247,14 +262,14 @@ class Application(object):
       dbc.close()
 
       # If we just made a new DB...
-      if 'clean' in steps:
+      if 'clean' in self.args.steps:
         if os.path.isfile(db_file):
           os.unlink(db_file)
         shutil.move(db_open_filename, db_file)
       else:
         log.debug("Existing database updated")
 
-    log.info("All done.")
+    log.info("All done in {}.".format(util.format_timer(g)))
 
   def import_csv_from_url(self, url, filename, description, batch_size, is_url_local = False, key = None):
     return self.import_data_from_url(read_header_csv, read_line_csv, read_all_csv, url, filename, description, batch_size, is_url_local, key)
@@ -276,7 +291,7 @@ class Application(object):
         log.info("Batch downloading {0} list from {1} ... ", description, url)
         sys.stdout.flush()
 
-        start = int(time())
+        start = int(util.start_timer())
         done = 0
         failed = 0
         last_elapsed = 0
@@ -316,7 +331,7 @@ class Application(object):
             for obj in batch:
               yield obj
             done += len(batch)
-            elapsed = int(time()) - start
+            elapsed = int(util.get_timer(start))
             if elapsed - last_elapsed >= 30:
               log.info("Loaded {0} row(s) of {1} data to DB...", done, description)
               last_elapsed = elapsed
@@ -328,27 +343,33 @@ class Application(object):
           if failed:
             log.info("Lines failing JSON parse: {0}", failed)
           log.info("Loaded {0} row(s) of {1} data to DB...", done, description)
-          log.info("Done.")
+          log.info("Done in {}.".format(util.format_timer(start)))
       else:
         log.info("Downloading {0} list from {1} ... ", description, url)
         sys.stdout.flush()
+        t = util.start_timer()
         encoded = util.read_from_url(url, allow_no_ssl=is_url_local)
-        log.info("Done.")
+        log.info("Done in {}.".format(util.format_timer(t)))
         if self.args.copy_local:
           log.info("Writing {0} local data...", description)
+          sys.stdout.flush()
+          t = util.start_timer()
           util.write_stream(f, encoded)
-          log.info("Done.")
+          log.info("Done in {}.".format(util.format_timer(t)))
         if not self.args.download_only:
           log.info("Loading {0} data...", description)
           sys.stdout.flush()
+          t = util.start_timer()
           obj = fn_read_all(encoded)
-          log.info("Done.")
+          log.info("Done in {}.".format(util.format_timer(t)))
           log.info("Adding {0} data to DB...", description)
+          sys.stdout.flush()
+          t = util.start_timer()
           if key is not None:
             obj = obj[key]
           for o in obj:
             yield o
-          log.info("Done.")
+          log.info("Done in {}.".format(util.format_timer(t)))
       # Force GC collection to try to avoid memory errors
       encoded = None
       obj = None
