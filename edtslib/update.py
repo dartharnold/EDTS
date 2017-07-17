@@ -230,11 +230,17 @@ class Application(object):
       elif self.args.batch_size > 64:
         log.error("Try --batch-size {0}", self.args.batch_size / 2)
       if not self.args.download_only:
-        cleanup_local(None, db_open_filename)
+        if 'clean' in steps:
+          cleanup_local(None, db_open_filename)
+        else:
+          log.warning("Update operation on existing database cancelled - database state could be invalid")
       return
     except:
       if not self.args.download_only:
-        cleanup_local(None, db_open_filename)
+        if 'clean' in steps:
+          cleanup_local(None, db_open_filename)
+        else:
+          log.warning("Update operation on existing database cancelled - database state could be invalid")
       raise
 
     if not self.args.download_only:
@@ -245,6 +251,8 @@ class Application(object):
         if os.path.isfile(db_file):
           os.unlink(db_file)
         shutil.move(db_open_filename, db_file)
+      else:
+        log.debug("Existing database updated")
 
     log.info("All done.")
 
