@@ -7,7 +7,7 @@ from . import vector3
 
 log = util.get_logger("solver")
 
-max_single_solve_size = 12
+max_single_solve_size = 8
 cluster_size_max = 8
 cluster_size_min = 1
 cluster_divisor = 10
