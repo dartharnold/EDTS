@@ -62,6 +62,10 @@ class Solver(object):
 
 
   def solve(self, tours, stations, start, end, maxstops, preferred_mode = CLUSTERED):
+    if all(len(t) < 2 for t in tours):
+      log.debug("No tours forming valid constraints detected, ignoring them all")
+      tours = None
+
     log.debug("Solving set using preferred mode '{}'", preferred_mode)
     if preferred_mode == CLUSTERED_REPEAT and len(stations) > max_single_solve_size:
       return self.solve_clustered_repeat(tours, stations, start, end, maxstops), False
@@ -91,7 +95,7 @@ class Solver(object):
     mincost = None
     minroute = None
 
-    reversible = all([len(tour) == 1 for tour in tours])
+    reversible = tours is None or all([len(tour) == 1 for tour in tours])
 
     log.debug("Calculating and checking viable routes...")
     vr = self._get_viable_routes([start], tours, stations, end, maxstops)
@@ -129,7 +133,7 @@ class Solver(object):
       cur_cost = sys.maxsize
       cur_stop = None
       for s in remaining:
-        if not self._check_tour_route(route[1:], tours, s):
+        if tours and not self._check_tour_route(route[1:], tours, s):
           continue
         cost = self._calc.solve_cost(route[-1], s, len(route)-1)
         if cost < cur_cost:
@@ -139,6 +143,7 @@ class Solver(object):
         route.append(cur_stop)
         remaining.remove(cur_stop)
         full_cost += cur_cost
+        log.debug("Added system to current NN route: {}, new len {}, new cost {}", cur_stop, len(route), full_cost)
     route.append(end)
     return route, cur_cost
 
@@ -250,6 +255,7 @@ class Solver(object):
 
 
   def _check_tour_route(self, route, tours, station):
+    if not tours: return True
     for tour in tours:
       # Tour must have at least two elements to form a valid constraint.
       if len(tour) < 2:
@@ -296,7 +302,7 @@ class Solver(object):
           if route_matches >= stn_matches:
             continue
         # Check that adding this station would not break any tour constraints.
-        if not self._check_tour_route(route[1:], tours, stn):
+        if tours and not self._check_tour_route(route[1:], tours, stn):
           continue
 
         dist = self._calc.solve_cost(route[-1], stn, len(route)-1)
