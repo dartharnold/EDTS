@@ -9,6 +9,7 @@ from . import env_backend as eb
 from . import filtering
 from . import util
 from . import vector3
+from .bodies import Star
 
 log = util.get_logger("db_sqlite3")
 
@@ -164,16 +165,9 @@ class SQLite3DBConnection(eb.EnvBackend):
       yield (int(s['id']), bool(s['needs_permit']), s['allegiance'], s[id_column])
 
   def _generate_systems_arrival_star_update_eddb(self, bodies):
-    # TODO: Replace this with a post-step after populating bodies table
-    tmp = {1: 'XBH', 2: 'XBH', 3: 'XNS'}  # TODO: Put this somewhere _much_ more permanent
-    for b in bodies:
-      # Only update for arrival stars
-      if bool(b['is_main_star']) is True:
-        if int(b['group_id']) == 1:  # Compact star
-          starcls = tmp.get(int(b['type_id']), 'X')
-        else:
-          starcls = b['spectral_class']
-        yield (starcls, int(b['system_id']))
+    # Only update for arrival stars
+    for b in [b for b in bodies if bool(b['is_main_star']) is True]:
+      yield (Star(b).classification, int(b['system_id']))
 
   def _generate_stations(self, stations):
     for s in stations:

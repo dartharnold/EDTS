@@ -5,6 +5,7 @@ import sys
 
 from . import station
 from . import util
+from .bodies import Star
 
 log = util.get_logger("filter")
 
@@ -63,10 +64,14 @@ class PadSize(object):
   def __ne__(self, rhs): return (self.__cmp__(rhs) != 0)
 
 def parse_star_class(s):
-  if s.upper() in ['NS','BH']:
-    return ['X{}'.format(s.upper())]
+  if s.lower() == 'mainsequence':
+    return Star.MAIN_SEQUENCE
+  elif s.lower() == 'nonsequence':
+    return Star.NON_SEQUENCE
   elif s.lower() == 'scoopable':
-    return ['K','G','B','F','O','A','M']
+    return Star.SCOOPABLE
+  elif s.lower() == 'superchargeable':
+    return Star.SUPERCHARGEABLE
   else:
     return [s.upper()]
 

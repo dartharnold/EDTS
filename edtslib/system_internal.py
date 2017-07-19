@@ -1,6 +1,7 @@
 import math
 import struct
 
+from .bodies import Star
 from .pgnames import get_system as pg_get_system
 from .pgnames import get_system_fragments as pg_get_system_fragments
 from .pgnames import get_sector as pg_get_sector
@@ -79,9 +80,9 @@ class System(object):
 
   def to_string(self, use_long = False):
     if use_long:
-      return u"{0} ({1:.2f}, {2:.2f}, {3:.2f})".format(self.name, self.position.x, self.position.y, self.position.z)
+      return u"{0} ({1:.2f}, {2:.2f}, {3:.2f} {4})".format(self.name, self.position.x, self.position.y, self.position.z, self.arrival_star.to_string(use_long))
     else:
-      return u"{0}".format(self.name)
+      return u"{0} ({1})".format(self.name, self.arrival_star.to_string(use_long))
 
   def __str__(self):
     return self.to_string()
@@ -147,7 +148,7 @@ class KnownSystem(System):
     self._id = obj['id'] if 'id' in obj else None
     self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else None
     self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
-    self._arrival_star_class = obj['arrival_star_class'] if 'arrival_star_class' in obj else None
+    self._arrival_star = Star({ 'name': obj['name'], 'is_main_star': True, 'spectral_class': obj.get('arrival_star_class') })
 
   @property
   def needs_permit(self):
@@ -163,7 +164,11 @@ class KnownSystem(System):
 
   @property
   def arrival_star_class(self):
-    return self._arrival_star_class
+    return self.arrival_star.classification
+
+  @property
+  def arrival_star(self):
+    return self._arrival_star
 
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
