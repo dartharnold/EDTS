@@ -241,9 +241,11 @@ class SQLite3DBConnection(eb.EnvBackend):
     self._conn.commit()
     log.debug("Indexes added.")
 
-  def populate_table_bodies(self, many):
+  def populate_table_bodies(self, many, systems_source):
     # TODO: Actually populate a bodies table and indexes
     # TODO: Then update arrival_star_class from that data and add an index for it
+    if systems_source != 'eddb':
+      raise ValueError("invalid systems_source provided to populate_table_bodies")
     c = self._conn.cursor()
     log.debug("Going for UPDATE systems for body data...")
     c.executemany('UPDATE systems SET arrival_star_class=? WHERE eddb_id=?', self._generate_systems_arrival_star_update_eddb(many))

@@ -239,7 +239,7 @@ class Application(object):
         dbc.update_table_systems_with_id64()
         log.info('Done in {}.'.format(util.format_timer(t)))
       if 'bodies' in self.args.steps:
-        dbc.populate_table_bodies(self.import_json_from_url(eddb_bodies_path, cur_eddb_bodies_local_path, 'EDDB bodies', self.args.batch_size, is_url_local=self.args.local))
+        dbc.populate_table_bodies(self.import_json_from_url(eddb_bodies_path, cur_eddb_bodies_local_path, 'EDDB bodies', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
     except MemoryError:
       log.error("Out of memory!")
       if self.args.batch_size is None:
