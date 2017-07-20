@@ -232,19 +232,19 @@ def parse(filter_string, *args, **kwargs):
     output[key].append(value)
   return convert(output, args, kwargs)
 
-def convert(output, *args, **kwargs):
+def convert(fobj, *args, **kwargs):
   extra_converters = kwargs.get('extra_converters', {})
   literalarg_count = 0
   # For each result
-  for k in output.keys():
+  for k in fobj.keys():
     # Do we know about it?
     if k in _conversions:
-      if _conversions[k]['max'] not in [None, 1] and len(output[k]) > _conversions[k]['max']:
+      if _conversions[k]['max'] not in [None, 1] and len(fobj[k]) > _conversions[k]['max']:
         raise KeyError("Filter key {} provided more than its maximum {} times".format(k, _conversions[k]['max']))
       # Is it a complicated one, or a simple key=value?
       if isinstance(_conversions[k]['fn'], dict):
         # For each present subkey, check if we know about it
-        outlist = output[k]
+        outlist = fobj[k]
         # For each subkey...
         for outentry in outlist:
           # For each named entry in that subkey (and None for positional args)...
@@ -277,7 +277,7 @@ def convert(output, *args, **kwargs):
                   ev.value = conv(ev.value)
       else:
         # For each entry associated with this key...
-        for ovl in output[k]:
+        for ovl in fobj[k]:
           nonpos_subkeys = [posk for posk in ovl.keys() if posk is not PosArgs]
           if any(nonpos_subkeys):
             raise KeyError("Unexpected filter subkey(s) provided: {0}".format(nonpos_subkeys))
@@ -305,12 +305,12 @@ def convert(output, *args, **kwargs):
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
   # We don't need to return OrderedDicts once processing is done, so use normal ones
-  return {k: [dict(sv) for sv in v] for k, v in output.items()}
+  return {k: [dict(sv) for sv in v] for k, v in fobj.items()}
 
 
 def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
   if not isinstance(filters, dict):
-    raise ValueError("filter object must be a dict")
+    raise ValueError("filter object must be a dict with the filter arguments as keys")
   output = filters
   for k in output:
     # Check we know about this key
