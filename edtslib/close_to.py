@@ -44,6 +44,7 @@ class Application(object):
     ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
     ap.add_argument("-d", "--min-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems less than this distance from reference")
     ap.add_argument("-m", "--max-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
+    ap.add_argument("-S", "--arrival-star", type=str, required=False, help="Only show systems with arrival star of the given class(es)")
     ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
     ap.add_argument("-s", "--max-sc-distance", type=float, required=False, help="Only show systems with a starport less than this distance from entry point")
     ap.add_argument("-p", "--pad-size", required=False, type=str.upper, choices=['S','M','L'], help="Only show systems with stations matching the specified pad size")
@@ -103,11 +104,13 @@ class Application(object):
       for entry in filters['close_to']:
         entry['direction'] = [filtering.Operator('=', direction_obj)]
         entry['angle'] = [filtering.Operator('<', self.args.direction_angle)]
+    if self.args.arrival_star is not None:
+      filters['arrival_star'] = self.args.arrival_star
 
     with env.use() as envdata:
       # Filter out our reference systems from the results
       names = [d['sysobj'].name for d in self.args.system]
-      asys = [s for s in envdata.find_all_systems(filters=filters) if s.name not in names]
+      asys = [s for s in envdata.find_all_systems(filters=envdata.convert_filter_object(filters)) if s.name not in names]
       if self.args.num:
         asys = asys[0:self.args.num]
 
@@ -121,7 +124,7 @@ class Application(object):
         print("")
         for i in range(0, len(asys)):
           if len(self.args.system) == 1:
-            print("    {0} ({1:.2f}LY)".format(asys[i].name, asys[i].distance_to(self.args.system[0]['sysobj'])))
+            print("    {0} ({1:.2f}LY)".format(asys[i].to_string(), asys[i].distance_to(self.args.system[0]['sysobj'])))
           else:
             print("    {0}".format(asys[i].name))
           if self.args.list_stations:
