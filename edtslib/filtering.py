@@ -191,13 +191,12 @@ def _global_conv(val, specials = None):
   specials = specials or []
   if isinstance(val, Operator):
     return (Operator(value=_global_conv(val.value, specials), op=val.operator), False)
-
-  if val.lower() == "any" and Any in specials:
-    return (Any, False)
-  elif val.lower() == "none" and None in specials:
-    return (None, False)
-  else:
-    return (val, True)
+  if util.is_str(val):
+    if val.lower() == "any" and Any in specials:
+      return (Any, False)
+    elif val.lower() == "none" and None in specials:
+      return (None, False)
+  return (val, True)
 
 
 def parse(filter_string, *args, **kwargs):
@@ -346,7 +345,7 @@ def normalise(filters, strip_unexpected = False, anonymous_posargs = True, assum
           if isinstance(convdata['fn'], dict):
             if ek not in convdata['fn'] and len(output[k][i][ek])-1 not in convdata['fn']:
               raise ValueError("filter key '{}' contains unexpected positional arguments".format(k))
-            if ek in convdata['fn'] and convdata['fn'][ek]['max'] is not None and len(output[k][i][ek]) > convdata['fn'][ek]['max']:
+            if ek in convdata['fn'] and isinstance(convdata['fn'][ek], dict) and convdata['fn'][ek]['max'] is not None and len(output[k][i][ek]) > convdata['fn'][ek]['max']:
               raise ValueError("filter key '{}' contains too many positional arguments".format(k))
         else:
           if not isinstance(convdata['fn'], dict):
