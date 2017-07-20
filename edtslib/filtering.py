@@ -235,6 +235,9 @@ def parse(filter_string, *args, **kwargs):
 def convert(fobj, *args, **kwargs):
   extra_converters = kwargs.get('extra_converters', {})
   literalarg_count = 0
+  # Check if we should normalise object before continuing
+  if kwargs.get('normalise', True):
+    fobj = normalise(fobj)
   # For each result
   for k in fobj.keys():
     # Do we know about it?
@@ -308,7 +311,7 @@ def convert(fobj, *args, **kwargs):
   return {k: [dict(sv) for sv in v] for k, v in fobj.items()}
 
 
-def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
+def normalise(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
   if not isinstance(filters, dict):
     raise ValueError("filter object must be a dict with the filter arguments as keys")
   output = filters
