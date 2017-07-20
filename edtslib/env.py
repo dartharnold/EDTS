@@ -90,6 +90,9 @@ class Env(object):
   def parse_filter_string(self, s, *args):
     return filtering.parse(s, *args, extra_converters=self.filter_converters)
 
+  def convert_filter_object(self, o, *args):
+    return filtering.convert(s, *args, extra_converters=self.filter_converters)
+
   def _get_as_filters(self, s):
     if s is None:
       return None
