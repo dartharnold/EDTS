@@ -34,10 +34,12 @@ PosArgs = PosArgsType()
 
 class PadSize(object):
   values = ['S','M','L']
-  def __init__(self, value):
-    if util.is_str(value):
-      value = value.upper()
-    self.value = value if value in PadSize.values else None
+  def __init__(self, obj):
+    if util.is_str(obj):
+      obj = obj.upper()
+    if isinstance(obj, PadSize):
+      obj = obj.value
+    self.value = obj if obj in PadSize.values else None
   def __str__(self):
     return self.value
   def __repr__(self):
@@ -50,7 +52,7 @@ class PadSize(object):
     if rhs is None:
       return sys.maxsize
     if not rhs in PadSize.values:
-      raise ValueError('tried to compare pad size with an invalid value')
+      raise ValueError('tried to compare pad size with an invalid value: {}'.format(rhs))
     return (PadSize.values.index(self.value) - PadSize.values.index(rhs))
   # Python 3.x doesn't like __cmp__
   def __lt__(self, rhs): return (self.__cmp__(rhs) < 0)
@@ -199,7 +201,7 @@ def _global_conv(val, specials = None):
   return (val, True)
 
 
-def parse(filter_string, *args, **kwargs):
+def parse(filter_string, **kwargs):
   entries = filter_string.split(entry_separator)
   # This needs to be ordered so that literal args ('?') are hit in the correct order
   output = collections.OrderedDict()
@@ -229,9 +231,9 @@ def parse(filter_string, *args, **kwargs):
     if key not in output:
       output[key] = []
     output[key].append(value)
-  return convert(output, args, kwargs)
+  return convert(output, **kwargs)
 
-def convert(fobj, *args, **kwargs):
+def convert(fobj, **kwargs):
   extra_converters = kwargs.get('extra_converters', {})
   literalarg_count = 0
   # Check if we should normalise object before continuing
@@ -265,7 +267,7 @@ def convert(fobj, *args, **kwargs):
               specials = _conversions[k]['fn'][ek]['special'] if (ek in _conversions[k]['fn'] and isinstance(_conversions[k]['fn'][ek], dict)) else []
               ev.value, continue_conv = _global_conv(ev.value, specials)
               if continue_conv:
-                if ev.value == value_literalarg:
+                if util.is_str(ev.value) and ev.value == value_literalarg:
                   if literalarg_count >= len(args):
                     raise ValueError("Query included more literal args ('{}') than argument objects provided to parse function".format(value_literalarg))
                   ev.value = args[literalarg_count]
@@ -291,7 +293,7 @@ def convert(fobj, *args, **kwargs):
             # Do the conversions
             ov.value, continue_conv = _global_conv(ov.value, _conversions[k]['special'])
             if continue_conv:
-              if ov.value == value_literalarg:
+              if util.is_str(ov.value) and ov.value == value_literalarg:
                 if literalarg_count >= len(args):
                   raise ValueError("Query included more literal args ('{}') than argument objects provided to parse function".format(value_literalarg))
                 ov.value = args[literalarg_count]
