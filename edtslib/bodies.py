@@ -9,7 +9,8 @@ class Star(Body):
   MAIN_SEQUENCE   = ('O', 'B', 'A', 'F', 'G', 'K', 'M')
   BLACK_HOLE      = ('BH', 'SMBH')
   NEUTRON         = 'N'
-  NON_SEQUENCE    = (BLACK_HOLE, 'X', NEUTRON)
+  EXOTIC          = 'X'
+  NON_SEQUENCE    = (BLACK_HOLE, EXOTIC, NEUTRON)
   SCOOPABLE       = MAIN_SEQUENCE
   SUPERCHARGEABLE = ('D', NEUTRON)
 
@@ -71,9 +72,9 @@ class Star(Body):
       if star_type.startswith('neutron'):
         self.spectral_class = self.NEUTRON
       elif star_type == 'supermassive black hole':
-        self.spectral_class = self.SMBH
+        self.spectral_class = 'SMBH'
       elif star_type.endswith('black hole'):
-        self.spectral_class = self.BH
+        self.spectral_class = 'BH'
       elif star_type == 'exotic':
         self.spectral_class = self.EXOTIC
 
