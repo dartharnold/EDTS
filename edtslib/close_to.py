@@ -119,14 +119,17 @@ class Application(object):
         print("No matching systems")
         print("")
       else:
+        s_max_len = str(max([len(s.name) for s in asys]))
+        distances = { d['sysobj'].name: { s.name: s.distance_to(d['sysobj']) for s in asys } for d in self.args.system }
+        d_max_len = str(max([max([len(str(dist)) for dist in to.values()]) for to in distances.values()]))
         print("")
         print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
         print("")
         for i in range(0, len(asys)):
           if len(self.args.system) == 1:
-            print("    {0} ({1:.2f}LY)".format(asys[i].to_string(), asys[i].distance_to(self.args.system[0]['sysobj'])))
+            print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '({:.2f}LY)'.format(distances[self.args.system[0]['sysobj'].name][asys[i].name]), asys[i].arrival_star.to_string(True)))
           else:
-            print("    {0}".format(asys[i].name))
+            print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '', asys[i].arrival_star.to_string(True)))
           if self.args.list_stations:
             stlist = envdata.find_stations(asys[i])
             stlist.sort(key=lambda t: t.distance if t.distance else 0.0)
@@ -140,7 +143,7 @@ class Application(object):
             asys.sort(key=lambda t: t.distance_to(d['sysobj']))
             for i in range(0, len(asys)):
               # Print distance from the current candidate system to the current start system
-              print("    {0} ({1:.2f}LY)".format(asys[i].name, asys[i].distance_to(d['sysobj'])))
+              print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '({:.2f}LY)'.format(distances[d['sysobj'].name][asys[i].name]), asys[i].arrival_star.to_string(True)))
             print("")
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
