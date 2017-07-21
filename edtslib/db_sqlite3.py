@@ -166,8 +166,9 @@ class SQLite3DBConnection(eb.EnvBackend):
 
   def _generate_systems_arrival_star_update_eddb(self, bodies):
     # Only update for arrival stars
-    for b in [b for b in bodies if bool(b['is_main_star']) is True]:
-      yield (Star(b).classification, int(b['system_id']))
+    for b in bodies:
+      if bool(b['is_main_star']):
+        yield (Star(b).classification, int(b['system_id']))
 
   def _generate_stations(self, stations):
     for s in stations:
