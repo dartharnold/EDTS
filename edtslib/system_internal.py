@@ -141,9 +141,20 @@ class PGSystem(PGSystemPrototype):
     return super(PGSystem, self).__hash__()
 
 
-class KnownSystem(System):
+class HASystem(System):
+  def __init__(self, x, y, z, name, id64, uncertainty):
+    super(HASystem, self).__init__(x, y, z, name, id64, uncertainty)
+
+  def __repr__(self):
+    return u"HASystem({})".format(self.name if self.name is not None else '{},{},{}'.format(self.position.x, self.position.y, self.position.z))
+
+  def __hash__(self):
+    return super(HASystem, self).__hash__()
+
+
+class KnownSystem(HASystem):
   def __init__(self, obj):
-    super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'], obj['id64'])
+    super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'], obj['id64'], 0.0)
     self._id = obj['id'] if 'id' in obj else None
     self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else None
     self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
