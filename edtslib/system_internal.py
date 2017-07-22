@@ -80,9 +80,9 @@ class System(object):
 
   def to_string(self, use_long = False):
     if use_long:
-      return u"{0} ({1:.2f}, {2:.2f}, {3:.2f} {4})".format(self.name, self.position.x, self.position.y, self.position.z, self.arrival_star.to_string(use_long))
+      return u"{0} ([{1:.2f}, {2:.2f}, {3:.2f}])".format(self.name, self.position.x, self.position.y, self.position.z)
     else:
-      return u"{0} ({1})".format(self.name, self.arrival_star.to_string(use_long))
+      return self.name
 
   def __str__(self):
     return self.to_string()
@@ -180,6 +180,12 @@ class KnownSystem(HASystem):
   @property
   def arrival_star(self):
     return self._arrival_star
+
+  def to_string(self, use_long = False):
+    if use_long:
+      return u"{0} ([{1:.2f}, {2:.2f}, {3:.2f}] {4})".format(self.name, self.position.x, self.position.y, self.position.z, self.arrival_star.to_string(use_long))
+    else:
+      return u"{0} ({1})".format(self.name, self.arrival_star.to_string(use_long))
 
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
