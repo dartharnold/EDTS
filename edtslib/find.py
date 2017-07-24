@@ -48,6 +48,7 @@ class Application(object):
         print("")
         print("Matching systems:")
         print("")
+        stations = envdata.find_stations(sys_matches) if self.args.list_stations else None
         for sysobj in sorted(sys_matches, key=lambda t: t.name):
           if self.args.show_ids or self.args.id64:
             id = " ({0})".format(sysobj.pretty_id64(self.args.id64) if self.args.id64 else sysobj.id)
@@ -55,8 +56,9 @@ class Application(object):
             id = ""
           print("  {0}{1}".format(sysobj.to_string(), id))
           if self.args.list_stations:
-            # TODO: Maybe roll this into the original query somehow
-            stlist = envdata.find_stations(sysobj)
+            stlist = stations.get(sysobj)
+            if stlist is None:
+              continue
             stlist.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
             for stn in stlist:
               print("        {0}".format(stn.to_string(False)))
