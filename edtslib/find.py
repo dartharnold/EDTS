@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import argparse
+import filtering
 import fnmatch
 import re
 import sys
@@ -25,24 +26,36 @@ class Application(object):
     ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
     ap.add_argument("-r", "--regex", default=False, action='store_true', help="Takes input as a regex rather than a glob")
     ap.add_argument("--id64", required=False, type=str.upper, choices=['INT', 'HEX', 'VSC'], help="Show system ID64 in output")
-    ap.add_argument("system", metavar="system", type=str, nargs=1, help="The system or station to find")
+    ap.add_argument("--filters", required=False, metavar='filter', nargs='*')
+    ap.add_argument("system", metavar="system", type=str, nargs='?', help="The system or station to find")
     self.args = ap.parse_args(arg)
+
+    if self.args.system is None:
+      if self.args.filters is None:
+        raise ArgumentError('Supply at least one system or filter!')
+      # Find only by filter, defaulting to system-only search.
+      self.args.system = ['.*' if self.args.regex else '*']
+      if not self.args.stations:
+        self.args.systems = True
+    else:
+      self.args.system = [self.args.system]
 
   def run(self):
     sys_matches = []
     stn_matches = []
 
     with env.use() as envdata:
+      filters = filtering.entry_separator.join(self.args.filters) if self.args.filters is not None else None
       if self.args.regex:
         if self.args.systems or not self.args.stations:
-          sys_matches = list(envdata.find_systems_by_regex(self.args.system[0]))
+          sys_matches = list(envdata.find_systems_by_regex(self.args.system[0], filters=filters))
         if self.args.stations or not self.args.systems:
-          stn_matches = list(envdata.find_stations_by_regex(self.args.system[0]))
+          stn_matches = list(envdata.find_stations_by_regex(self.args.system[0], filters=filters))
       else:
         if self.args.systems or not self.args.stations:
-          sys_matches = list(envdata.find_systems_by_glob(self.args.system[0]))
+          sys_matches = list(envdata.find_systems_by_glob(self.args.system[0], filters=filters))
         if self.args.stations or not self.args.systems:
-          stn_matches = list(envdata.find_stations_by_glob(self.args.system[0]))
+          stn_matches = list(envdata.find_stations_by_glob(self.args.system[0], filters=filters))
 
       if (self.args.systems or not self.args.stations) and len(sys_matches) > 0:
         print("")
