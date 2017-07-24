@@ -229,7 +229,7 @@ class Env(object):
 
   def find_stations(self, args, filters = None):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
-    sysobjs = { s.id: s for s in sysobjs if s.id is not None }
+    sysobjs = {s.eddb_id: s for s in sysobjs if s.eddb_id is not None}
     return [_make_station(sysobjs[stndata['eddb_system_id']], stndata) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):

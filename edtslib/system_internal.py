@@ -157,9 +157,19 @@ class KnownSystem(HASystem):
   def __init__(self, obj):
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'], obj['id64'], 0.0)
     self._id = obj['id'] if 'id' in obj else None
+    self._edsm_id = obj['edsm_id'] if 'edsm_id' in obj else None
+    self._eddb_id = obj['eddb_id'] if 'eddb_id' in obj else None
     self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else None
     self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
     self._arrival_star = Star({ 'name': obj['name'], 'is_main_star': True, 'spectral_class': obj.get('arrival_star_class') })
+
+  @property
+  def edsm_id(self):
+    return self._edsm_id
+
+  @property
+  def eddb_id(self):
+    return self._eddb_id
 
   @property
   def needs_permit(self):

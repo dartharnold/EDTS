@@ -27,17 +27,21 @@ _bad_char_regex = re.compile(r"[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -|\[\]]")
 
 def _process_system_result(r):
   return {
+    'id': r['system_id'], 'edsm_id': r['system_edsm_id'], 'eddb_id': r['system_eddb_id'],
     'name': r['system_name'], 'x': r['pos_x'], 'y': r['pos_y'], 'z': r['pos_z'],
     'id64': r['id64'], 'needs_permit': r['needs_permit'], 'arrival_star_class': r['arrival_star_class'],
   }
 
 def _process_station_result(r):
   return {
-    'name': r['station_name'], 'type': r['station_type'], 'distance_to_star': r['sc_distance'],
+    'id': r['station_eddb_id'], 'name': r['station_name'], 'type': r['station_type'], 'distance_to_star': r['sc_distance'],
     'has_refuel': r['has_refuel'], 'max_landing_pad_size': r['max_pad_size'], 'is_planetary': r['is_planetary'],
   }
 
 _find_method_systems_entries = [
+  'systems.id AS system_id',
+  'systems.edsm_id AS system_edsm_id',
+  'systems.eddb_id AS system_eddb_id',
   'systems.name AS system_name',
   'systems.pos_x AS pos_x',
   'systems.pos_y AS pos_y',
@@ -48,6 +52,7 @@ _find_method_systems_entries = [
 ]
 
 _find_method_stations_entries = [
+  'stations.eddb_id AS station_eddb_id',
   'stations.name AS station_name',
   'stations.station_type AS station_type',
   'stations.sc_distance AS sc_distance',
