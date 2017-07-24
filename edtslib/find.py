@@ -62,12 +62,13 @@ class Application(object):
         print("Matching systems:")
         print("")
         stations = envdata.find_stations(sys_matches) if self.args.list_stations else None
+        s_max_len = str(max([len(s.name) for s in sys_matches]))
         for sysobj in sorted(sys_matches, key=lambda t: t.name):
           if self.args.show_ids or self.args.id64:
             id = " ({0})".format(sysobj.pretty_id64(self.args.id64) if self.args.id64 else sysobj.id)
           else:
             id = ""
-          print("  {0}{1}".format(sysobj.to_string(), id))
+          print(("  {0: <" + s_max_len + "}{1}   {2}").format(sysobj.name, id, sysobj.arrival_star.to_string(True)))
           if self.args.list_stations:
             stlist = stations.get(sysobj)
             if stlist is None:
