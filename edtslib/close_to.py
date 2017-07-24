@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import argparse
+import math
 
 from . import env
 from . import filtering
@@ -125,15 +126,17 @@ class Application(object):
 
         s_max_len = str(max([len(s.name) for s in asys]))
         distances = { d['sysobj'].name: { s.name: s.distance_to(d['sysobj']) for s in asys } for d in self.args.system }
-        d_max_len = str(max([max([len(str(dist)) for dist in to.values()]) for to in distances.values()]))
+        d_max_len = max([max([len(str(dist)) for dist in to.values()]) for to in distances.values()])
+        # Length = "(NNN.nnLY)", so length = len(NNN) + 7 = log10(NNN) + 8
+        d_max_len = str(int(math.floor(math.log10(d_max_len))) + 8)
         print("")
         print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
         print("")
         for i in range(0, len(asys)):
           if len(self.args.system) == 1:
-            print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '({:.2f}LY)'.format(distances[self.args.system[0]['sysobj'].name][asys[i].name]), asys[i].arrival_star.to_string(True)))
+            print(("    {0: <" + s_max_len + "}   {1: >" + d_max_len + "}   {2}").format(asys[i].name, '({:.2f}LY)'.format(distances[self.args.system[0]['sysobj'].name][asys[i].name]), asys[i].arrival_star.to_string(True)))
           else:
-            print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '', asys[i].arrival_star.to_string(True)))
+            print(("    {0: <" + s_max_len + "}   {1: >" + d_max_len + "}   {2}").format(asys[i].name, '', asys[i].arrival_star.to_string(True)))
           if self.args.list_stations:
             stlist = astns.get(asys[i], [])
             stlist.sort(key=lambda t: t.distance if t.distance else 0.0)
