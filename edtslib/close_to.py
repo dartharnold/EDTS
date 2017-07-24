@@ -119,6 +119,10 @@ class Application(object):
         print("No matching systems")
         print("")
       else:
+        astns = {}
+        if self.args.list_stations:
+          astns = envdata.find_stations(asys)
+
         s_max_len = str(max([len(s.name) for s in asys]))
         distances = { d['sysobj'].name: { s.name: s.distance_to(d['sysobj']) for s in asys } for d in self.args.system }
         d_max_len = str(max([max([len(str(dist)) for dist in to.values()]) for to in distances.values()]))
@@ -131,7 +135,7 @@ class Application(object):
           else:
             print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '', asys[i].arrival_star.to_string(True)))
           if self.args.list_stations:
-            stlist = envdata.find_stations(asys[i])
+            stlist = astns.get(asys[i], [])
             stlist.sort(key=lambda t: t.distance if t.distance else 0.0)
             for stn in stlist:
               print("        {0}".format(stn.to_string(False)))
