@@ -7,6 +7,8 @@ import fnmatch
 import re
 import sys
 
+from .cow import ColumnObjectWriter
+from .dist import Lightseconds
 from . import env
 from . import util
 
@@ -57,25 +59,38 @@ class Application(object):
         if self.args.stations or not self.args.systems:
           stn_matches = list(envdata.find_stations_by_glob(self.args.system[0], filters=filters))
 
+      indent = 8
       if (self.args.systems or not self.args.stations) and len(sys_matches) > 0:
         print("")
         print("Matching systems:")
         print("")
-        stations = envdata.find_stations(sys_matches) if self.args.list_stations else None
-        s_max_len = str(max([len(s.name) for s in sys_matches]))
+        cow = ColumnObjectWriter(3, ['<', '>', '<'])
+        if self.args.list_stations:
+          stations = envdata.find_stations(sys_matches)
+        else:
+          stations = None
         for sysobj in sorted(sys_matches, key=lambda t: t.name):
           if self.args.show_ids or self.args.id64:
             id = " ({0})".format(sysobj.pretty_id64(self.args.id64) if self.args.id64 else sysobj.id)
           else:
             id = ""
-          print(("  {0: <" + s_max_len + "}{1}   {2}").format(sysobj.name, id, sysobj.arrival_star.to_string(True)))
+          cow.add([
+            '  {}{}'.format(sysobj.name, id),
+            '',
+            sysobj.arrival_star.to_string(True)
+          ])
           if self.args.list_stations:
             stlist = stations.get(sysobj)
             if stlist is None:
               continue
             stlist.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
             for stn in stlist:
-              print("        {0}".format(stn.to_string(False)))
+              cow.add([
+                '{}{}'.format(' ' * indent, stn.name),
+                '({})'.format(str(Lightseconds(stn.distance)) if stn.distance is not None else '???'),
+                stn.station_type if stn.station_type is not None else '???'
+              ])
+        cow.out()
         print("")
 
     if (self.args.stations or not self.args.systems) and len(stn_matches) > 0:
