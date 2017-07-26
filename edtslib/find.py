@@ -7,6 +7,7 @@ import re
 import sys
 
 from . import env
+from . import filtering
 from . import util
 
 app_name = "find"
