@@ -4,6 +4,8 @@ from __future__ import print_function
 import argparse
 import math
 
+from .cow import ColumnObjectWriter
+from .dist import Lightseconds, Lightyears
 from . import env
 from . import filtering
 from . import util
@@ -120,38 +122,46 @@ class Application(object):
         print("No matching systems")
         print("")
       else:
-        astns = {}
+        indent = 8
+        cow = ColumnObjectWriter(3, ['<', '>', '<'])
+        stations = {}
         if self.args.list_stations:
-          astns = envdata.find_stations(asys)
+          stations = envdata.find_stations(asys)
 
-        s_max_len = str(max([len(s.name) for s in asys]))
         distances = { d['sysobj'].name: { s.name: s.distance_to(d['sysobj']) for s in asys } for d in self.args.system }
-        d_max_len = max([max([len(str(dist)) for dist in to.values()]) for to in distances.values()])
-        # Length = "(NNN.nnLY)", so length = len(NNN) + 7 = log10(NNN) + 8
-        d_max_len = str(int(math.floor(math.log10(d_max_len))) + 8)
         print("")
         print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
         print("")
         for i in range(0, len(asys)):
-          if len(self.args.system) == 1:
-            print(("    {0: <" + s_max_len + "}   {1: >" + d_max_len + "}   {2}").format(asys[i].name, '({:.2f}LY)'.format(distances[self.args.system[0]['sysobj'].name][asys[i].name]), asys[i].arrival_star.to_string(True)))
-          else:
-            print(("    {0: <" + s_max_len + "}   {1: >" + d_max_len + "}   {2}").format(asys[i].name, '', asys[i].arrival_star.to_string(True)))
+          cow.add([
+            '    {}'.format(asys[i].name),
+            '{} '.format(Lightyears(distances[self.args.system[0]['sysobj'].name][asys[i].name]).to_string(True)) if len(self.args.system) == 1 else '',
+            asys[i].arrival_star.to_string(True)
+          ])
           if self.args.list_stations:
-            stlist = astns.get(asys[i], [])
+            stlist = stations.get(asys[i], [])
             stlist.sort(key=lambda t: t.distance if t.distance else 0.0)
             for stn in stlist:
-              print("        {0}".format(stn.to_string(False)))
-        print("")
+              cow.add([
+                '{}{}'.format(' ' * indent, stn.name),
+                '({})'.format(str(Lightseconds(stn.distance)) if stn.distance is not None else '???'),
+                stn.station_type if stn.station_type is not None else '???'
+              ])
+        cow.add(['', '', ''])
         if len(self.args.system) > 1:
           for d in self.args.system:
-            print("  Distance from {0}:".format(d['system']))
-            print("")
+            cow.add(["  Distance from {0}:".format(d['system']), '', ''])
+            cow.add(['', '', ''])
             asys.sort(key=lambda t: t.distance_to(d['sysobj']))
             for i in range(0, len(asys)):
               # Print distance from the current candidate system to the current start system
-              print(("    {0: <" + s_max_len + "} {1: >" + d_max_len + "}   {2}").format(asys[i].name, '({:.2f}LY)'.format(distances[d['sysobj'].name][asys[i].name]), asys[i].arrival_star.to_string(True)))
-            print("")
+              cow.add([
+                '    {}'.format(asys[i].name),
+                '{} '.format(Lightyears(distances[self.args.system[0]['sysobj'].name][asys[i].name]).to_string(True)),
+                asys[i].arrival_star.to_string(True)
+              ])
+            cow.add(['', '' ,''])
+        cow.out()
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
     for d in starts:
