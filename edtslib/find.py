@@ -2,7 +2,6 @@
 
 from __future__ import print_function
 import argparse
-import filtering
 import fnmatch
 import re
 import sys
@@ -10,6 +9,7 @@ import sys
 from .cow import ColumnObjectWriter
 from .dist import Lightseconds
 from . import env
+from . import filtering
 from . import util
 
 app_name = "find"
