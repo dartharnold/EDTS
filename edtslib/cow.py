@@ -1,5 +1,5 @@
 import collections
-import util
+from . import util
 
 class ColumnObjectWriter(object):
   def __init__(self, columns = 0, padding = None):
