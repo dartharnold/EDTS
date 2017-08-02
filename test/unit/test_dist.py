@@ -25,3 +25,9 @@ class TestDist(unittest.TestCase):
     d = dist.Lightyears(0.22)
     self.assertAlmostEqual(d.metres, 0.22 * 31557600 * 299.792 * 1000000, delta=2)
     self.assertEqual(d.to_string(), "0.22Ly")
+
+  def test_convert(self):
+    d = dist.Lightyears(0.22)
+    self.assertAlmostEqual(d.lightseconds, 6942672)
+    self.assertAlmostEqual(d.megametres, 2081357524, delta=2)
+    self.assertAlmostEqual(d.kilometres, 2081357524224)
