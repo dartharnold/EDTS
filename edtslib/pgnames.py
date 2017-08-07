@@ -26,7 +26,7 @@ Args:
 Returns:
   True if the name is valid, False if not
 """
-def is_pg_system_name(name, strict = True):
+def is_pg_system_name(name, strict = False):
   m = pgdata.pg_system_regex.match(name.strip())
   if m is None:
     return False
