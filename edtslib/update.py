@@ -160,10 +160,10 @@ class Application(object):
 
     if self.args.print_urls:
       if self.args.local:
-        for path in [edsm_systems_local_path if args.systems_source == 'edsm' else eddb_systems_local_path, eddb_syspop_local_path, eddb_stations_local_path, coriolis_fsds_local_path]:
+        for path in [edsm_systems_local_path if self.args.systems_source == 'edsm' else eddb_systems_local_path, eddb_syspop_local_path, eddb_stations_local_path, coriolis_fsds_local_path]:
           print(path)
       else:
-        for path in [edsm_systems_url if args.systems_source == 'edsm' else eddb_systems_url, eddb_syspop_url, eddb_stations_url, coriolis_fsds_url]:
+        for path in [edsm_systems_url if self.args.systems_source == 'edsm' else eddb_systems_url, eddb_syspop_url, eddb_stations_url, coriolis_fsds_url]:
           print(path)
       return
 
