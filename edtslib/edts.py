@@ -5,7 +5,7 @@ import argparse
 import math
 import sys
 from . import env
-from . import calc as c
+from . import calc
 from . import ship
 from . import routing as rx
 from . import util
@@ -33,7 +33,7 @@ class Application(object):
     ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
     ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including %% sign)")
     ap.add_argument("-j", "--jump-range", type=float, required=False, help="The ship's max jump range with full fuel and empty cargo")
-    ap.add_argument("-w", "--witchspace-time", type=int, default=c.default_ws_time, help="Time in seconds spent in hyperspace jump")
+    ap.add_argument("-w", "--witchspace-time", type=int, default=calc.default_ws_time, help="Time in seconds spent in hyperspace jump")
     ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
     ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
     ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
@@ -46,9 +46,9 @@ class Application(object):
     ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
-    ap.add_argument("--jump-time", type=float, default=c.default_jump_time, help="Seconds taken per hyperspace jump")
+    ap.add_argument("--jump-time", type=float, default=calc.default_jump_time, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
-    ap.add_argument("--slf", type=float, default=c.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
+    ap.add_argument("--slf", type=float, default=calc.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
     ap.add_argument("--route-strategy", default=rx.default_strategy, choices=rx.strategies, help="The strategy to use for route plotting")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
@@ -113,6 +113,7 @@ class Application(object):
       self.args.num_jumps = len(self.stations)
 
   def run(self):
+    timer = util.start_timer()
     with env.use() as envdata:
       start = envdata.parse_station(self.args.start)
       end = envdata.parse_station(self.args.end)
@@ -149,9 +150,8 @@ class Application(object):
       full_jump_range = self.ship.range()
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
-    calc = c.Calc(ship=self.ship, jump_range=self.args.jump_range, witchspace_time=self.args.witchspace_time, slf=self.args.slf)
-    r = rx.Routing(calc, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
-    s = solver.Solver(calc, r, jump_range, self.args.diff_limit)
+    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
+    s = solver.Solver(jump_range, self.args.diff_limit)
 
     if len(tours) == 1:
       route = [start] + stations + [end]
@@ -186,7 +186,7 @@ class Application(object):
           full_max_jump = self.ship.range(cargo = self.args.initial_cargo + self.args.cargo * (i-1))
           cur_max_jump = self.ship.max_range(cargo = self.args.initial_cargo + self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
 
-        cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], i-1, self.args.long_jumps)
+        cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], cur_max_jump, slf=self.args.slf)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}", route[i-1].system_name, route[i].system_name)
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
@@ -245,17 +245,19 @@ class Application(object):
           totaldist += cur_data['legdist']
 
         if route[i].name is not None:
-          cur_data['sc_time'] = "{0:.0f}".format(c.sc_time(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
+          cur_data['sc_time'] = "{0:.0f}".format(calc.sc_time(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
         # Add current route to list
         output_data.append(cur_data)
 
+      log.debug("All solving/routing finished after {}", util.format_timer(timer))
+
       # Get suitably formatted ETA string
-      est_time_min = calc.route_time(route, totaljumps_min)
+      est_time_min = calc.route_time(route, totaljumps_min, witchspace_time=self.args.witchspace_time)
       est_time_min_m = math.floor(est_time_min / 60)
       est_time_min_s = int(est_time_min) % 60
       est_time_str = "{0:.0f}:{1:02.0f}".format(est_time_min_m, est_time_min_s)
       if totaljumps_min != totaljumps_max:
-        est_time_max = calc.route_time(route, totaljumps_max)
+        est_time_max = calc.route_time(route, totaljumps_max, witchspace_time=self.args.witchspace_time)
         est_time_max_m = math.floor(est_time_max / 60)
         est_time_max_s = int(est_time_max) % 60
         est_time_str += " - {0:.0f}:{1:02.0f}".format(est_time_max_m, est_time_max_s)
@@ -410,15 +412,6 @@ class Application(object):
         print("Total distance: {0}; total jumps: {1}".format(totaldist_str, totaljumps_str))
         print("Total SC distance: {0:d}Ls{1}; ETT: {2}{3}".format(totalsc, "+" if not totalsc_accurate else "", est_time_str, fuel_str))
         print("")
-
-      if self.ship is not None:
-        for i in range(1, len(route)):
-          od = output_data[i]
-          if 'leg_route' in od:
-            fcost = 0.0
-            for j in range(0, len(od['leg_route'])):
-              fcost += self.ship.cost(od['leg_route'][j]['src'].distance_to(od['leg_route'][j]['dst']))
-            log.debug("Hop {0} -> {1}, highball fuel cost: {2:.2f}T", od['src'].system_name, od['dst'].system_name, fcost)
 
     else:
       print("")
