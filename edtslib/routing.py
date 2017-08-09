@@ -32,7 +32,6 @@ class Routing(object):
     self._trunkle_leg_size = 5.0
     self._trunkle_search_radius = 10.0
     self._trunkle_search_radius_relax_mul = 0.01
-    self.potato = 0
 
   def lerp(self, in_min, in_max, out_min, out_max, value):
     if in_max == in_min:
