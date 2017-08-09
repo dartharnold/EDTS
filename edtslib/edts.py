@@ -150,8 +150,8 @@ class Application(object):
       full_jump_range = self.ship.range()
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
-    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy)
-    s = solver.Solver(jump_range, self.args.diff_limit)
+    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy, witchspace_time=self.args.witchspace_time)
+    s = solver.Solver(jump_range, self.args.diff_limit, witchspace_time=self.args.witchspace_time)
 
     if len(tours) == 1:
       route = [start] + stations + [end]
