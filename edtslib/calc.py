@@ -17,123 +17,104 @@ sc_constant = 65
 sc_multiplier = 1.8
 sc_power = 0.5
 
+stop_outpost_time = 75
+stop_station_time = 90
 
-class Calc(object):
-  def __init__(self, ship, jump_range = None, witchspace_time = default_ws_time, slf = default_slf):
-    self.ship = ship
-    self.jump_range = jump_range if jump_range is not None else ship.range()
-    self.jump_witchspace_time = witchspace_time
-    self.stop_outpost_time = 75
-    self.stop_station_time = 90
-    self.slf = slf
 
-  def jump_count(self, a, b, prev_jcount, allow_long = False, cargo = 0, jump_decay = 0.0):
-    _, maxjumps = self.jump_count_range(a, b, prev_jcount, allow_long, cargo, jump_decay)
-    return maxjumps
+def jump_count(a, b, jump_range, slf = default_slf):
+  _, maxjumps = jump_count_range(a, b, jump_range, slf)
+  return maxjumps
 
-  # Gets an estimated range of number of jumps required to jump from a to b
-  def jump_count_range(self, a, b, prev_jcount, allow_long = False, cargo = 0, jump_decay = 0.0):
-    if self.jump_range is not None:
-      jumpdist = self.jump_range - (jump_decay * prev_jcount)
-    elif self.ship is not None:
-      if allow_long:
-        jumpdist = self.ship.max_range(cargo = cargo * prev_jcount)
-      else:
-        jumpdist = self.ship.range(cargo = cargo * prev_jcount)
-    else:
-      raise Exception("Tried to calculate jump counts without either valid ship or jump range")
+# Gets an estimated range of number of jumps required to jump from a to b
+def jump_count_range(a, b, jump_range, slf = default_slf):
+  legdist = a.distance_to(b)
 
-    legdist = a.distance_to(b)
+  minjumps = int(math.ceil(legdist / jump_range))
+  # If we're doing multiple jumps, apply the straight-line factor
+  if legdist > jump_range:
+    jump_range = jump_range * slf
+  maxjumps = int(math.ceil(legdist / jump_range))
+  return minjumps, maxjumps
 
-    minjumps = int(math.ceil(legdist / jumpdist))
-    # If we're doing multiple jumps, apply the straight-line factor
-    if legdist > jumpdist:
-      jumpdist = jumpdist * self.slf
-    maxjumps = int(math.ceil(legdist / jumpdist))
-    return minjumps, maxjumps
+# Calculate the fuel cost for a route, optionally taking lowered fuel usage into account
+# Note that this method has no guards against routes beyond the tank size (i.e. negative fuel amounts)
+def route_fuel_cost(route, ship, track_usage, starting_fuel = None):
+  cost = 0.0
+  cur_fuel = starting_fuel if starting_fuel is not None else ship.tank_size
+  for i in range(1, len(route)):
+    cost += ship.cost(route[i-1].distance_to(route[i]), cur_fuel)
+    if track_usage:
+      cur_fuel -= cost
+  return cost
 
-  # Calculate the fuel cost for a route, optionally taking lowered fuel usage into account
-  # Note that this method has no guards against routes beyond the tank size (i.e. negative fuel amounts)
-  def route_fuel_cost(self, route, track_usage, starting_fuel = None):
-    if self.ship is not None:
-      cost = 0.0
-      cur_fuel = starting_fuel if starting_fuel is not None else self.ship.tank_size
-      for i in range(1, len(route)):
-        cost += self.ship.cost(route[i-1].distance_to(route[i]), cur_fuel)
-        if track_usage:
-          cur_fuel -= cost
-      return cost
-    else:
-      raise Exception("Tried to calculate route fuel cost without a valid ship")
+# The cost to go from a to b, as used in simple (non-routed) solving
+def solve_cost(a, b, jump_range, witchspace_time = default_ws_time):
+  hs_jumps = time_for_jumps(jump_count(a, b, jump_range), witchspace_time) * 2
+  hs_jdist = a.distance_to(b)
+  sc = sc_cost(b.distance if b.uses_sc else 0.0)
+  return (hs_jumps + hs_jdist + sc)
 
-  # The cost to go from a to b, as used in simple (non-routed) solving
-  def solve_cost(self, a, b, prev_jcount):
-    hs_jumps = self.time_for_jumps(self.jump_count(a, b, prev_jcount)) * 2
-    hs_jdist = a.distance_to(b)
-    sc = sc_cost(b.distance if b.uses_sc else 0.0)
-    return (hs_jumps + hs_jdist + sc)
+# Gets the cumulative solve cost for a set of legs
+def solve_route_cost(route, jump_range, witchspace_time = default_ws_time):
+  cost = 0.0
+  for i in range(0, len(route)-1):
+    cost += solve_cost(route[i], route[i+1], jump_range, witchspace_time)
+  return cost
 
-  # Gets the cumulative solve cost for a set of legs
-  def solve_route_cost(self, route):
-    cost = 0.0
+# Gets the route cost for a trundle/trunkle route
+def trundle_cost(route, ship):
+  # Prioritise jump count: we should always be returning the shortest route
+  jump_count = (len(route)-1) * 1000
+  if ship is not None:
+    # If we have ship info, use the real fuel calcs to generate the cost
+    # Scale the result by the FSD's maxfuel to try and keep the magnitude consistent
+    var = ship.range() * (route_fuel_cost(route, ship, False) / ship.fsd.maxfuel)
+  else:
+    # Without ship info, use a function of the square of the jump distances to try to create a balanced route
+    var = math.sqrt(sum(l*l for l in [route[i+1].distance_to(route[i]) for i in range(len(route)-1)]))
+  return (jump_count + var)
+
+# Gets the route cost for an A* route
+def astar_cost(a, b, route, jump_range, dist_threshold = None, witchspace_time = default_ws_time):
+  jcount = jump_count(a, b, jump_range)
+  hs_jumps = time_for_jumps(jcount, witchspace_time)
+  hs_jdist = a.distance_to(b)
+  var = route_variance(route, route[0].distance_to(route[-1]))
+
+  penalty = 0.0
+  # If we're allowing long jumps, we need to check whether to add an extra penalty
+  # This is to disincentivise doing long jumps unless it's actually necessary
+  if dist_threshold is not None:
+    if jcount == 1 and a.distance_to(b) > dist_threshold:
+      penalty += 20
+
     for i in range(0, len(route)-1):
-      cost += self.solve_cost(route[i], route[i+1], len(route)-1)
-    return cost
-
-  # Gets the route cost for a trundle/trunkle route
-  def trundle_cost(self, route):
-    # Prioritise jump count: we should always be returning the shortest route
-    jump_count = (len(route)-1) * 1000
-    if self.ship is not None:
-      # If we have ship info, use the real fuel calcs to generate the cost
-      # Scale the result by the FSD's maxfuel to try and keep the magnitude consistent
-      var = self.ship.range() * (self.route_fuel_cost(route, False) / self.ship.fsd.maxfuel)
-    else:
-      # Without ship info, use a function of the square of the jump distances to try to create a balanced route
-      var = math.sqrt(sum(l*l for l in [route[i+1].distance_to(route[i]) for i in range(len(route)-1)]))
-    return (jump_count + var)
-
-  # Gets the route cost for an A* route
-  def astar_cost(self, a, b, route, dist_threshold = None):
-    jcount = self.jump_count(a, b, len(route)-1, (dist_threshold is not None))
-    hs_jumps = self.time_for_jumps(jcount)
-    hs_jdist = a.distance_to(b)
-    var = route_variance(route, route[0].distance_to(route[-1]))
-
-    penalty = 0.0
-    # If we're allowing long jumps, we need to check whether to add an extra penalty
-    # This is to disincentivise doing long jumps unless it's actually necessary
-    if dist_threshold is not None:
-      if jcount == 1 and a.distance_to(b) > dist_threshold:
+      cdist = route[i+1].distance_to(route[i])
+      if cdist > dist_threshold:
         penalty += 20
 
-      for i in range(0, len(route)-1):
-        cdist = route[i+1].distance_to(route[i])
-        if cdist > dist_threshold:
-          penalty += 20
+  return (hs_jumps + hs_jdist + var + penalty)
 
-    return (hs_jumps + hs_jdist + var + penalty)
-
-  # Gets a very rough approximation of the time taken to stop at a starport/outpost
-  def station_time(self, stn):
-    if isinstance(stn, Station) and stn.name is not None:
-      if stn.max_pad_size == 'L':
-        return self.stop_station_time
-      else:
-        return self.stop_outpost_time
+# Gets a very rough approximation of the time taken to stop at a starport/outpost
+def station_time(stn):
+  if isinstance(stn, Station) and stn.name is not None:
+    if stn.max_pad_size == 'L':
+      return stop_station_time
     else:
-      return 0.0
+      return stop_outpost_time
+  else:
+    return 0.0
 
-  def time_for_jumps(self, jump_count):
-    return max(0.0, ((jump_spool_time + self.jump_witchspace_time) * jump_count) + (jump_cooldown_time * (jump_count - 1)))
+def time_for_jumps(jump_count, witchspace_time = default_ws_time):
+  return max(0.0, ((jump_spool_time + witchspace_time) * jump_count) + (jump_cooldown_time * (jump_count - 1)))
 
-  # Gets the full time taken to traverse a route
-  def route_time(self, route, jump_count):
-    hs_t = self.time_for_jumps(jump_count)
-    sc_t = sum(sc_time(stn) for stn in route[1:])
-    stn_t = sum(self.station_time(stn) for stn in route)
-    log.debug("hs_time = {0:.2f}, sc_time = {1:.2f}, stn_time = {2:.2f}", hs_t, sc_t, stn_t)
-    return (hs_t + sc_t + stn_t)
+# Gets the full time taken to traverse a route
+def route_time(route, jump_count, witchspace_time = default_ws_time):
+  hs_t = time_for_jumps(jump_count, witchspace_time)
+  sc_t = sum(sc_time(stn) for stn in route[1:])
+  stn_t = sum(station_time(stn) for stn in route)
+  log.debug("hs_time = {0:.2f}, sc_time = {1:.2f}, stn_time = {2:.2f}", hs_t, sc_t, stn_t)
+  return (hs_t + sc_t + stn_t)
 
 
 # An approximation of the cost of doing an SC journey

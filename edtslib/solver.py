@@ -1,7 +1,9 @@
 import math
 import random
 import sys
+import time
 
+from . import calc
 from . import util
 from . import vector3
 
@@ -54,11 +56,10 @@ class _Cluster(object):
 
 
 class Solver(object):
-  def __init__(self, calc, route, jump_range, diff_limit):
-    self._calc = calc
-    self._route = route
+  def __init__(self, jump_range, diff_limit, witchspace_time = calc.default_ws_time):
     self._diff_limit = diff_limit
     self._jump_range = jump_range
+    self._ws_time = witchspace_time
 
 
   def solve(self, tours, stations, start, end, maxstops, preferred_mode = CLUSTERED):
@@ -66,18 +67,26 @@ class Solver(object):
       log.debug("No tours forming valid constraints detected, ignoring them all")
       tours = None
 
-    log.debug("Solving set using preferred mode '{}'", preferred_mode)
-    if preferred_mode == CLUSTERED_REPEAT and len(stations) > max_single_solve_size:
-      return self.solve_clustered_repeat(tours, stations, start, end, maxstops), False
-    if preferred_mode == CLUSTERED and len(stations) > max_single_solve_size:
-      return self.solve_clustered(tours, stations, start, end, maxstops), False
-    elif preferred_mode in [CLUSTERED, BASIC]:
-      return self.solve_basic(tours, stations, start, end, maxstops), True
-    elif preferred_mode == NEAREST_NEIGHBOUR:
-      return self.solve_nearest_neighbour(tours, stations, start, end, maxstops), True
-    else:
-      raise ValueError("invalid preferred_mode flag passed to solve")
+    timer = util.start_timer()
 
+    if preferred_mode in (CLUSTERED_REPEAT, CLUSTERED) and len(stations) <= max_single_solve_size:
+      preferred_mode = BASIC
+
+    log.debug("Solving set using preferred mode '{}'", preferred_mode)
+    if preferred_mode == CLUSTERED_REPEAT:
+      result = self.solve_clustered_repeat(tours, stations, start, end, maxstops), False
+    elif preferred_mode == CLUSTERED:
+      result = self.solve_clustered(tours, stations, start, end, maxstops), False
+    elif preferred_mode == BASIC:
+      result = self.solve_basic(tours, stations, start, end, maxstops), True
+    elif preferred_mode == NEAREST_NEIGHBOUR:
+      result = self.solve_nearest_neighbour(tours, stations, start, end, maxstops), True
+    else:
+      log.error("Tried to use invalid preferred mode {}", preferred_mode)
+      result = None
+
+    log.debug("Solve from {} to {} using mode {} finished after {}", start, end, preferred_mode, util.format_timer(timer))
+    return result
 
   def solve_basic(self, tours, stations, start, end, maxstops):
     result, _ = self.solve_basic_with_cost(tours, stations, start, end, maxstops)
@@ -89,7 +98,7 @@ class Solver(object):
       if start == end:
         return [start], 0.0
       else:
-        return [start, end], self._calc.solve_cost(start, end, 0)
+        return [start, end], calc.solve_cost(start, end, self._jump_range, witchspace_time=self._ws_time)
 
     count = 0
     mincost = None
@@ -102,10 +111,10 @@ class Solver(object):
 
     for route in vr:
       count += 1
-      cost_normal = self._calc.solve_route_cost(route)
+      cost_normal = calc.solve_route_cost(route, self._jump_range, witchspace_time=self._ws_time)
       if reversible:
         route_reversed = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
-        cost_reversed = self._calc.solve_route_cost(route_reversed)
+        cost_reversed = calc.solve_route_cost(route_reversed, self._jump_range, witchspace_time=self._ws_time)
 
         cost = cost_normal if (cost_normal <= cost_reversed) else cost_reversed
         route = route if (cost_normal <= cost_reversed) else route_reversed
@@ -135,7 +144,7 @@ class Solver(object):
       for s in remaining:
         if tours and not self._check_tour_route(route[1:], tours, s):
           continue
-        cost = self._calc.solve_cost(route[-1], s, len(route)-1)
+        cost = calc.solve_cost(route[-1], s, self._jump_range, witchspace_time=self._ws_time)
         if cost < cur_cost:
           cur_stop = s
           cur_cost = cost
@@ -237,23 +246,6 @@ class Solver(object):
     return clusters
 
 
-  def _get_route_legs(self, stations):
-    legs = {}
-    for h in stations:
-      legs[h] = {}
-    for s in stations:
-      for t in stations:
-        if s.to_string() != t.to_string() and t not in legs[s]:
-          log.debug("Calculating leg: {0} -> {1}", s.name, t.name)
-          leg = self._route.plot(s, t, self._jump_range)
-          if leg is None:
-            log.warning("Hop route could not be calculated: {0} -> {1}", s.name, t.name)
-          legs[s][t] = leg
-          legs[t][s] = leg
-
-    return legs
-
-
   def _check_tour_route(self, route, tours, station):
     if not tours:
       return True
@@ -306,7 +298,7 @@ class Solver(object):
         if tours and not self._check_tour_route(route[1:], tours, stn):
           continue
 
-        dist = self._calc.solve_cost(route[-1], stn, len(route)-1)
+        dist = calc.solve_cost(route[-1], stn, self._jump_range, witchspace_time=self._ws_time)
         nexts[stn] = dist
 
       if len(nexts):
@@ -380,7 +372,7 @@ class Solver(object):
       for n2 in cluster2:
         if n2 in disallowed and len(cluster2) > 1: # If len(cluster) is 1, start == end so allow it
           continue
-        cost = self._calc.solve_cost(n1, n2, 1)
+        cost = calc.solve_cost(n1, n2, self._jump_range, witchspace_time=self._ws_time)
         if best is None or cost < bestcost:
           best = (n1, n2)
           bestcost = cost
