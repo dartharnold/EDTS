@@ -8,10 +8,37 @@ class Dist(object):
   MM_SUFFIX = 'Mm'
   LS_SUFFIX = 'Ls'
   LY_SUFFIX = 'Ly'
+  SUFFICES = (M_SUFFIX, KM_SUFFIX, MM_SUFFIX, LS_SUFFIX, LY_SUFFIX)
 
-  def __init__(self, d, s = None):
-    self.metres = d
-    self.suffix = s
+  def __init__(self, metres, scale = None, suffix = None):
+    self.metres = metres
+    if scale is not None:
+      canon = self._canonical_suffix(scale)
+      if canon == self.KM_SUFFIX:
+        scale = self.KM_SUFFIX
+        self.metres *= self.KM
+      elif canon == self.MM_SUFFIX:
+        scale = self.MM_SUFFIX
+        self.metres *= self.MM
+      elif canon == self.LS_SUFFIX:
+        scale = self.LS_SUFFIX
+        self.metres *= self.LS
+      elif canon == self.LY_SUFFIX:
+        scale = self.LY_SUFFIX
+        self.metres *= self.LY
+    self.suffix = suffix if suffix is not None else scale
+
+  def _canonical_suffix(self, suffix = ''):
+    suffix = suffix.lower()
+    if suffix == self.KM_SUFFIX.lower():
+      return self.KM_SUFFIX
+    elif suffix == self.MM_SUFFIX.lower():
+      return self.MM_SUFFIX
+    elif suffix == self.LS_SUFFIX.lower():
+      return self.LS_SUFFIX
+    elif suffix == self.LY_SUFFIX.lower():
+      return self.LY_SUFFIX
+    return self.M_SUFFIX
 
   @property
   def kilometres(self):
@@ -35,19 +62,36 @@ class Dist(object):
     else:
       return '{:.2f}'.format(f).rstrip('0').rstrip('.') + suffix
 
+  def convert(self, suffix = '', full = False):
+    if suffix:
+      suffix = self._canonical_suffix(suffix)
+    else:
+      if self.metres > 0.1 * self.LY:
+        suffix = self.LY_SUFFIX
+      elif self.metres > 0.1 * self.LS:
+        suffix = self.LS_SUFFIX
+      elif self.metres > 0.1 * self.MM:
+        suffix = self.MM_SUFFIX
+      elif self.metres > self.KM:
+        suffix = self.KM_SUFFIX
+      else:
+        suffix = self.M.SUFFIX
+    if suffix == self.LY_SUFFIX:
+      return self.prettyprint(self.lightyears, self.LY_SUFFIX, full)
+    elif suffix == self.LS_SUFFIX:
+      return self.prettyprint(self.lightseconds, self.LS_SUFFIX, full)
+    elif suffix == self.MM_SUFFIX:
+      return self.prettyprint(self.megametres, self.MM_SUFFIX, full)
+    elif suffix == self.KM_SUFFIX:
+      return self.prettyprint(self.kilometres, self.KM_SUFFIX, full)
+    else:
+      return self.prettyprint(self.metres, self.M_SUFFIX, full)
+
   def __str__(self):
-    if self.metres > 0.1 * self.LY:
-      return self.prettyprint(self.lightyears, self.LY_SUFFIX)
-    if self.metres > 0.1 * self.LS:
-      return self.prettyprint(self.lightseconds, self.LS_SUFFIX)
-    if self.metres > 0.1 * self.MM:
-      return self.prettyprint(self.megametres, self.MM_SUFFIX)
-    if self.metres > self.KM:
-      return self.prettyprint(self.kilometres, self.KM_SUFFIX)
-    return self.prettyprint(self.metres, self.M_SUFFIX)
+    return self.convert(self.suffix)
 
   def to_string(self, full = None):
-    return str(self)
+    return self.convert(self.suffix, None, full)
 
 class Metres(Dist):
   def __init__(self, d):
@@ -58,28 +102,28 @@ class Metres(Dist):
 
 class Kilometres(Dist):
   def __init__(self, d):
-    super(Kilometres, self).__init__(d * self.KM, self.KM_SUFFIX)
+    super(Kilometres, self).__init__(d, self.KM_SUFFIX)
 
   def to_string(self, full = None):
     return self.prettyprint(self.kilometres, self.suffix, full)
 
 class Megametres(Dist):
   def __init__(self, d):
-    super(Megametres, self).__init__(d * self.MM, self.MM_SUFFIX)
+    super(Megametres, self).__init__(d, self.MM_SUFFIX)
 
   def to_string(self, full = None):
     return self.prettyprint(self.megametres, self.suffix, full)
 
 class Lightseconds(Dist):
   def __init__(self, d):
-    super(Lightseconds, self).__init__(d * self.LS, self.LS_SUFFIX)
+    super(Lightseconds, self).__init__(d, self.LS_SUFFIX)
 
   def to_string(self, full = None):
     return self.prettyprint(self.lightseconds, self.suffix, full)
 
 class Lightyears(Dist):
   def __init__(self, d):
-    super(Lightyears, self).__init__(d * self.LY, self.LY_SUFFIX)
+    super(Lightyears, self).__init__(d, self.LY_SUFFIX)
 
   def to_string(self, full = None):
     return self.prettyprint(self.lightyears, self.suffix, full)
