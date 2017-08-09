@@ -95,7 +95,7 @@ class Solver(object):
     mincost = None
     minroute = None
 
-    reversible = tours is None or all([len(tour) == 1 for tour in tours])
+    reversible = tours is None or all(len(t) < 2 for t in tours)
 
     log.debug("Calculating and checking viable routes...")
     vr = self._get_viable_routes([start], tours, stations, end, maxstops)
@@ -255,7 +255,8 @@ class Solver(object):
 
 
   def _check_tour_route(self, route, tours, station):
-    if not tours: return True
+    if not tours:
+      return True
     for tour in tours:
       # Tour must have at least two elements to form a valid constraint.
       if len(tour) < 2:
