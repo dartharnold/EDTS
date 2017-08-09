@@ -69,6 +69,7 @@ class Solver(object):
 
     timer = util.start_timer()
 
+    # If the user asked for clustered but the number of destinations is small enough, just use basic
     if preferred_mode in (CLUSTERED_REPEAT, CLUSTERED) and len(stations) <= max_single_solve_size:
       preferred_mode = BASIC
 
