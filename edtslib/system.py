@@ -32,7 +32,7 @@ def from_name(name, allow_ha = True, allow_known = True, allow_id64data = True):
     return pg_sys
   if allow_id64data:
     # TODO: Import unknown-ID64s to the database and query via there instead?
-    from edtslib import id64data
+    from . import id64data
     id64 = id64data.get_id64(name, None)
     if id64 is not None:
       coords, cube_width, _, _ = calculate_from_id64(id64)
