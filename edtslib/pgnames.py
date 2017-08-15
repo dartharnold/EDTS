@@ -16,34 +16,34 @@ log = util.get_logger(app_name)
 # Publicly-useful functions
 # #
 
-"""
-Check whether the given name is a valid PG system name, either in a PG or HA sector.
-
-Args:
-  name: A system name
-  strict: If True, will also check the sector name is a valid sector.
-
-Returns:
-  True if the name is valid, False if not
-"""
 def is_pg_system_name(name, strict = False):
+  """
+  Check whether the given name is a valid PG system name, either in a PG or HA sector.
+
+  Args:
+    name: A system name
+    strict: If True, will also check the sector name is a valid sector.
+
+  Returns:
+    True if the name is valid, False if not
+  """
   m = pgdata.pg_system_regex.match(name.strip())
   if m is None:
     return False
   return (get_sector(m.group("sector")) is not None) if strict else True
 
 
-"""
-Get the name of a sector that a position falls within.
-
-Args:
-  pos: A position
-  format_output: Whether or not to format the output or return it as fragments
-  
-Returns:
-  The name of the sector which contains the input position, either as a string or as a list of fragments
-"""  
 def get_sector_name(pos, allow_ha=True, format_output=True):
+  """
+  Get the name of a sector that a position falls within.
+
+  Args:
+    pos: A position
+    format_output: Whether or not to format the output or return it as fragments
+    
+  Returns:
+    The name of the sector which contains the input position, either as a string or as a list of fragments
+  """
   pos = util.get_as_position(pos)
   if pos is None:
     return None
@@ -63,18 +63,18 @@ def get_sector_name(pos, allow_ha=True, format_output=True):
     return output
 
 
-"""
-Get a Sector object represented by a name, or which a position falls within.
-
-Args:
-  input: A sector name, or a position
-  allow_ha: Whether to include hand-authored sectors in the search
-  get_name: Whether to look up the name of the sector
-
-Returns:
-  A Sector object, or None if the input could not be looked up
-"""
 def get_sector(input, allow_ha = True, get_name = True):
+  """
+  Get a Sector object represented by a name, or which a position falls within.
+
+  Args:
+    input: A sector name, or a position
+    allow_ha: Whether to include hand-authored sectors in the search
+    get_name: Whether to look up the name of the sector
+
+  Returns:
+    A Sector object, or None if the input could not be looked up
+  """
   pos_input = util.get_as_position(input)
   if pos_input is not None:
     input = pos_input
@@ -96,17 +96,17 @@ def get_sector(input, allow_ha = True, get_name = True):
     return _get_sector_from_name(input, allow_ha=allow_ha)
 
 
-"""
-Get a system object based on its name or position
-
-Args:
-  input: The system's name or position
-  mcode: The system's mass code ('a'-'h') or cube side length; only required when input is a position
-
-Returns:
-  A system or system prototype object
-"""
 def get_system(input, mcode = None, allow_ha = True):
+  """
+  Get a system object based on its name or position
+
+  Args:
+    input: The system's name or position
+    mcode: The system's mass code ('a'-'h') or cube side length; only required when input is a position
+
+  Returns:
+    A system or system prototype object
+  """
   posinput = util.get_as_position(input)
   if posinput is not None:
     if mcode is not None:
@@ -117,34 +117,34 @@ def get_system(input, mcode = None, allow_ha = True):
     return _get_system_from_name(input, allow_ha)
 
 
-"""
-Get the correctly-cased name for a given sector or system name
-
-Args:
-  name: A system or sector name, in any case
-
-Returns:
-  The input system/sector name with its case corrected
-"""
 def get_canonical_name(name, sector_only = False):
+  """
+  Get the correctly-cased name for a given sector or system name
+
+  Args:
+    name: A system or sector name, in any case
+
+  Returns:
+    The input system/sector name with its case corrected
+  """
   result = _get_canonical_name_fragments(name, sector_only)
   if result is None or 'SectorName' not in result:
     return None
   return format_system_name(result) if (len(result) > 1 and not sector_only) else result['SectorName']
 
 
-"""
-Get a list of fragments from an input sector name
-e.g. "Dryau Aowsy" --> ["Dry","au","Ao","wsy"]
-
-Args:
-  sector_name: The name of the sector
-  allow_long: Whether to allow sector names longer than the usual maximum fragment count (4)
-
-Returns:
-  A list of fragments representing the sector name
-"""
 def get_sector_fragments(sector_name, allow_long = False):
+  """
+  Get a list of fragments from an input sector name
+  e.g. "Dryau Aowsy" --> ["Dry","au","Ao","wsy"]
+
+  Args:
+    sector_name: The name of the sector
+    allow_long: Whether to allow sector names longer than the usual maximum fragment count (4)
+
+  Returns:
+    A list of fragments representing the sector name
+  """
   # Convert the string to Title Case, then remove spaces
   sector_name = sector_name.title().replace(' ', '')
   segments = []
@@ -165,19 +165,19 @@ def get_sector_fragments(sector_name, allow_long = False):
     return None
 
 
-"""
-Checks whether or not the provided sector name is a valid PG name
-
-Mild weakness: due to the way get_sector_fragments works, this currently ignores all spaces
-This means that names like "Synoo kio" are considered valid
-
-Args:
-  input: A candidate sector name
-
-Returns:
-  True if the sector name is valid, False if not
-"""
 def is_valid_sector_name(input):
+  """
+  Checks whether or not the provided sector name is a valid PG name
+
+  Mild weakness: due to the way get_sector_fragments works, this currently ignores all spaces
+  This means that names like "Synoo kio" are considered valid
+
+  Args:
+    input: A candidate sector name
+
+  Returns:
+    True if the sector name is valid, False if not
+  """
   frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None or len(frags) == 0 or frags[0] not in pgdata.cx_prefixes:
     return False
@@ -202,16 +202,16 @@ def is_valid_sector_name(input):
     return False
 
 
-"""
-Format a given set of fragments into a full name
-
-Args:
-  input: A list of sector name fragments
-
-Returns:
-  The sector name as a string
-"""
 def format_sector_name(input):
+  """
+  Format a given set of fragments into a full name
+
+  Args:
+    input: A list of sector name fragments
+
+  Returns:
+    The sector name as a string
+  """
   frags = get_sector_fragments(input) if util.is_str(input) else input
   if frags is None:
     return None
@@ -221,17 +221,17 @@ def format_sector_name(input):
     return "".join(frags)
 
 
-"""
-Get the origin of the boxel (cube) that the given coordinates sit within
-
-Args:
-  position: A vector or tuple of X/Y/Z coordinates, or a System object
-  mcode: The system's mass code ('a'-'h') or cube side length
-
-Returns:
-  A Vector3 representing the origin of the boxel containing this position
-"""
 def get_boxel_origin(position, mcode):
+  """
+  Get the origin of the boxel (cube) that the given coordinates sit within
+
+  Args:
+    position: A vector or tuple of X/Y/Z coordinates, or a System object
+    mcode: The system's mass code ('a'-'h') or cube side length
+
+  Returns:
+    A Vector3 representing the origin of the boxel containing this position
+  """
   posinput = util.get_as_position(position)
   cube_width = sector.get_mcode_cube_width(mcode)
   if posinput is None or cube_width is None:
@@ -242,17 +242,17 @@ def get_boxel_origin(position, mcode):
   return vector3.Vector3(x, y, z)
 
 
-"""
-Parse the given PG system name and return the canonical versions of its individual components
-
-Args:
-  input: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
-  ensure_canonical: Whether to ensure that the name is in its canonical form before processing
-
-Returns:
-  A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
-"""
 def get_system_fragments(input, ensure_canonical = True):
+  """
+  Parse the given PG system name and return the canonical versions of its individual components
+
+  Args:
+    input: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
+    ensure_canonical: Whether to ensure that the name is in its canonical form before processing
+
+  Returns:
+    A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
+  """
   if ensure_canonical:
     return _get_canonical_name_fragments(input)
   m = pgdata.pg_system_regex.match(input)
@@ -264,16 +264,16 @@ def get_system_fragments(input, ensure_canonical = True):
   }
 
 
-"""
-Format the given system data into a full name
-
-Args:
-  input: A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
-
-Returns:
-  A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
-"""
 def format_system_name(input):
+  """
+  Format the given system data into a full name
+
+  Args:
+    input: A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
+
+  Returns:
+    A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
+  """
   if input is None:
     return None
   if not isinstance(input, dict) or not set(('SectorName','L1','L2','L3','MCode','N1','N2')).issubset(input):
@@ -285,17 +285,17 @@ def format_system_name(input):
   return "{} {}".format(input['SectorName'], sysid)
 
 
-"""
-Get hand-authored sectors, optionally in distance order around a reference point
-
-Args:
-  reference: Optional, position or System/Sector-like object. If provided, returned sectors will be ordered by distance from this point
-  max_distance: Optional, may only be provided with reference. A maximum distance from the reference point, in LY, to limit returned sectors to.
-
-Returns:
-  An OrderedDict object where keys are the names of the sectors, and values are the sector objects themselves.
-"""
 def get_ha_regions(reference = None, max_distance = None):
+  """
+  Get hand-authored sectors, optionally in distance order around a reference point
+
+  Args:
+    reference: Optional, position or System/Sector-like object. If provided, returned sectors will be ordered by distance from this point
+    max_distance: Optional, may only be provided with reference. A maximum distance from the reference point, in LY, to limit returned sectors to.
+
+  Returns:
+    An OrderedDict object where keys are the names of the sectors, and values are the sector objects themselves.
+  """
   if reference is not None:
     pos_reference = util.get_as_position(reference)
     if pos_reference is None:
@@ -311,17 +311,17 @@ def get_ha_regions(reference = None, max_distance = None):
 get_ha_sectors = get_ha_regions
 
 
-"""
-Get the grid (1/32LY) coordinates for the given position.
-
-Args:
-  pos: The position to get the grid position for.
-  mcode: The mass code to return the relative boxel coords for, or None to get global coords
-
-Returns:
-  A tuple of the grid position in (x, y, z) form.
-"""
 def get_grid_coords(pos, mcode):
+  """
+  Get the grid (1/32LY) coordinates for the given position.
+
+  Args:
+    pos: The position to get the grid position for.
+    mcode: The mass code to return the relative boxel coords for, or None to get global coords
+
+  Returns:
+    A tuple of the grid position in (x, y, z) form.
+  """
   pos = util.get_as_position(pos)
   if pos is None:
     return None
@@ -332,16 +332,16 @@ def get_grid_coords(pos, mcode):
   return (mx, my, mz)
 
 
-"""
-Get the closest point on the PG (1/32LY) grid to the given position.
-
-Args:
-  pos: The position to map
-
-Returns:
-  The closest valid point on the grid
-"""
 def get_closest_grid_position(pos):
+  """
+  Get the closest point on the PG (1/32LY) grid to the given position.
+
+  Args:
+    pos: The position to map
+
+  Returns:
+    The closest valid point on the grid
+  """
   pos = util.get_as_position(pos)
   if pos is None:
     return None
