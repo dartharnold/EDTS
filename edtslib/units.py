@@ -26,7 +26,7 @@ class Application(object):
     choices = CaseInsensitiveList(Dist.SUFFICES)
     ap_parents = [env.arg_parser] if not hosted else []
     ap = argparse.ArgumentParser(description = "Convert distance scales", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
-    ap.add_argument("-f", "--full-width", default=False, action='store_true', help="Do not restrict number of significant figures")
+    ap.add_argument("-s", "--short", default=False, action='store_true', help="Restrict number of significant figures")
     ap.add_argument("dist", metavar="distance", type=str, help="Distance to convert")
     ap.add_argument("suffix", metavar="from_scale", type=str, nargs='?', choices=choices, help="Source scale scale")
     ap.add_argument("result", metavar="scale", type=str, choices=choices, help="Resultant scale")
@@ -48,7 +48,7 @@ class Application(object):
 
   def run(self):
     print("")
-    print(Dist(self.args.dist, self.args.suffix, self.args.result).to_string(long = self.args.full_width))
+    print(Dist(self.args.dist, self.args.suffix, self.args.result).to_string(long = not self.args.short))
     print("")
 
     return True
