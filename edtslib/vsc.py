@@ -41,7 +41,7 @@ class Application(object):
     wp = subparsers.add_parser("write", help="Write to star cache")
     wp.add_argument("writefile", metavar="filename")
     wp.add_argument("-i", "--importfile", metavar="filename", nargs='?', help="File with list of stars")
-    wp.add_argument("-r", "--recent", default=False, action="store_true", help="Create int RecentlyVisitedStars format")
+    wp.add_argument("-r", "--recent", default=False, action="store_true", help="Create in RecentlyVisitedStars format")
     wp.add_argument("filters", metavar="filters", nargs='*')
     wp.set_defaults(func=self.run_write)
 
