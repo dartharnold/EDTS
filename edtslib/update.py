@@ -219,6 +219,11 @@ class Application(object):
       eddb_bodies_path   = util.path_to_url(cur_eddb_bodies_local_path)   if self.args.local else eddb_bodies_url
       coriolis_fsds_path = util.path_to_url(cur_coriolis_fsds_local_path) if self.args.local else coriolis_fsds_url
 
+      if self.args.copy_local:
+        download_dir = os.path.sep.join([relpath, local_path])
+        if not os.path.exists(download_dir):
+          os.makedirs(download_dir)
+
       if 'systems' in self.args.steps:
         if self.args.systems_source == 'edsm':
           dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, cur_edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
