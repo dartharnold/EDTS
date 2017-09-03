@@ -655,10 +655,10 @@ ha_regions = collections.OrderedDict([
   ])),
   # Permit regions
   ("bleia2", sector.HARegion("Bleia2", 512, [sector.HASphere(vector3.Vector3(-43, 155, 37000), 512)], needs_permit=True)),
-  ("bleia1", sector.HARegion("Bleia1", 512, [sector.HASphere(vector3.Vector3(-43, 155, 37500), 512)], needs_permit=True)),
   ("bleia3", sector.HARegion("Bleia3", 512, [sector.HASphere(vector3.Vector3(-43, 155, 36500), 512)], needs_permit=True)),
   ("bleia4", sector.HARegion("Bleia4", 512, [sector.HASphere(vector3.Vector3(450, 155, 37000), 512)], needs_permit=True)),
   ("bleia5", sector.HARegion("Bleia5", 512, [sector.HASphere(vector3.Vector3(-450, 155, 37000), 512)], needs_permit=True)),
+  ("bleia1", sector.HARegion("Bleia1", 512, [sector.HASphere(vector3.Vector3(-43, 155, 37500), 512)], needs_permit=True)),
   ("bovomit", sector.HARegion("Bovomit", 512, [sector.HASphere(vector3.Vector3(-20070, 90, -6930), 512)], needs_permit=True)),
   ("dryman", sector.HARegion("Dryman", 512, [sector.HASphere(vector3.Vector3(19100, 20, 21160), 512)], needs_permit=True)),
   ("froadik", sector.HARegion("Froadik", 512, [sector.HASphere(vector3.Vector3(-18860, -200, 14300), 512)], needs_permit=True)),
@@ -672,7 +672,7 @@ ha_regions = collections.OrderedDict([
   ("sidgoir", sector.HARegion("Sidgoir", 100, [sector.HASphere(vector3.Vector3(-24120, 10, -1220), 100)], needs_permit=True)),
 ])
 # Sort by increasing size for checks, so smaller sectors are checked first
-# NOTE: This relies on behaviour of OrderedDict whereby if the sort key is
+# NOTE: This relies on behaviour of sorting whereby if the sort key is
 # equal (i.e. sectors of identical size) the existing order is retained
 ha_regions = collections.OrderedDict(sorted(ha_regions.items(), key=lambda t: t[1].size))
 # Also define this for backwards compatibility
