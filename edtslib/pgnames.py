@@ -23,7 +23,6 @@ def is_pg_system_name(name, strict = False):
   Args:
     name: A system name
     strict: If True, will also check the sector name is a valid sector.
-
   Returns:
     True if the name is valid, False if not
   """
@@ -40,7 +39,6 @@ def get_sector_name(pos, allow_ha=True, format_output=True):
   Args:
     pos: A position
     format_output: Whether or not to format the output or return it as fragments
-    
   Returns:
     The name of the sector which contains the input position, either as a string or as a list of fragments
   """
@@ -71,7 +69,6 @@ def get_sector(input, allow_ha = True, get_name = True):
     input: A sector name, or a position
     allow_ha: Whether to include hand-authored sectors in the search
     get_name: Whether to look up the name of the sector
-
   Returns:
     A Sector object, or None if the input could not be looked up
   """
@@ -103,7 +100,6 @@ def get_system(input, mcode = None, allow_ha = True):
   Args:
     input: The system's name or position
     mcode: The system's mass code ('a'-'h') or cube side length; only required when input is a position
-
   Returns:
     A system or system prototype object
   """
@@ -123,7 +119,6 @@ def get_canonical_name(name, sector_only = False):
 
   Args:
     name: A system or sector name, in any case
-
   Returns:
     The input system/sector name with its case corrected
   """
@@ -141,7 +136,6 @@ def get_sector_fragments(sector_name, allow_long = False):
   Args:
     sector_name: The name of the sector
     allow_long: Whether to allow sector names longer than the usual maximum fragment count (4)
-
   Returns:
     A list of fragments representing the sector name
   """
@@ -174,7 +168,6 @@ def is_valid_sector_name(input):
 
   Args:
     input: A candidate sector name
-
   Returns:
     True if the sector name is valid, False if not
   """
@@ -208,7 +201,6 @@ def format_sector_name(input):
 
   Args:
     input: A list of sector name fragments
-
   Returns:
     The sector name as a string
   """
@@ -228,7 +220,6 @@ def get_boxel_origin(position, mcode):
   Args:
     position: A vector or tuple of X/Y/Z coordinates, or a System object
     mcode: The system's mass code ('a'-'h') or cube side length
-
   Returns:
     A Vector3 representing the origin of the boxel containing this position
   """
@@ -249,7 +240,6 @@ def get_system_fragments(input, ensure_canonical = True):
   Args:
     input: A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
     ensure_canonical: Whether to ensure that the name is in its canonical form before processing
-
   Returns:
     A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
   """
@@ -270,7 +260,6 @@ def format_system_name(input):
 
   Args:
     input: A dictionary containing keys of SectorName, L1, L2, L3, MCode, N1 and N2
-
   Returns:
     A string containing a system name of the form "Sector AB-C d1-23" or "Sector AB-C d1"
   """
@@ -292,7 +281,6 @@ def get_ha_regions(reference = None, max_distance = None):
   Args:
     reference: Optional, position or System/Sector-like object. If provided, returned sectors will be ordered by distance from this point
     max_distance: Optional, may only be provided with reference. A maximum distance from the reference point, in LY, to limit returned sectors to.
-
   Returns:
     An OrderedDict object where keys are the names of the sectors, and values are the sector objects themselves.
   """
@@ -318,7 +306,6 @@ def get_grid_coords(pos, mcode):
   Args:
     pos: The position to get the grid position for.
     mcode: The mass code to return the relative boxel coords for, or None to get global coords
-
   Returns:
     A tuple of the grid position in (x, y, z) form.
   """
@@ -338,7 +325,6 @@ def get_closest_grid_position(pos):
 
   Args:
     pos: The position to map
-
   Returns:
     The closest valid point on the grid
   """
