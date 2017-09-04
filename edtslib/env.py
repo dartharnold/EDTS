@@ -58,17 +58,13 @@ register_backend(default_backend_name, _get_default_backend)
 
 
 
-def _make_known_system(s, keep_data=False):
+def _make_known_system(s):
   sysobj = system_internal.KnownSystem(s)
-  if keep_data:
-    sysobj.data = s.copy()
   return sysobj
 
-def _make_station(sy, st, keep_data = False):
-  sysobj = _make_known_system(sy, keep_data) if not isinstance(sy, system_internal.KnownSystem) else sy
+def _make_station(sy, st):
+  sysobj = _make_known_system(sy) if not isinstance(sy, system_internal.KnownSystem) else sy
   stnobj = station.Station(st, sysobj)
-  if keep_data:
-    stnobj.data = st
   return stnobj
 
 
@@ -89,10 +85,27 @@ class Env(object):
 
   @property
   def filter_converters(self):
-    return {'system': self.parse_system, 'station': self.parse_station}
+    return {'system': self._filter_parse_system, 'station': self._filter_parse_station}
 
-  def parse_filter_string(self, s, *args):
-    return filtering.parse(s, *args, extra_converters=self.filter_converters)
+  def parse_filter_string(self, s, **kwargs):
+    kwargs['extra_converters'] = self.filter_converters
+    return filtering.parse(s, **kwargs)
+
+  def convert_filter_object(self, o, **kwargs):
+    kwargs['extra_converters'] = self.filter_converters
+    return filtering.convert(o, **kwargs)
+
+  def _filter_parse_system(self, s):
+    if isinstance(s, system_internal.System):
+      return s
+    else:
+      return self.parse_system(s)
+
+  def _filter_parse_station(self, s):
+    if isinstance(s, station.Station):
+      return s
+    else:
+      return self.parse_station(s)
 
   def _get_as_filters(self, s):
     if s is None:
@@ -137,19 +150,19 @@ class Env(object):
   def parse_systems(self, sysstr):
     return self.get_systems(sysstr)
 
-  def get_station_by_names(self, sysname, statname = None, keep_data = False):
+  def get_station_by_names(self, sysname, statname = None):
     if statname is not None:
       (sysdata, stndata) = self._backend.get_station_by_names(sysname, statname)
       if sysdata is not None and stndata is not None:
-        return _make_station(sysdata, stndata, keep_data)
+        return _make_station(sysdata, stndata)
     else:
-      syst = self.get_system(sysname, keep_data)
+      syst = self.get_system(sysname)
       if syst is not None:
         return station.Station.none(syst)
     return None
   get_station = get_station_by_names
 
-  def get_system_by_name(self, sysname, keep_data = False):
+  def get_system_by_name(self, sysname):
     # Check the input against the "fake" system format of "[123.4,56.7,-89.0]"...
     coords_data = util.parse_coords(sysname)
     if coords_data is not None:
@@ -158,12 +171,12 @@ class Env(object):
     else:
       result = self._backend.get_system_by_name(sysname)
       if result is not None:
-        return _make_known_system(result, keep_data)
+        return _make_known_system(result)
       else:
         return None
   get_system = get_system_by_name
 
-  def get_system_by_id64(self, id64, keep_data = False):
+  def get_system_by_id64(self, id64):
     if util.is_str(id64):
       id64 = int(id64, 16)
     coords, cube_width, n2, _ = system_internal.calculate_from_id64(id64)
@@ -172,11 +185,11 @@ class Env(object):
     pname = sys_proto.name + str(n2)
     result = self._backend.get_system_by_id64(id64, fallback_name=pname)
     if result is not None:
-      return _make_known_system(result, keep_data)
+      return _make_known_system(result)
     else:
       return None
 
-  def get_systems_by_name(self, sysnames, keep_data = False):
+  def get_systems_by_name(self, sysnames):
     co_list = {}
     db_list = []
     output = collections.OrderedDict()
@@ -192,7 +205,7 @@ class Env(object):
     db_result = {}
     if any(db_list):
       result = self._backend.get_systems_by_name(db_list)
-      db_result = {r.name.lower(): r for r in [_make_known_system(t, keep_data) for t in result]}
+      db_result = {r.name.lower(): r for r in [_make_known_system(t) for t in result]}
     for s in sysnames:
       if s.lower() in db_result:
         output[s] = db_result[s.lower()]
@@ -203,21 +216,22 @@ class Env(object):
     return output
   get_systems = get_systems_by_name
 
-  def get_stations_by_names(self, names, keep_data = False):
+  def get_stations_by_names(self, names):
     output = collections.OrderedDict()
     # Now query for the real ones
     if any(names):
       result = self._backend.get_stations_by_names(names)
-      result = {(r.system.name.lower(), r.name.lower()): r for r in [_make_station(t[0], t[1], keep_data) for t in result]}
+      result = {(r.system.name.lower(), r.name.lower()): r for r in [_make_station(t[0], t[1]) for t in result]}
       for sy, st in names:
         output[(sy, st)] = result.get((sy.lower(), st.lower()), None)
     return output
   get_stations = get_stations_by_names
 
-  def find_stations(self, args, filters = None, keep_station_data = False):
+  def find_stations(self, args, filters = None):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
-    sysobjs = { s.id: s for s in sysobjs if s.id is not None }
-    return [_make_station(sysobjs[stndata['eddb_system_id']], stndata, keep_data=keep_station_data) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
+    sysobjs = {s.eddb_id: s for s in sysobjs if s.eddb_id is not None}
+    result = [_make_station(sysobjs[stndata['eddb_system_id']], stndata) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
+    return {sy: [st for st in result if st.system == sy] for sy in sysobjs.values()}
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
     vec_from = util.get_as_position(vec_from)
@@ -232,41 +246,41 @@ class Env(object):
     max_z = max(vec_from.z, vec_to.z) + buffer_to
     return [system_internal.KnownSystem(s) for s in self._backend.find_systems_by_aabb(min_x, min_y, min_z, max_x, max_y, max_z, filters=self._get_as_filters(filters))]
  
-  def find_all_systems(self, filters = None, keep_data = False):
+  def find_all_systems(self, filters = None):
     for s in self._backend.find_all_systems(filters=self._get_as_filters(filters)):
-      yield _make_known_system(s, keep_data=keep_data)
+      yield _make_known_system(s)
 
-  def find_all_stations(self, filters = None, keep_data = False):
+  def find_all_stations(self, filters = None):
     for sy,st in self._backend.find_all_stations(filters=self._get_as_filters(filters)):
-      yield _make_station(sy, st, keep_data=keep_data)
+      yield _make_station(sy, st)
 
-  def find_systems_by_name(self, name, filters = None, keep_data = False):
+  def find_systems_by_name(self, name, filters = None):
     for s in self._backend.find_systems_by_name(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
-      yield _make_known_system(s, keep_data)
+      yield _make_known_system(s)
 
-  def find_systems_by_glob(self, name, filters = None, keep_data = False):
+  def find_systems_by_glob(self, name, filters = None):
     for s in self._backend.find_systems_by_name(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
-      yield _make_known_system(s, keep_data)
+      yield _make_known_system(s)
 
-  def find_systems_by_regex(self, name, filters = None, keep_data = False):
+  def find_systems_by_regex(self, name, filters = None):
     for s in self._backend.find_systems_by_name(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
-      yield _make_known_system(s, keep_data)
+      yield _make_known_system(s)
 
-  def find_systems_by_id64(self, id64list, filters = None, keep_data = False):
+  def find_systems_by_id64(self, id64list, filters = None):
     for s in self._backend.find_systems_by_id64([system_internal.mask_id64_as_system(i) for i in id64list], filters=self._get_as_filters(filters)):
-      yield _make_known_system(s, keep_data)
+      yield _make_known_system(s)
 
-  def find_stations_by_name(self, name, filters = None, keep_data = False):
+  def find_stations_by_name(self, name, filters = None):
     for (sy, st) in self._backend.find_stations_by_name(name, mode=eb.FIND_EXACT, filters=self._get_as_filters(filters)):
-      yield _make_station(sy, st, keep_data)
+      yield _make_station(sy, st)
 
-  def find_stations_by_glob(self, name, filters = None, keep_data = False):
+  def find_stations_by_glob(self, name, filters = None):
     for (sy, st) in self._backend.find_stations_by_name(name, mode=eb.FIND_GLOB, filters=self._get_as_filters(filters)):
-      yield _make_station(sy, st, keep_data)
+      yield _make_station(sy, st)
 
-  def find_stations_by_regex(self, name, filters = None, keep_data = False):
+  def find_stations_by_regex(self, name, filters = None):
     for (sy, st) in self._backend.find_stations_by_name(name, mode=eb.FIND_REGEX, filters=self._get_as_filters(filters)):
-      yield _make_station(sy, st, keep_data)
+      yield _make_station(sy, st)
 
   def _load_data(self):
     try:
