@@ -4,6 +4,12 @@ from . import util
 from .system_internal import System, HASystem, KnownSystem, PGSystem, PGSystemPrototype
 from .system_internal import calculate_from_id64, calculate_id64, mask_id64_as_system, mask_id64_as_body, mask_id64_as_boxel, combine_to_id64
 
+# Stop pydoc getting confused and ignoring everything from system_internal
+__all__ = [
+  "System", "HASystem", "KnownSystem", "PGSystem", "PGSystemPrototype",
+  "calculate_from_id64", "calculate_id64", "mask_id64_as_system", "mask_id64_as_body", "mask_id64_as_boxel", "combine_to_id64",
+  "from_id64", "from_name" ]
+
 
 def from_id64(id64, allow_ha = True, allow_known = True):
   """
