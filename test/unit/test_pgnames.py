@@ -2,10 +2,10 @@ import unittest
 import sys
 
 sys.path.insert(0, '../..')
-import env
-import pgnames
-import pgdata
-import vector3 as v3
+from edtslib import env
+from edtslib import pgnames
+from edtslib import pgdata
+from edtslib import vector3 as v3
 del sys.path[0]
 
 

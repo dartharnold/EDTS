@@ -1,13 +1,18 @@
-import logging
-import pgdata
-import pgnames
-import sector
+#!/usr/bin/env python
+
 import json
 import math
 import sys
 import time
-import env
-from pgnames import log
+
+from edtslib import env
+from edtslib import pgdata
+from edtslib import pgnames
+from edtslib import sector
+from edtslib import system
+from edtslib.pgnames import log
+
+env.configure_logging(env.global_args.log_level)
 
 def run_test(it):
   teststart = time.clock()
@@ -32,17 +37,17 @@ def run_test(it):
     if sysname is not None:
       m = pgdata.pg_system_regex.match(sysname)
       if m is not None:
-        if m.group("sector").lower() in pgdata.ha_sectors:
-          sect = pgdata.ha_sectors[m.group("sector").lower()]
+        if m.group("sector").lower() in pgdata.ha_regions:
+          sect = pgdata.ha_regions[m.group("sector").lower()]
           is_noneha = False
           if sect.contains(system.position):
             rp, rpe = pgnames._get_relpos_from_sysid(*m.group("l1", "l2", "l3", "mcode", "n1", "n2"))
             if rp is None or rpe is None:
-              log.info("BadRelPos: could not calculate relative position for {}".format(system.name))
+              log.info("BadRelPos: could not calculate relative position for {}", system.name)
               badha += 1
               continue
             elif any([s > (sector.sector_size + rpe) for s in rp]):
-              log.info("BadRelPos: invalid relpos for {}".format(system.name))
+              log.info("BadRelPos: invalid relpos for {}", system.name)
               badha += 1
               continue
             so = sect.get_origin(rpe * 2)
@@ -56,11 +61,11 @@ def run_test(it):
             else:
               badha += 1
               absdiff = abs(coords - system.position)
-              log.info("BadHA{5}: {4}, {0} not close enough to {1} with {2:.0f}Ly/axis uncertainty, actually {3}".format(coords, system.position, rpe, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else ""))
+              log.info("BadHA{5}: {4}, {0} not close enough to {1} with {2:.0f}LY/axis uncertainty, actually {3}", coords, system.position, rpe, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else "")
           else:
             noneha += 1
             is_noneha = True
-            log.info("NoneHA: {0} @ {1} not in {2}".format(system.name, system.position, sect))
+            log.info("NoneHA: {0} @ {1} not in {2}", system.name, system.position, sect)
           if not is_noneha:
             ha_name = pgnames._ha_get_name(system.position)
             if ha_name == m.group("sector"):
@@ -68,22 +73,21 @@ def run_test(it):
             else:
               badhaname += 1
               if ha_name is not None:
-                log.info("BadHAName: {} ({}Ly) was predicted to be in {} ({}Ly)".format(system.name, sect.size, ha_name, pgdata.ha_sectors[ha_name.lower()].size))
+                log.info("BadHAName: {} ({}LY) was predicted to be in {} ({}LY)", system.name, sect.size, ha_name, pgdata.ha_regions[ha_name.lower()].size)
               else:
-                log.info("BadHAName: {} ({}Ly) was predicted to not be in an HA sector".format(system.name, sect.size))
+                log.info("BadHAName: {} ({}LY) was predicted to not be in an HA sector", system.name, sect.size)
         else:
-          start = time.clock()
+          cls = pgnames._get_sector_class(m.group("sector"))
+          if isinstance(cls, int):
+            cls = "c{}".format(cls)
           sect = pgnames.get_sector(m.group("sector"))
-          tm = time.clock() - start
           if sect is not None:
             cls = sect.sector_class
             pos_sect = pgnames.get_sector(system.position, allow_ha=False)
             if sect == pos_sect:
-              start = time.clock()
               coords, dist = pgnames._get_coords_from_name(system.name)
-              tm = time.clock() - start
               if coords is None or dist is None:
-                log.warning("BadName: could not get coords for {0}".format(system.name))
+                log.warning("BadName: could not get coords for {0}", system.name)
                 if cls == 'c2':
                   bad2 += 1
                 elif cls == 'c1':
@@ -104,22 +108,22 @@ def run_test(it):
                 elif cls == 'c1':
                   bad1 += 1
                 absdiff = abs(coords - system.position)
-                log.info("Bad position{5}: {4}, {0} not close enough to {1} with {2:.0f}Ly/axis uncertainty, actually {3}".format(coords, system.position, dist, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else ""))
+                log.info("Bad position{5}: {4}, {0} not close enough to {1} with {2:.0f}LY/axis uncertainty, actually {3}", coords, system.position, dist, absdiff, system.name, " (minor)" if absdiff.x < (dist+1) and absdiff.y < (dist+1) and absdiff.z < (dist+1) else "")
             else:
               if cls == 'c2':
                 bad2 += 1
               elif cls == 'c1':
                 bad1 += 1
-              log.info("Bad sector: {0} @ {1} is not in {2}".format(system.name, system.position, sect))
+              log.info("Bad sector: {0} @ {1} is not in {2}", system.name, system.position, sect)
           else:
             if cls == 'c2':
               none2 += 1
-              log.info("None2: {0} @ {1}".format(system.name, system.position))
+              log.info("None2: {0} @ {1}", system.name, system.position)
             elif cls == 'c1':
               none1 += 1
-              log.info("None1: {0} @ {1}".format(system.name, system.position))
+              log.info("None1: {0} @ {1}", system.name, system.position)
             else:
-              log.info("InvalidName: {0} @ {1}".format(system.name, system.position))
+              log.info("InvalidName: {0} @ {1}", system.name, system.position)
       else:
         notpg += 1
     else:
@@ -127,8 +131,8 @@ def run_test(it):
   
   duration = time.clock() - teststart
 
-  log.info("Totals: All = {}, OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}".format(alls, ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg))
-  log.info("Time: {0:.6f}s, {1:.6f}s per system".format(duration, duration / alls))
+  log.info("Totals: All = {}, OK1 = {}, OK2 = {}, OKHA = {}, OKHAName = {}, Bad1 = {}, Bad2 = {}, BadHA = {}, BadHAName = {}, None1 = {}, None2 = {}, NoneHA = {}, notPG = {}", alls, ok1, ok2, okha, okhaname, bad1, bad2, badha, badhaname, none1, none2, noneha, notpg)
+  log.info("Time: {0:.6f}s, {1:.6f}s per system", duration, duration / alls)
 
 
 
@@ -137,7 +141,7 @@ if __name__ == '__main__':
   if len(sys.argv) >= 2:
     if sys.argv[1] == "c1ot":
       test_data = {
-        'Mycapp': 623548, 'Lychoitl': 541608, 'Shruery': 410512, 'Phrauph': 574396,
+        'Mycapp': 623548, 'LYchoitl': 541608, 'Shruery': 410512, 'Phrauph': 574396,
         'Myreasp': 459657, 'Pythaics': 557994, 'Pythaipr': 803991, 'Styaill': 214060,
         'Styefs': 836644, 'Leeh': 99373, 'Keet': 99364, 'Schreang': 607155,
         'Sqeass': 263332, 'Squer': 639916, 'Cryaths': 246810, 'Phylur': 328741,
@@ -207,7 +211,7 @@ if __name__ == '__main__':
       syst = pgnames.get_system(input)
       if syst is not None:
         coords, relpos_confidence = syst.position, syst.uncertainty
-        print("Est. position of {0}: {1} (+/- {2}Ly)".format(input, coords, int(relpos_confidence)))
+        print("Est. position of {0}: {1} (+/- {2}LY)".format(input, coords, int(relpos_confidence)))
       else:
         sect = pgnames.get_sector(input)
         if sect is not None:
@@ -220,6 +224,26 @@ if __name__ == '__main__':
       
       with env.use() as envdata:
         run_test(envdata.find_all_systems())
+
+    elif sys.argv[1] == "id64datatest":
+      env.set_verbosity(2)
+      env.start()
+      import id64data
+      for name, id64 in id64data.known_systems.items():
+        pgpos, pgunc, pgn2, pgbody = system.calculate_from_id64(id64)
+        knownsys = system.from_name(name)
+        if knownsys is None:
+          # print("Unknown system: {} ({})".format(name, id64))
+          continue
+        if any([abs(pgpos[i] - knownsys.position[i]) > (pgunc / 2) for i in range(3)]):
+          print("Bad ID64: {} actually at {}, meant to be at {} +/- {}LY".format(knownsys.name, knownsys.position, pgpos, pgunc/2))
+      env.stop()
+
+    elif sys.argv[1] == "icztest":
+      env.set_verbosity(2)
+
+      with env.use() as envdata:
+        run_test(envdata.find_systems_by_glob("ICZ *"))
 
     elif sys.argv[1] == "nametest":
       env.set_verbosity(2)
@@ -237,10 +261,10 @@ if __name__ == '__main__':
               if s.name.lower().startswith(predsys.name.lower()):
                 ok += 1
               else:
-                log.info("Bad: {} @ {} should be {}?".format(s.name, s.position, predsys.name))
+                log.info("Bad: {} @ {} should be {}?", s.name, s.position, predsys.name)
                 bad += 1
 
-      log.info("Checked {} systems, OK: {}, bad: {}".format(ok + bad, ok, bad))
+      log.info("Checked {} systems, OK: {}, bad: {}", ok + bad, ok, bad)
 
     elif sys.argv[1] == "sectortest":
       env.set_verbosity(2)
@@ -260,7 +284,7 @@ if __name__ == '__main__':
       for s in [k for (k, v) in sectors.items() if v > 0]:
         cls = pgnames._get_sector_class(s)
         if cls in [1,2]:
-          log.debug("Checking {}".format(s))
+          log.debug("Checking {}", s)
           sec = pgnames.get_sector_from_name(s)
           if sec is None:
             continue
@@ -269,11 +293,11 @@ if __name__ == '__main__':
           pcls = pgnames._get_c1_or_c2(c1off)
           if cls != pcls:
             bad += 1
-            log.info("Wrong class: actual {} ({}, class {}), predicted class {}".format(s, c1off, cls, pcls))
+            log.info("Wrong class: actual {} ({}, class {}), predicted class {}", s, c1off, cls, pcls)
           else:
             ok += 1
 
-      log.info("Checked {} sectors, OK: {}, bad: {}".format(len(sectors), ok, bad))
+      log.info("Checked {} sectors, OK: {}, bad: {}", len(sectors), ok, bad)
 
     elif sys.argv[1] == "eddbspaff":
       with open("edsm_data.txt") as f:

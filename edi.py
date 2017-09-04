@@ -3,27 +3,31 @@
 from __future__ import print_function
 import sys
 import shlex
-import logging
 import time
 import cmd
 import argparse
 import traceback
 
+from edtslib import util
+from edtslib import ship
+
 if __name__ == '__main__':
   print("Loading environment...")
-import env
+from edtslib import env
 
-log = logging.getLogger("edi")
+env.configure_logging(env.global_args.log_level)
+log = util.get_logger("edi")
 
 # Now env is loaded, import the apps
-import ship
-import edts
-import close_to
-import coords
-import distance
-import find
-import galmath
-import fuel_usage
+from edtslib import edts
+from edtslib import close_to
+from edtslib import coords
+from edtslib import direction
+from edtslib import distance
+from edtslib import find
+from edtslib import galmath
+from edtslib import fuel_usage
+from edtslib import vsc
 
 
 class EDI(cmd.Cmd):
@@ -45,7 +49,7 @@ class EDI(cmd.Cmd):
     except SystemExit:
       pass
     except Exception as e:
-      log.error("Error in application: {}".format(e))
+      log.error("Error in application: {}", e)
       log.debug(traceback.format_exc())
       pass
     return True
@@ -66,6 +70,12 @@ class EDI(cmd.Cmd):
 
   def do_edts(self, args):
     return self.run_application(edts, args)
+
+  def help_direction(self):
+    return self.run_help(direction)
+
+  def do_direction(self, args):
+    return self.run_application(direction, args)
 
   def help_distance(self):
     return self.run_help(distance)
@@ -109,6 +119,18 @@ class EDI(cmd.Cmd):
   def do_fuel_usage(self, args):
     return self.run_application(fuel_usage, args)
 
+  def help_starcache(self):
+    return self.run_help(vsc)
+
+  def do_starcache(self, args):
+    return self.run_application(vsc, args)
+
+  def help_vsc(self):
+    return self.run_help(vsc)
+
+  def do_vsc(self, args):
+    return self.run_application(vsc, args)
+
   def help_set_verbosity(self):
     print("usage: set_verbosity N")
     print("")
@@ -117,6 +139,28 @@ class EDI(cmd.Cmd):
 
   def do_set_verbosity(self, args):
     env.set_verbosity(int(args))
+    return True
+
+  def help_load_ship(self):
+    print("usage: load_ship coriolis_file")
+    print("")
+    print("Read a Coriolis ship dump")
+    return True
+
+  def do_load_ship(self, args):
+    ap = argparse.ArgumentParser(fromfile_prefix_chars="@", prog = "read_ship")
+    ap.add_argument("filename", type=str)
+    try:
+      argobj = ap.parse_args(shlex.split(args))
+    except SystemExit:
+      return True
+    s = ship.Ship.from_file(argobj.filename)
+    self.state['ship'] = s
+
+    print("")
+    print(str(s))
+    print("")
+
     return True
 
   def help_set_ship(self):
@@ -131,17 +175,36 @@ class EDI(cmd.Cmd):
     ap.add_argument("-m", "--mass", type=float, required=True, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=True, help="The ship's fuel tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="The ship's cargo capacity")
+    ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
+    ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
+    ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including %% sign)")
     try:
       argobj = ap.parse_args(shlex.split(args))
     except SystemExit:
       return True
     s = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, argobj.cargo)
+    if argobj.fsd_optmass is not None or argobj.fsd_mass is not None or argobj.fsd_maxfuel is not None:
+      fsd_optmass = util.parse_number_or_add_percentage(argobj.fsd_optmass, s.fsd.stock_optmass)
+      fsd_mass = util.parse_number_or_add_percentage(argobj.fsd_mass, s.fsd.stock_mass)
+      fsd_maxfuel = util.parse_number_or_add_percentage(argobj.fsd_maxfuel, s.fsd.stock_maxfuel)
+      s = s.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
     self.state['ship'] = s
 
     print("")
-    print("Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}Ly ({4:.2f}Ly)".format(s.fsd.drive, s.mass, s.tank_size, s.range(), s.max_range()))
+    print(str(s))
     print("")
 
+    return True
+
+  def help_ship(self):
+    print("Show the current ship")
+    return True
+
+  def do_ship(self, args):
+    if 'ship' in self.state:
+      print(str(self.state['ship']))
+    else:
+      print("No saved ship")
     return True
 
   def help_quit(self):
@@ -172,7 +235,7 @@ class EDI(cmd.Cmd):
   def postcmd(self, retval, line):
     if retval is False:
       return True
-    log.debug("Command complete, time taken: {0:.4f}s".format(time.time() - self.start_time))
+    log.debug("Command complete, time taken: {0:.4f}s", time.time() - self.start_time)
 
   # Prevent EOF showing up in the list of commands
   def print_topics(self, header, cmds, cmdlen, maxcol):

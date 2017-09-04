@@ -7,13 +7,14 @@ import collections
 data_path = '..'
 
 sys.path.insert(1, data_path)
-import thirdparty.bottle as bottle
-import env
-import fsd
-import pgnames
-import pgdata
-import sector
-import vector3
+from edtslib.thirdparty import bottle
+from edtslib import env
+from edtslib import fsd
+from edtslib import pgnames
+from edtslib import pgdata
+from edtslib import sector
+from edtslib import system
+from edtslib import vector3
 del sys.path[1]
 
 
@@ -125,17 +126,37 @@ def api_sector_position(name):
 
 @bottle.route('/api/v1/system/<name>')
 def api_system(name):
-  with env.use(data_path) as data:
+  with env.use() as data:
     syst = data.get_system(name, keep_data=True)
     if syst is not None:
       result = syst.data
+    else:
+      bottle.response.status = 400
+      result = None
+  bottle.response.content_type = 'application/json'
+  return {'result': result}
+
+@bottle.route('/api/v2/system/<id64:int>')
+def api_v2_system_id64(id64):
+  syst = system.from_id64(id64)
+  return api_v2_system_name(syst.name)
+
+@bottle.route('/api/v2/system/<name>')
+def api_v2_system_name(name):
+  syst = system.from_name(name)
+  if syst is not None:
+    result = collections.OrderedDict([('name', syst.name), ('x', syst.position.x), ('y', syst.position.y), ('z', syst.position.z),
+              ('uncertainty', syst.uncertainty), ('pg_name', syst.pg_name), ('id64', syst.id64)])
+  else:
+    bottle.response.status = 400
+    result = None
   bottle.response.content_type = 'application/json'
   return {'result': result}
 
 @bottle.route('/api/v1/system/<name>/stations')
 def api_system_stations(name):
   result = []
-  with env.use(data_path) as data:
+  with env.use() as data:
     syst = data.get_system(name, keep_data=True)
     if syst is not None:
       for stat in data.get_stations(syst, keep_station_data=True):
@@ -148,7 +169,7 @@ def api_system_stations(name):
 
 @bottle.route('/api/v1/system/<system_name>/station/<station_name>')
 def api_system_station(system_name, station_name):
-  with env.use(data_path) as data:
+  with env.use() as data:
     stat = data.get_station(system_name, station_name, keep_data=True)
     if stat is not None:
       result = stat.data
@@ -161,7 +182,7 @@ def api_system_station(system_name, station_name):
 @bottle.route('/api/v1/find_system/<glob>')
 def api_find_system(glob):
   result = []
-  with env.use(data_path) as data:
+  with env.use() as data:
     for syst in data.find_systems_by_glob(glob, keep_data=True):
       if syst is not None:
         result.append(syst.data)
@@ -173,7 +194,7 @@ def api_find_system(glob):
 @bottle.route('/api/v1/find_station/<glob>')
 def api_find_station(glob):
   result = []
-  with env.use(data_path) as data:
+  with env.use() as data:
     for stat in data.find_stations_by_glob(glob, keep_data=True):
       if stat is not None:
         stndata = stat.data
@@ -185,6 +206,10 @@ def api_find_station(glob):
   return {'result': result}
 
 if __name__ == '__main__':
-  env.start(data_path)
-  bottle.run(host='localhost', port=8080)
-  env.stop(data_path)
+  port = 8080
+  if len(sys.argv) > 1:
+    port = int(sys.argv[1])
+
+  env.start()
+  bottle.run(host='localhost', port=port)
+  env.stop()
