@@ -11,7 +11,7 @@ from . import util
 from . import vector3
 
 class System(object):
-  """ A single star system. """
+  """A single star system."""
   def __init__(self, x, y, z, name = None, id64 = None, uncertainty = 0.0):
     """
     Create a base system object.
@@ -34,22 +34,22 @@ class System(object):
 
   @property
   def system_name(self):
-    """ The system's name, or None if this is not available """
+    """The system's name, or None if this is not available"""
     return self.name
 
   @property
   def position(self):
-    """ The system's in-game position """
+    """The system's in-game position"""
     return self._position
 
   @property
   def name(self):
-    """ The system's name, or None if this is not available """
+    """The system's name, or None if this is not available"""
     return self._name
 
   @property
   def pg_name(self):
-    """ The system's name as determined by the game's procedural generation system, or None if this is not available """
+    """The system's name as determined by the game's procedural generation system, or None if this is not available"""
     if self.id64 is not None:
       coords, cube_width, n2, _ = calculate_from_id64(self.id64)
       sys_proto = pg_get_system(coords, cube_width, allow_ha=False)
@@ -59,12 +59,12 @@ class System(object):
 
   @property
   def id(self):
-    """ The system's ID as specified by the data source used to import it, or None if this is not available """
+    """The system's ID as specified by the data source used to import it, or None if this is not available"""
     return self._id
 
   @property
   def id64(self):
-    """ The system's ID64 ("system address") as a 64-bit integer, or None if it is not available """
+    """The system's ID64 ("system address") as a 64-bit integer, or None if it is not available"""
     if self._id64 is None:
       if self.name is not None:
         m = pg_get_system_fragments(self.name)
@@ -74,32 +74,32 @@ class System(object):
 
   @property
   def sector(self):
-    """ The sector or region this system falls within """
+    """The sector or region this system falls within"""
     return pg_get_sector(self.position)
 
   @property
   def pg_sector(self):
-    """ The procedurally-generated sector which this system falls within """
+    """The procedurally-generated sector which this system falls within"""
     return pg_get_sector(self.position, allow_ha=False)
 
   @property
   def needs_permit(self):
-    """ Whether or not this system or the region it is within needs a permit to enter """
+    """Whether or not this system or the region it is within needs a permit to enter"""
     return self.sector.needs_permit
 
   @property
   def needs_system_permit(self):
-    """ Whether or not this system specifically needs a permit to enter """
+    """Whether or not this system specifically needs a permit to enter"""
     return False
 
   @property
   def uncertainty(self):
-    """ The uncertainty per axis of this system's position """
+    """The uncertainty per axis of this system's position"""
     return self._uncertainty
 
   @property
   def uncertainty3d(self):
-    """ The maximum uncertainty (straight-line distance) of this system's position """
+    """The maximum uncertainty (straight-line distance) of this system's position"""
     return math.sqrt((self.uncertainty**2) * 3)
 
   def to_string(self, use_long = False):
@@ -164,7 +164,7 @@ class System(object):
 
 
 class PGSystemPrototype(System):
-  """ A procedurally-generated system with unknown N2 - a single unknown system with estimated coordinates. """
+  """A procedurally-generated system with unknown N2 - a single unknown system with estimated coordinates."""
   def __init__(self, x, y, z, name, sector, uncertainty):
     """
     Creates an unknown system object within a known boxel
@@ -192,7 +192,7 @@ class PGSystemPrototype(System):
 
 
 class PGSystem(PGSystemPrototype):
-  """ A procedurally-generated system with estimated coordinates. """
+  """A procedurally-generated system with estimated coordinates."""
   def __init__(self, x, y, z, name, sector, uncertainty):
     """
     Creates a PG system object within a known boxel
@@ -215,7 +215,7 @@ class PGSystem(PGSystemPrototype):
 
 
 class HASystem(System):
-  """ A hand-authored system with estimated coordinates. """
+  """A hand-authored system with estimated coordinates."""
   def __init__(self, x, y, z, name, id64, uncertainty):
     """
     Creates an HA system without known coordinates.
@@ -238,7 +238,7 @@ class HASystem(System):
 
 
 class KnownSystem(System):
-  """ A known system with recorded coordinates and additional data. """
+  """A known system with recorded coordinates and additional data."""
   def __init__(self, obj):
     """
     Creates a system object with data from a coordinates database.
@@ -256,12 +256,12 @@ class KnownSystem(System):
 
   @property
   def edsm_id(self):
-    """ The system's ID as specified by EDSM, or None if this is not available """
+    """The system's ID as specified by EDSM, or None if this is not available"""
     return self._edsm_id
 
   @property
   def eddb_id(self):
-    """ The system's ID as specified by EDDB, or None if this is not available """
+    """The system's ID as specified by EDDB, or None if this is not available"""
     return self._eddb_id
 
   @property
@@ -274,17 +274,17 @@ class KnownSystem(System):
 
   @property
   def allegiance(self):
-    """ The superpower allegiance of this system, or None if it is not available """
+    """The superpower allegiance of this system, or None if it is not available"""
     return self._allegiance
 
   @property
   def arrival_star_class(self):
-    """ The class of the system's arrival star, or None if it is not available """
+    """The class of the system's arrival star, or None if it is not available"""
     return self.arrival_star.classification
 
   @property
   def arrival_star(self):
-    """ A Star object representing the system's arrival star, or None if it is not available """
+    """A Star object representing the system's arrival star, or None if it is not available"""
     return self._arrival_star
 
   def to_string(self, use_long = False):
