@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 
+from .cow import ColumnObjectWriter
 from . import env
 from . import pgnames
 from . import util
@@ -37,12 +38,23 @@ class Application(object):
 
     fmt = '8g' if self.args.full_width else '8.2f'
 
-    print("")
+    cow = ColumnObjectWriter(4, '>', '')
     for name in self.args.system:
       s = systems[name]
-      fmtstr = "  {0:>" + str(maxlen) + "s}: [{1:>" + fmt + "}, {2:>" + fmt + "}, {3:>" + fmt + "}]"
-      extrastr = " +/- {0:.0f}LY in each axis".format(s.uncertainty) if s.uncertainty != 0.0 else ""
-      print(fmtstr.format(name, s.position.x, s.position.y, s.position.z) + extrastr)
+      coords = [('{:' + fmt + '}').format(coord) for coord in s.position]
+      cow.add([
+        s,
+        ': [',
+        coords[0],
+        ', ',
+        coords[1],
+        ', ',
+        coords[2],
+        ']',
+        " +/- {0:.0f}LY in each axis".format(s.uncertainty) if s.uncertainty != 0.0 else ""
+      ])
+    print("")
+    cow.out()
     print("")
 
     return True
