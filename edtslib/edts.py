@@ -54,8 +54,14 @@ class Application(object):
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
     ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
+    ap.add_argument("--tolerance", type=float, default=5, help="Tolerance checking for obscured jumps")
     ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
     self.args = ap.parse_args(arg)
+
+    if self.args.tolerance is not None:
+      if self.args.tolerance < 0 or self.args.tolerance > 100:
+        log.error("Tolerance must be in range 0 to 100 (percent)!")
+        sys.exit(1)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
       # If user has provided full ship data in this invocation, use it
@@ -314,6 +320,7 @@ class Application(object):
       if self.args.format in ['long','summary']:
         print("")
         print(route[0].to_string())
+        directions = [None, output_data[1]['src'].system, output_data[1]['dst'].system]
 
         # For each leg (not including start point)
         for i in range(1, len(route)):
@@ -322,6 +329,11 @@ class Application(object):
             # For every jump except the last...
             for j in range(0, len(od['leg_route'])-1):
               ld = od['leg_route'][j]
+              if j < len(od['leg_route']) - 2:
+                nd = od['leg_route'][j + 1]
+                directions = [directions[1], nd['src'].system, nd['dst'].system]
+              else:
+                directions = [directions[1], ld['dst'].system, route[i].system]
               ld_fuelstr = ''
               if ld['max_tank'] is not None:
                 ld_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
@@ -329,12 +341,14 @@ class Application(object):
                     ld['max_tank'],
                     int(100.0*ld['min_tank']/self.ship.tank_size),
                     int(100.0*ld['max_tank']/self.ship.tank_size))
-              print(("    -{0}- {1: >"+d_max_len+".2f}LY -{0}-> {2}{3}{4}").format(
+              ld_dirstr = (' ' + self.direction_hint(*directions)) if all(directions) else ''
+              print(("    -{0}- {1: >"+d_max_len+".2f}LY -{0}-> {2}{3}{4}{5}").format(
                   "!" if ld['is_long'] else "-",
                   ld['ldist'],
                   ld['dst'].to_string(),
                   " [{0:.2f}T]".format(ld['fuel_cost']) if self.ship is not None else '',
-                  ld_fuelstr))
+                  ld_fuelstr,
+                  ld_dirstr))
             # For the last jump...
             ld = od['leg_route'][-1]
             ld_fuelstr = ''
@@ -344,15 +358,25 @@ class Application(object):
                   ld['max_tank'],
                   int(100.0*ld['min_tank']/self.ship.tank_size),
                   int(100.0*ld['max_tank']/self.ship.tank_size))
+            if i < len(route) - 1:
+              nd = output_data[i + 1]
+              if len(nd['leg_route']) > 1:
+                directions = [directions[1], directions[2], nd['leg_route'][0]['dst'].system]
+              else:
+                directions = [directions[1], directions[2], route[i + 1].system]
+            else:
+              directions = [None, None, None]
+            ld_dirstr = (' ' + self.direction_hint(*directions)) if all(directions) else ''
 
-            print(("    ={0}= {1: >"+d_max_len+".2f}LY ={0}=> {2}{5}{6} -- {3:.2f}LY for {4:.2f}LY").format(
+            print(("    ={0}= {1: >"+d_max_len+".2f}LY ={0}=> {2}{5}{6}{7} -- {3:.2f}LY for {4:.2f}LY").format(
                 "!" if ld['is_long'] else "=",
                 ld['ldist'],
                 od['dst'].to_string(),
                 od['legdist'],
                 od['legsldist'],
                 " [{0:.2f}T]".format(ld['fuel_cost']) if self.ship is not None else '',
-                ld_fuelstr))
+                ld_fuelstr,
+                ld_dirstr))
           else:
             fuel_fewest = None
             fuel_most = None
@@ -392,29 +416,45 @@ class Application(object):
         print("")
 
       elif self.args.format == 'csv':
-        print("{0},{1},{2},{3}".format(
+        print("{0},{1},{2},{3},".format(
               route[0].system_name,
               route[0].name if route[0].name is not None else '',
               0.0,
               route[0].distance if route[0].uses_sc and route[0].distance is not None else 0))
+        directions = [None, output_data[1]['src'].system, output_data[1]['dst'].system]
         for i in range(1, len(route)):
           od = output_data[i]
           if 'leg_route' in od:
             for j in range(0, len(od['leg_route'])-1):
               ld = od['leg_route'][j]
-              print("{0},{1},{2},{3}".format(
+              if j < len(od['leg_route']) - 2:
+                nd = od['leg_route'][j + 1]
+                directions = [directions[1], nd['src'].system, nd['dst'].system]
+              else:
+                directions = [directions[1], ld['dst'].system, route[i].system]
+              print("{0},{1},{2},{3},{4}".format(
                     ld['dst'].system_name,
                     ld['dst'].name if ld['dst'].name is not None else '',
                     ld['ldist'],
-                    ld['dst'].distance if ld['dst'].uses_sc and ld['dst'].distance is not None else 0))
+                    ld['dst'].distance if ld['dst'].uses_sc and ld['dst'].distance is not None else 0,
+                    self.direction_hint(*directions) if all(directions) else ''))
             ld = od['leg_route'][-1]
-            print("{0},{1},{2},{3}".format(
+            if i < len(route) - 1:
+              nd = output_data[i + 1]
+              if len(nd['leg_route']) > 1:
+                directions = [directions[1], directions[2], nd['leg_route'][0]['dst'].system]
+              else:
+                directions = [directions[1], directions[2], route[i + 1].system]
+            else:
+              directions = [None, None, None]
+            print("{0},{1},{2},{3},{4}".format(
                   od['dst'].system_name,
                   od['dst'].name if od['dst'].name is not None else '',
                   ld['ldist'],
-                  od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
+                  od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0,
+                  self.direction_hint(*directions) if all(directions) else ''))
           else:
-            print("{0},{1},{2},{3}".format(
+            print("{0},{1},{2},{3},".format(
                   od['dst'].system_name,
                   od['dst'].name if od['dst'].name is not None else '',
                   od['legsldist'],
@@ -433,3 +473,16 @@ class Application(object):
       print("")
       print("No viable route found :(")
       print("")
+
+  def direction_hint(self, reference, src, dst):
+    v = (src.position - reference.position).get_normalised()
+    w = (dst.position - reference.position).get_normalised()
+    d = v.dot(w)
+    if d >= 1.0 - float(self.args.tolerance) / 100:
+      # Probably obscured!
+      return 'X'
+    elif d <= 0.0:
+      # Behind.
+      return 'o'
+    else:
+      return ''
