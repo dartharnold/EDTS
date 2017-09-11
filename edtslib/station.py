@@ -43,7 +43,7 @@ class Station(object):
 
   @property
   def system_name(self):
-    return self.system.name
+    return self.system.to_string()
 
   def to_string(self, inc_sys = True):
     if self.name is None:
