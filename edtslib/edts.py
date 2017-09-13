@@ -10,6 +10,8 @@ from . import ship
 from . import routing as rx
 from . import util
 from . import solver
+from .cow import ColumnObjectWriter
+from .dist import Lightseconds, Lightyears
 from .station import Station
 
 app_name = "edts"
@@ -289,40 +291,47 @@ class Application(object):
 
       totaljumps_str = "{0:d}".format(totaljumps_max) if totaljumps_min == totaljumps_max else "{0:d} - {1:d}".format(totaljumps_min, totaljumps_max)
 
-      # Work out the max length of the jump distances and jump counts to be printed
-      d_max_len = 1
-      jmin_max_len = 1
-      jmax_max_len = 1
-      has_var_jcounts = False
-      for i in range(1, len(output_data)):
-        od = output_data[i]
-        # If we have a hoppy route, we'll only be printing single-jump ranges. If not, we'll be using full leg distances.
-        if self.args.format == 'long' and 'leg_route' in od:
-          if len(od['leg_route']) > 0:
-            d_max_len = max(d_max_len, max([l['ldist'] for l in od['leg_route']]))
-        else:
-          d_max_len = max(d_max_len, od['legsldist'])
-        # If we have estimated jump counts, work out how long the strings will be
-        if 'jumpcount_min' in od:
-          jmin_max_len = max(jmin_max_len, od['jumpcount_min'])
-          jmax_max_len = max(jmax_max_len, od['jumpcount_max'])
-          has_var_jcounts = has_var_jcounts or (od['jumpcount_min'] != od['jumpcount_max'])
-
-      # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
-      d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
-      # Work out max length of jump counts, ensuring >= 1 char
-      jmin_max_len = int(math.floor(max(1, math.log10(jmin_max_len)+1)))
-      jmax_max_len = int(math.floor(max(1, math.log10(jmax_max_len)+1)))
-      # If we have the form "N - M" anywhere, pad appropriately. If not, just use the normal length
-      jall_max_len = str(jmin_max_len + jmax_max_len + 3) if has_var_jcounts else str(jmin_max_len)
-      jmin_max_len = str(jmin_max_len)
-      jmax_max_len = str(jmax_max_len)
-
       print_summary = True
 
       if self.args.format in ['long','summary']:
-        print("")
-        print(route[0].to_string())
+        show_cruise = any([hop.name for hop in route])
+        headings = ['', '', 'Distance', '', 'System']
+        padding = ['<', '<', '>', '<', '<']
+        intra = [' ', ' ', ' ', ' ']
+        if show_cruise:
+          headings += ['Cruise', '', '']
+          padding += ['>', '>', '<']
+          intra += ['   ', '   ', ' ', ' ']
+        else:
+          intra += [' ']
+        headings += ['']
+        padding += ['<']
+        intra += ['   ']
+        if self.ship is not None and self.args.route:
+          headings += ['Fuel', 'Fuel', 'range']
+          padding += ['<', '>', '<']
+          intra += ['   ', ' ', '   ']
+        headings += ['Hop', 'dist.']
+        padding += ['>', '<']
+        intra += [' ']
+        cow = ColumnObjectWriter(len(headings), padding, intra)
+        cow.add(headings)
+        cow.add([])
+        row = [
+          '', # Obscured
+          '', # Long
+          '', # Distance
+          '>',
+          route[0].system_name
+        ]
+        if show_cruise:
+          row += [
+            Lightseconds(route[0].distance).to_string() if route[0].distance is not None else '',
+            '{}{}'.format(route[0].name if route[0].name is not None else '', ' ({})'.format(route[0].station_type) if route[0].station_type is not None else ''),
+            '' # Cruise time
+          ]
+        row += ['<']
+        cow.add(row)
         directions = [None, output_data[1]['src'].system, output_data[1]['dst'].system]
 
         # For each leg (not including start point)
@@ -337,30 +346,9 @@ class Application(object):
                 directions = [directions[1], nd['src'].system, nd['dst'].system]
               else:
                 directions = [directions[1], ld['dst'].system, route[i].system]
-              ld_fuelstr = ''
-              if ld['max_tank'] is not None:
-                ld_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
-                    ld['min_tank'],
-                    ld['max_tank'],
-                    int(100.0*ld['min_tank']/self.ship.tank_size),
-                    int(100.0*ld['max_tank']/self.ship.tank_size))
-              ld_dirstr = (' ' + self.direction_hint(*directions)) if all(directions) else ''
-              print(("    -{0}- {1: >"+d_max_len+".2f}LY -{0}-> {2}{3}{4}{5}").format(
-                  "!" if ld['is_long'] else "-",
-                  ld['ldist'],
-                  ld['dst'].to_string(),
-                  " [{0:.2f}T]".format(ld['fuel_cost']) if self.ship is not None else '',
-                  ld_fuelstr,
-                  ld_dirstr))
+              cow.add([self.direction_hint(*directions) if all(directions) else ''] + self.format_leg(ld, None, show_cruise))
             # For the last jump...
             ld = od['leg_route'][-1]
-            ld_fuelstr = ''
-            if ld['max_tank'] is not None:
-              ld_fuelstr = " at {0:.2f}-{1:.2f}T ({2:d}-{3:d}%)".format(
-                  ld['min_tank'],
-                  ld['max_tank'],
-                  int(100.0*ld['min_tank']/self.ship.tank_size),
-                  int(100.0*ld['max_tank']/self.ship.tank_size))
             if i < len(route) - 1:
               nd = output_data[i + 1]
               if len(nd['leg_route']) > 1:
@@ -369,17 +357,7 @@ class Application(object):
                 directions = [directions[1], directions[2], route[i + 1].system]
             else:
               directions = [None, None, None]
-            ld_dirstr = (' ' + self.direction_hint(*directions)) if all(directions) else ''
-
-            print(("    ={0}= {1: >"+d_max_len+".2f}LY ={0}=> {2}{5}{6}{7} -- {3:.2f}LY for {4:.2f}LY").format(
-                "!" if ld['is_long'] else "=",
-                ld['ldist'],
-                od['dst'].to_string(),
-                od['legdist'],
-                od['legsldist'],
-                " [{0:.2f}T]".format(ld['fuel_cost']) if self.ship is not None else '',
-                ld_fuelstr,
-                ld_dirstr))
+            cow.add([self.direction_hint(*directions) if all(directions) else ''] + self.format_leg(ld, od, show_cruise))
           else:
             fuel_fewest = None
             fuel_most = None
@@ -388,22 +366,24 @@ class Application(object):
               fuel_fewest = self.ship.cost(od['legsldist'] / max(0.001, float(od['jumpcount_min']))) * int(od['jumpcount_min'])
               fuel_most = self.ship.cost(od['legsldist'] / max(0.001, float(od['jumpcount_max']))) * int(od['jumpcount_max'])
               total_fuel_cost += max(fuel_fewest, fuel_most)
-            # If we don't have "N - M", just print simple result
-            if od['jumpcount_min'] == od['jumpcount_max']:
-              jumps_str = ("{0:>"+jall_max_len+"d} jump{1}").format(od['jumpcount_max'], "s" if od['jumpcount_max'] != 1 else " ")
+            row = ['', '', Lightyears(od['legsldist']).to_string(True), '>', od['dst'].system_name]
+            if show_cruise:
+              row += self.format_cruise(od)
             else:
-              jumps_str = ("{0:>"+jmin_max_len+"d} - {1:>"+jmax_max_len+"d} jumps").format(od['jumpcount_min'], od['jumpcount_max'])
-            route_str = od['dst'].to_string()
-            # If the destination is a station, include estimated SC time
-            if 'sc_time' in od:
-              route_str += ", SC: ~{0}s".format(od['sc_time'])
+              row += ['<']
             fuel_str = ""
             if self.ship is not None:
               if od['jumpcount_min'] == od['jumpcount_max']:
                 fuel_str = " [{0:.2f}T{1}]".format(fuel_fewest, '+' if od['jumpcount_min'] > 1 else '')
               else:
                 fuel_str = " [{0:.2f}T+ - {1:.2f}T+]".format(min(fuel_fewest, fuel_most), max(fuel_fewest, fuel_most))
-            print(("    === {0: >"+d_max_len+".2f}LY ({1}) ===> {2}{3}").format(od['legsldist'], jumps_str, route_str, fuel_str))
+            if od['jumpcount_min'] == od['jumpcount_max']:
+              row += [od['jumpcount_min'], 'jump{}'.format('' if od['jumpcount_min'] == 1 else 's')]
+            else:
+              row += ['{} - {}'.format(od['jumpcount_min'], od['jumpcount_max']), 'jumps']
+            cow.add(row)
+        print("")
+        cow.out()
 
       elif self.args.format == 'short':
         print("")
@@ -476,6 +456,60 @@ class Application(object):
       print("")
       print("No viable route found :(")
       print("")
+
+  def format_cruise(self, od):
+    if od['dst'].name is not None:
+      return [
+        '{}'.format(Lightseconds(od['dst'].distance).to_string(True) if od['dst'].distance is not None else '???'),
+        '~{}s'.format(od['sc_time'] if 'sc_time' in od else ''),
+        '{}{}'.format(od['dst'].name, ' ({})'.format(od['dst'].station_type) if od['dst'].station_type is not None else ''),
+        '<'
+      ]
+    else:
+      return ['', '', '', '<']
+
+  def format_leg(self, ld, od = None, show_cruise = True):
+    row = [
+      '!' if ld['is_long'] else '',
+      Lightyears(ld['ldist']).to_string(True),
+      '>' if od is not None else '',
+      ld['dst'].system_name
+    ]
+    if od is not None:
+      if show_cruise:
+        row += self.format_cruise(od)
+      else:
+        row += ['<']
+    else:
+      row += ['']
+    if self.ship is not None:
+      row.append('{:.2f}T'.format(ld['fuel_cost']))
+      if ld['max_tank'] is not None:
+        row += [
+        '{:.2f}-{:.2f}T'.format(
+          ld['min_tank'],
+          ld['max_tank']
+        ),
+        '({:d}-{:d}%)'.format(
+          int(100.0*ld['min_tank']/self.ship.tank_size),
+          int(100.0*ld['max_tank']/self.ship.tank_size)
+        )
+      ]
+      elif ld['min_tank'] is not None:
+        row += [
+          '{:.2f}T'.format(ld['min_tank']),
+          '({:d}%) +'.format(int(100.0*ld['min_tank']/self.ship.tank_size))
+        ]
+      else:
+        row += ['', '']
+    if od is not None:
+      row += [
+        Lightyears(od['legdist']).to_string(True),
+        'for ' + Lightyears(od['legsldist']).to_string(True),
+      ]
+    else:
+      row += ['', '']
+    return row
 
   def direction_hint(self, reference, src, dst):
     v = (src.position - reference.position).get_normalised()
