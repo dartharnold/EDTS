@@ -62,6 +62,8 @@ class ColumnObjectWriter(object):
     if not self.fmt or (intra is not None and intra != self._intra):
       self.reformat(intra)
     for row in self._rows:
+      if len(row) < self.columns:
+        row += [''] * (self.columns - len(row))
       yield self.fmt.format(*row)
 
   def to_string(self, intra = None):
