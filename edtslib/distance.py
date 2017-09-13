@@ -9,6 +9,8 @@ from . import calc
 from . import env
 from . import pgnames
 from . import util
+from .cow import ColumnObjectWriter
+from .dist import Lightyears
 
 app_name = "distance"
 
@@ -68,67 +70,57 @@ class Application(object):
             log.error("Could not find system \"{0}\"!", y)
             return
 
-    print('')
+      if start_obj is None and not self.args.route and not self.args.csv and len(self.args.systems) == 2:
+        self.args.start = self.args.systems[0]
+        start_obj = systems[self.args.start]
+        self.args.systems = [self.args.systems[1]]
 
+    cow = ColumnObjectWriter()
     if self.args.route:
-      distances = []
-      d_max_len = 1.0
-      u_max_len = 0.0
+      cow.expand(4, ['<', '>', '<', '<'], ['   ', ' ', ' ', '   '])
+      cow.add([
+        '', # Padding
+        '', # Distance
+        '', # >
+        systems[self.args.systems[0]].to_string(),
+        '', # Extra
+      ])
       for i in range(1, len(self.args.systems)):
         sobj1 = systems[self.args.systems[i-1]]
         sobj2 = systems[self.args.systems[i]]
-        distances.append(sobj1.distance_to(sobj2))
-        d_max_len = max(d_max_len, distances[-1])
-        u_max_len = max(u_max_len, sobj1.uncertainty3d + sobj2.uncertainty3d)
-
-      d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
-      if u_max_len > 0.0:
-        u_max_len = int(math.floor(math.log10(u_max_len))) + 4
-      else:
-        u_max_len = 0
-      if len(self.args.systems) > 0:
-        print(systems[self.args.systems[0]].to_string())
-      for i in range(1, len(self.args.systems)):
-        sobj1 = systems[self.args.systems[i-1]]
-        sobj2 = systems[self.args.systems[i]]
-        if sobj1.uncertainty3d != 0.0 or sobj2.uncertainty3d != 0.0:
-          extrastr = (' +/- {0:>'+str(u_max_len)+'.2f}LY').format(sobj1.uncertainty3d + sobj2.uncertainty3d)
-        elif u_max_len > 0:
-          extrastr = (' ' * (u_max_len + 7))
-        else:
-          extrastr = ''
-        print(('  === {0: >'+d_max_len+'.2f}LY{2} ===> {1}').format(distances[i-1], systems[self.args.systems[i]].to_string(), extrastr))
+        cow.add([
+          '',
+          Lightyears(sobj1.distance_to(sobj2)).to_string(self.args.full_width),
+          '>',
+          sobj2.to_string(),
+          '+/- {}'.format(Lightyears(sobj1.uncertainty3d + sobj2.uncertainty3d).to_string(self.args.full_width)) if sobj1.uncertainty3d != 0.0 or sobj2.uncertainty3d != 0.0 else ''
+        ])
 
     elif self.args.start is not None and start_obj is not None:
       distances = {}
-      d_max_len = 1.0
-      u_max_len = 0.0
       for s in self.args.systems:
         distances[s] = systems[s].distance_to(start_obj)
-        d_max_len = max(d_max_len, distances[s])
-        u_max_len = max(u_max_len, start_obj.uncertainty3d + systems[s].uncertainty3d)
 
       if not self.args.ordered:
         self.args.systems.sort(key=distances.get)
 
-      d_max_len = str(int(math.floor(math.log10(d_max_len))) + 4)
-      if u_max_len > 0.0:
-        u_max_len = int(math.floor(math.log10(u_max_len))) + 4
-      else:
-        u_max_len = 0
+      cow.expand(6, ['<', '<', '>', '>', '<'], ['   ', ' '])
       for s in self.args.systems:
         sobj = systems[s]
-        if start_obj.uncertainty3d != 0.0 or sobj.uncertainty3d != 0.0:
-          extrastr = (' +/- {0:>'+str(u_max_len)+'.2f}LY').format(start_obj.uncertainty3d + sobj.uncertainty3d)
-        elif u_max_len > 0:
-          extrastr = (' ' * (u_max_len + 7))
-        else:
-          extrastr = ''
-        print((' {0} === {1: >'+d_max_len+'.2f}LY{3} ===> {2}').format(start_obj.to_string(), sobj.distance_to(start_obj), sobj.to_string(), extrastr))
+        cow.add([
+          '', # Padding
+          start_obj.to_string(),
+          '>',
+          Lightyears(sobj.distance_to(start_obj)).to_string(self.args.full_width),
+          '>',
+          sobj.to_string(),
+          '+/- {}'.format(Lightyears(start_obj.uncertainty3d + sobj.uncertainty3d).to_string(self.args.full_width)) if start_obj.uncertainty3d != 0.0 or sobj.uncertainty3d != 0.0 else ''
+        ])
 
     else:
       # If we have many systems, generate a Raikogram
       if len(self.args.systems) > 2 or self.args.csv:
+        cow.expand(len(self.args.systems) + (1 if not self.args.csv else 0), ['>'], [',' if self.args.csv else '   '])
 
         if not self.args.ordered:
           # Remove duplicates
@@ -138,36 +130,32 @@ class Application(object):
           # Sort alphabetically
           self.args.systems.sort()
 
-        if not self.args.csv:
-          self.print_system('', True)
-
-        for y in self.args.systems:
-          self.print_system(y, False, self._max_heading)
-        print('')
+        row = [''] + self.args.systems
+        if self.args.csv:
+          print(','.join(row))
+        else:
+          cow.add(row)
 
         for x in self.args.systems:
-          self.print_system(x, True)
+          row = [x]
           for y in self.args.systems:
-            self.print_system('-' if y == x else self.format_distance(systems[x].distance_to(systems[y])), False, self._max_heading)
-          print('')
+            row.append('-' if y == x else Lightyears(systems[x].distance_to(systems[y])).to_string(self.args.full_width))
+          if self.args.csv:
+            print(','.join(row))
+          else:
+            cow.add(row)
 
         if self.args.ordered:
-          print('')
-          self.print_system('Total:', True)
-          total_dist = calc.route_dist([systems[x] for x in self.args.systems])
-          self.print_system(self.format_distance(total_dist), False, self._max_heading)
+          row = ['Total:', Lightyears(calc.route_dist([systems[x] for x in self.args.systems])).to_string(self.args.full_width)]
+          if self.args.csv:
+            print(','.join(row))
+          else:
+            cow.add([])
+            cow.add(row)
 
-        print('')
-
-      # Otherwise, just return the simple output
-      elif len(self.args.systems) > 1:
-        start = systems[self.args.systems[0]]
-        end = systems[self.args.systems[1]]
-
-        print(start.to_string())
-        extrastr = ' +/- {0:.2f}LY'.format(start.uncertainty3d + end.uncertainty3d) if (start.uncertainty != 0.0 or end.uncertainty != 0.0) else ''
-        print('    === {0: >7.2f}LY{2} ===> {1}'.format(start.distance_to(end), end.to_string(), extrastr))
       else:
         log.error("For a simple distance calculation, at least two system names must be provided!")
         return
+    print('')
+    cow.out()
     print('')
