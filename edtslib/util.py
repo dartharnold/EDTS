@@ -1,5 +1,6 @@
 import collections
 import logging
+import math
 import numbers
 import os
 import platform
@@ -7,6 +8,7 @@ import re
 import socket
 import ssl
 import sys
+import timeit
 
 from . import defs
 from . import vector3
@@ -280,3 +282,30 @@ def get_as_position(v):
 
 def flatten(listish):
   return [i for sublist in [listish] for i in sublist] if (isinstance(listish, collections.Iterable) and not is_str(listish)) else [listish]
+
+def format_seconds(seconds, milliseconds = False):
+  interval = ''
+  if seconds > 86400:
+    d = int(math.floor(seconds / 86400))
+    interval += '{}d'.format(d)
+    seconds -= d * 86400
+  if seconds > 3600:
+    h = int(math.floor(seconds / 3600))
+    interval += '{}h'.format(h)
+    seconds -= h * 3600
+  if seconds > 60:
+    m = int(math.floor(seconds / 60))
+    interval += '{}m'.format(m)
+    seconds -= m * 60
+  if seconds:
+    interval += '{}s'.format('{:.4f}' if milliseconds else '{:.0f}').format(seconds)
+  return interval
+
+def start_timer():
+  return timeit.default_timer()
+
+def get_timer(start):
+  return start_timer() - start
+
+def format_timer(start):
+  return format_seconds(get_timer(start), True)
