@@ -31,6 +31,7 @@ class System(object):
     self._uncertainty = uncertainty
     self.uses_sc = False
     self._hash = u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+    self._arrival_star = Star({ 'name': name, 'is_main_star': True, })
 
   @property
   def system_name(self):
@@ -101,6 +102,16 @@ class System(object):
   def uncertainty3d(self):
     """The maximum uncertainty (straight-line distance) of this system's position"""
     return math.sqrt((self.uncertainty**2) * 3)
+
+  @property
+  def arrival_star_class(self):
+    """The class of the system's arrival star, or None if it is not available"""
+    return self.arrival_star.classification
+
+  @property
+  def arrival_star(self):
+    """A Star object representing the system's arrival star, or None if it is not available"""
+    return self._arrival_star
 
   def to_string(self, use_long = False):
     """
@@ -276,16 +287,6 @@ class KnownSystem(System):
   def allegiance(self):
     """The superpower allegiance of this system, or None if it is not available"""
     return self._allegiance
-
-  @property
-  def arrival_star_class(self):
-    """The class of the system's arrival star, or None if it is not available"""
-    return self.arrival_star.classification
-
-  @property
-  def arrival_star(self):
-    """A Star object representing the system's arrival star, or None if it is not available"""
-    return self._arrival_star
 
   def to_string(self, use_long = False):
     if use_long:
