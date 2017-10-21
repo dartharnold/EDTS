@@ -10,6 +10,7 @@ from .cow import ColumnObjectWriter
 from .dist import Lightseconds
 from . import env
 from . import filtering
+from . import system
 from . import util
 
 app_name = "find"
@@ -53,6 +54,11 @@ class Application(object):
           sys_matches = list(envdata.find_systems_by_regex(self.args.system[0], filters=filters))
         if self.args.stations or not self.args.systems:
           stn_matches = list(envdata.find_stations_by_regex(self.args.system[0], filters=filters))
+      elif re.match(r'^\d+$', self.args.system[0]):
+        id64 = int(self.args.system[0], 10)
+        if self.args.systems or not self.args.stations:
+          id64_match = system.from_id64(id64)
+          sys_matches = [id64_match] if id64_match else []
       else:
         if self.args.systems or not self.args.stations:
           sys_matches = list(envdata.find_systems_by_glob(self.args.system[0], filters=filters))

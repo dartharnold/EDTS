@@ -191,6 +191,11 @@ _conversions = {
                    'special': [],
                    'fn': int
                  },
+  'id64':        {
+                    'max': None,
+                    'special': [Any],
+                    'fn': int
+                 },
 }
 
 
@@ -393,6 +398,12 @@ def generate_sql(filters):
         for entry in oentry[PosArgs]:
           filter_str.append('systems.pos_{} {} ?'.format(axis, entry.operator))
           filter_params.append(entry.value)
+  if 'id64' in filters:
+    req_tables.add('systems')
+    for oentry in filters['id64']:
+      for entry in oentry[PosArgs]:
+        filter_str.append('systems.id64 {} ?'.format(entry.operator))
+        filter_params.append(entry.value)
   if 'close_to' in filters:
     start_idx = idx
     req_tables.add('systems')
@@ -494,6 +505,18 @@ def filter(s_list, filters):
 def is_match(s, filters):
   sy = s.system if isinstance(s, station.Station) else s
   st = s if isinstance(s, station.Station) else station.Station.none(s)
+  if 'id64' in filters:
+    for oentry in filters['id64']:
+      for entry in oentry[PosArgs]:
+        # Handle Any/None carefully
+        if (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
+          if sy.id64 is None:
+            return False
+        elif (entry.operator == '=' and entry.value is None) or (entry.operator in ['!=','<>'] and entry.value is Any):
+          if sy.id64 is not None and sy.allegiance:
+            return False
+        elif not entry.matches(sy.id64):
+          return False
   if 'close_to' in filters:
     for oentry in filters['close_to']:
       for entry in oentry[PosArgs]:
