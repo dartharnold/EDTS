@@ -231,20 +231,25 @@ class Application(object):
           dbc.populate_table_systems(self.import_csv_from_url(eddb_systems_path, cur_eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
         else:
           raise Exception("invalid systems source option provided")
+        log.info("Done.")
       if 'systems_populated' in self.args.steps:
         dbc.update_table_systems(self.import_json_from_url(eddb_syspop_path, cur_eddb_syspop_local_path, 'EDDB populated systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
+        log.info("Done.")
       if 'stations' in self.args.steps:
         dbc.populate_table_stations(self.import_json_from_url(eddb_stations_path, cur_eddb_stations_local_path, 'EDDB stations', self.args.batch_size, is_url_local=self.args.local))
+        log.info("Done.")
       if 'fsds' in self.args.steps:
         dbc.populate_table_coriolis_fsds(self.import_json_from_url(coriolis_fsds_path, cur_coriolis_fsds_local_path, 'Coriolis FSDs', None, is_url_local=self.args.local, key='fsd'))
+        log.info("Done.")
       if 'id64' in self.args.steps:
-        log.info('Setting known system ID64s...')
+        log.info("Setting known system ID64s...")
         sys.stdout.flush()
         t = util.start_timer()
         dbc.update_table_systems_with_id64()
-        log.info('Done in {}.'.format(util.format_timer(t)))
+        log.info("Done in {}.".format(util.format_timer(t)))
       if 'bodies' in self.args.steps:
         dbc.populate_table_bodies(self.import_json_from_url(eddb_bodies_path, cur_eddb_bodies_local_path, 'EDDB bodies', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
+        log.info("Done.")
     except MemoryError:
       log.error("Out of memory!")
       if self.args.batch_size is None:
@@ -350,7 +355,7 @@ class Application(object):
           if failed:
             log.info("Lines failing JSON parse: {0}", failed)
           log.info("Loaded {0} row(s) of {1} data to DB...", done, description)
-          log.info("Done in {}.".format(util.format_timer(start)))
+          log.info("Imported data in {}, generating relevant indexes...".format(util.format_timer(start)))
       else:
         log.info("Downloading {0} list from {1} ... ", description, url)
         sys.stdout.flush()
@@ -376,7 +381,7 @@ class Application(object):
             obj = obj[key]
           for o in obj:
             yield o
-          log.info("Done in {}.".format(util.format_timer(t)))
+          log.info("Imported data in {}, generating relevant indexes...".format(util.format_timer(t)))
       # Force GC collection to try to avoid memory errors
       encoded = None
       obj = None
