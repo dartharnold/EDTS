@@ -155,8 +155,9 @@ class SQLite3DBConnection(eb.EnvBackend):
     from . import id64data
     for s in systems:
       pos = vector3.Vector3(float(s['coords']['x']), float(s['coords']['y']), float(s['coords']['z']))
-      s_id64 = id64data.get_id64(s['name'], pos)
-      yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, int(s['id']), s_id64)
+      # Attempt to get the ID64 from the EDSM dump, otherwise fall back to our data
+      id64 = s.get('id64', id64data.get_id64(s['name'], pos))
+      yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, int(s['id']), id64)
 
   def _generate_systems_eddb(self, systems):
     from . import id64data
