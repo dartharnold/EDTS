@@ -44,6 +44,7 @@ class Application(object):
     ap.add_argument("-O", "--tour", metavar="system[/station]", action='append', type=str, nargs='*', help="Following stations must be visited in order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
     ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
+    ap.add_argument("-x", "--avoid", metavar='system', action='append', type=str, nargs='?', help="Reject routes that pass through named system(s)")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=calc.default_jump_time, help="Seconds taken per hyperspace jump")
@@ -112,6 +113,9 @@ class Application(object):
     if self.args.num_jumps is None:
       self.args.num_jumps = len(self.stations)
 
+    # Systems to route around.
+    self.avoid = self.args.avoid if self.args.avoid else []
+
   def run(self):
     timer = util.start_timer()
     with env.use() as envdata:
@@ -136,6 +140,18 @@ class Application(object):
         else:
           log.warning("Error: system/station {0} could not be found.", sname)
           return
+      avoid = []
+      if len(self.avoid):
+        avoid_stations = envdata.parse_stations(self.avoid)
+        for sname in self.avoid:
+          if sname in avoid_stations and avoid_stations[sname] is not None:
+            avoid_system = avoid_stations[sname].system
+            if avoid_system in [sobj.system for sobj in stations.values()] + [stn.system for stn in [start, end]]:
+              log.warning("Error: Can't avoid system {0} we are supposed to visit.", sname)
+              return
+            avoid.append(avoid_system)
+          else:
+            log.warning("Warning: Blacklisted system {0} could not be found.", sname)
     # Don't just take stations.values() in case a system/station was specified multiple times
     tours = []
     for tour in self.tours:
@@ -190,7 +206,7 @@ class Application(object):
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}", route[i-1].system_name, route[i].system_name)
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
-            leg_route = r.plot(route[i-1].system, route[i].system, cur_max_jump, full_max_jump)
+            leg_route = r.plot(route[i-1].system, route[i].system, avoid, cur_max_jump, full_max_jump)
           else:
             leg_route = [route[i-1].system, route[i].system]
 

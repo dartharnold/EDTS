@@ -89,6 +89,7 @@ Other optional arguments:
     - `trundle`: a custom algorithm, very slow in many cases but usually very accurate
     - `trunkle`: a hybrid algorithm using trundle, but chunking the route to speed up execution; relatively fast and quite accurate
     - `astar`: the A* algorithm, fast and reliable but sometimes produces suboptimal and less well-balanced routes
+* `--avoid=SYSTEM`: Specify a system to route around, for instance because the next jump would be obscured or would have too high a fuel cost.  You can use `--avoid` multiple times to avoid multiple systems.
 
 ### File arguments ###
 

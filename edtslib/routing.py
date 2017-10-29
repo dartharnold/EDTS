@@ -58,20 +58,20 @@ class Routing(object):
 
     return candidates
 
-  def plot(self, sys_from, sys_to, jump_range, full_range = None):
+  def plot(self, sys_from, sys_to, avoid, jump_range, full_range = None):
     if full_range is None:
       full_range = jump_range
     timer = util.start_timer()
 
     if self._route_strategy == "trundle":
       # My algorithm - slower but pinpoint
-      result = self.plot_trundle(sys_from, sys_to, jump_range, full_range)
+      result = self.plot_trundle(sys_from, sys_to, avoid, jump_range, full_range)
     elif self._route_strategy == "trunkle":
       # Hybrid - splits route up into N-jump blocks, and runs trundle on each block
-      result = self.plot_trunkle(sys_from, sys_to, jump_range, full_range)
+      result = self.plot_trunkle(sys_from, sys_to, avoid, jump_range, full_range)
     elif self._route_strategy == "astar":
       # A* search - faster but worse fuel efficiency
-      result = self.plot_astar(sys_from, sys_to, jump_range, full_range)
+      result = self.plot_astar(sys_from, sys_to, avoid, jump_range, full_range)
     else:
       log.error("Tried to use invalid route strategy {0}", self._route_strategy)
       result = None
@@ -79,11 +79,11 @@ class Routing(object):
     log.debug("Route plot from {} to {} using strategy {} finished after {}", sys_from, sys_to, self._route_strategy, util.format_timer(timer))
     return result
 
-  def plot_astar(self, sys_from, sys_to, jump_range, full_range):
+  def plot_astar(self, sys_from, sys_to, avoid, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
     with env.use() as envdata:
       stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
-    stars = list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly))
+    stars = [s for s in list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)) if s not in avoid]
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
       stars.append(sys_to)
@@ -92,7 +92,7 @@ class Routing(object):
     cost_fn = lambda cur, neighbour, path: calc.astar_cost(cur, neighbour, path, jump_range, full_range, witchspace_time=self._ws_time)
     return calc.astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn)
 
-  def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
+  def plot_trunkle(self, sys_from, sys_to, avoid, jump_range, full_range):
     rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
     with env.use() as envdata:
@@ -126,7 +126,7 @@ class Routing(object):
           # Work out the next position to get a circle of stars from
           next_pos = sys_cur.position + (sys_to.position - sys_cur.position).get_normalised() * factor
           # Get a circle of stars around the estimate
-          c_next_stars = self.circle(stars, next_pos, search_radius)
+          c_next_stars = [s for s in self.circle(stars, next_pos, search_radius) if s not in avoid]
           # Limit them to only ones where it's possible we'll get a valid route
           c_next_stars = [s for s in c_next_stars if self.best_jump_count(sys_cur, s, jump_range) <= trunc_jcount and s not in failed_attempts]
           c_next_stars.sort(key=lambda t: t.distance_to(sys_to))
@@ -148,7 +148,7 @@ class Routing(object):
       # This prevents getting stuck if we think we can get to sys_to in N, but actually need N+1
       jlimit = max(0, trunc_jcount - best_jcount) if next_star != sys_to else None
       # Use trundle to try and calculate a route
-      next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, jlimit, starcache = stars_tmp)
+      next_route = self.plot_trundle(sys_cur, next_star, avoid, jump_range, full_range, jlimit, starcache = stars_tmp)
       # If our route was invalid or too long, check the next star
       if next_route is None or (next_star != sys_to and len(next_route)-1 > trunc_jcount):
         next_stars = next_stars[1:]
@@ -186,7 +186,7 @@ class Routing(object):
     log.debug("No full-route found")
     return None
 
-  def plot_trundle(self, sys_from, sys_to, jump_range, full_range, addj_limit = None, starcache = None):
+  def plot_trundle(self, sys_from, sys_to, avoid, jump_range, full_range, addj_limit = None, starcache = None):
     if sys_from == sys_to:
       return [sys_from]
 
@@ -197,7 +197,7 @@ class Routing(object):
     else:
       with env.use() as envdata:
         stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
-    stars = list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly))
+    stars = [s for s in list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)) if s not in avoid]
 
     log.debug("{0} --> {1}: systems to search from: {2}", sys_from.name, sys_to.name, len(stars))
 
@@ -211,7 +211,7 @@ class Routing(object):
       while best is None and (hbuffer_ly < hbuffer_relax_max or hbuffer_ly == self._hbuffer_base):
         log.debug("Attempt {0} at hbuffer {1:.1f}, jump count: {2}, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
         vrcount = 0
-        for route in self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly):
+        for route in self.trundle_get_viable_routes([sys_from], stars, sys_to, avoid, jump_range, add_jumps, hbuffer_ly):
           cost = calc.trundle_cost(route, self._ship)
           if bestcost is None or cost < bestcost:
             best = route
@@ -231,13 +231,13 @@ class Routing(object):
   def best_jump_count(self, sys_from, sys_to, jump_range):
     return int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
 
-  def trundle_get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps, hbuffer_ly):
+  def trundle_get_viable_routes(self, route, stars, sys_to, avoid, jump_range, add_jumps, hbuffer_ly):
     best_jcount = int(math.ceil(route[0].distance_to(sys_to) / jump_range)) + add_jumps
     vec_mult = 0.5
 
-    return self._trundle_gvr_internal(route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly)
+    return self._trundle_gvr_internal(route, stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly)
 
-  def _trundle_gvr_internal(self, route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
+  def _trundle_gvr_internal(self, route, stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
     cur_dist = route[-1].distance_to(sys_to)
     if cur_dist > jump_range:
       # dir(current_pos --> sys_to) * jump_range
@@ -246,7 +246,7 @@ class Routing(object):
       start_vec = route[-1].position + (dir_vec * vec_mult)
       end_vec = route[-1].position + dir_vec
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
-      mystars = self.cylinder(stars, start_vec, end_vec, hbuffer_ly)
+      mystars = [s for s in self.cylinder(stars, start_vec, end_vec, hbuffer_ly) if s not in avoid]
 
       result_count = 0
       short_stars = []
@@ -263,7 +263,7 @@ class Routing(object):
           if dist_jumpN < maxd:
             # If we're going 4 systems or further we probably won't take any jumps < 2/3 of our range
             if (best_jcount <= 3 or next_dist*1.5 >= jump_range):
-              for r in self._trundle_gvr_internal(route + [s], stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
+              for r in self._trundle_gvr_internal(route + [s], stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
                 yield r
                 result_count += 1
             else:
@@ -271,7 +271,7 @@ class Routing(object):
       # If we got no results at all, try the short stars too just in case
       if result_count == 0:
         for s in short_stars:
-          for r in self._trundle_gvr_internal(route + [s], stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
+          for r in self._trundle_gvr_internal(route + [s], stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
             yield r
             result_count += 1
     else:
