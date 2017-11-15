@@ -27,6 +27,7 @@ from edtslib import distance
 from edtslib import find
 from edtslib import galmath
 from edtslib import fuel_usage
+from edtslib import units
 from edtslib import vsc
 
 
@@ -124,6 +125,12 @@ class EDI(cmd.Cmd):
 
   def do_starcache(self, args):
     return self.run_application(vsc, args)
+
+  def help_units(self):
+    return self.run_help(units)
+
+  def do_units(self, args):
+    return self.run_application(units, args)
 
   def help_vsc(self):
     return self.run_help(vsc)
