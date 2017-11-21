@@ -42,8 +42,24 @@ Pandemonium
     =!= 17.29Ly / 0.81T / -0.16T =!=> Agartha
 ```
 
+You can specify that the ship was refueled by giving the amount of added fuel as a percentage of the full tank size.
+
+`python fuel_usage.py -f 6a -m 525.8 -t 32 Pandemonium Jotunheim Cemiess 10% Achenar Agartha -s 8`
+
+```
+#!text
+Pandemonium (Star)
+      === 32.73LY / 4.42T / 3.58T ===> Jotunheim
+      === 26.18LY / 2.42T / 1.16T ===> Cemiess
+      --- 10.00%  / 3.20T / 4.36T ---> Refuel
+      === 14.38LY / 0.51T / 3.85T ===> Achenar
+      === 17.29LY / 0.82T / 3.02T ===> Agartha
+```
+
+In practice a 10% refuel at a station also takes into account the ship's reserve fuel tank size.  If you know it, use the `--reserve-tank` flag to specify the reserve size in tonnes.
+
 ## Usage ##
-All names must be given as bare system names; station names are not currently supported.
+All names must be given as refuel percentages or bare system names; station names are not currently supported.
 
 Required arguments:
 

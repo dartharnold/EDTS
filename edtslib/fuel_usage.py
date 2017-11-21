@@ -3,6 +3,7 @@
 from __future__ import print_function
 import argparse
 from math import log10, floor, fabs
+import re
 import sys
 
 from . import env
@@ -15,6 +16,7 @@ log = util.get_logger(app_name)
 
 
 class Application(object):
+  refuel_re = re.compile(r'^([+=])?([\d.]+)([%T])?$')
 
   def __init__(self, arg, hosted, state = {}):
     ap_parents = [env.arg_parser] if not hosted else []
@@ -66,10 +68,30 @@ class Application(object):
     if self.args.starting_fuel is None:
       self.args.starting_fuel = self.ship.tank_size
 
+  def refuel(self, amount, cur_fuel = None):
+    m = self.refuel_re.match(amount)
+    if m is not None:
+      if cur_fuel is None:
+        return True
+      try:
+        absolute = (m.group(1) == '=')
+        if m.group(3) == '%':
+          extra_fuel = self.ship.refuel(cur_fuel, percent = float(m.group(2)), absolute = absolute)
+        else:
+          extra_fuel = self.ship.refuel(cur_fuel, amount = float(m.group(2)), absolute = absolute)
+        return extra_fuel
+      except:
+        log.exception("Can't parse refuel amount.")
+        return None
+    else:
+      return None
+
   def run(self):
     with env.use() as envdata:
-      systems = envdata.parse_systems(self.args.systems)
+      systems = envdata.parse_systems([arg for arg in self.args.systems if self.refuel(arg) is None])
       for y in self.args.systems:
+        if self.refuel(y) is not None:
+          continue
         if y not in systems or systems[y] is None:
           log.error("Could not find system \"{0}\"!", y)
           return
@@ -78,7 +100,17 @@ class Application(object):
     output_data = [{'src': systems[self.args.systems[0]]}]
 
     prev = None
-    for s in systems.values():
+    for y in self.args.systems:
+      extra_fuel = self.refuel(y, cur_fuel)
+      if extra_fuel is not None:
+        used_fuel = self.ship.tank_size - cur_fuel
+        if extra_fuel > used_fuel:
+          extra_fuel = used_fuel
+        cur_fuel += extra_fuel
+        output_data.append({'refuel': extra_fuel, 'percent': self.ship.refuel_percent(extra_fuel), 'remaining': cur_fuel})
+        continue
+      else:
+        s = systems[y]
       if prev is None:
         # First iteration
         prev = s
@@ -108,10 +140,16 @@ class Application(object):
     f_min_len = 1.0
     for i in range(1, len(output_data)):
       od = output_data[i]
-      d_max_len = max(d_max_len, od['distance'])
-      c_max_len = max(c_max_len, od['cost'])
-      f_max_len = max(f_max_len, od['remaining'])
-      f_min_len = min(f_min_len, od['remaining'])
+      if 'refuel' in od:
+        d_max_len = max(d_max_len, od['percent'])
+        c_max_len = max(c_max_len, od['refuel'])
+        f_max_len = max(f_max_len, od['remaining'])
+        f_min_len = min(f_min_len, od['remaining'])
+      else:
+        d_max_len = max(d_max_len, od['distance'])
+        c_max_len = max(c_max_len, od['cost'])
+        f_max_len = max(f_max_len, od['remaining'])
+        f_min_len = min(f_min_len, od['remaining'])
     # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
     d_max_len = str(int(floor(log10(fabs(d_max_len)))) + 4)
     c_max_len = str(int(floor(log10(fabs(c_max_len)))) + 4)
@@ -123,6 +161,13 @@ class Application(object):
     print(output_data[0]['src'].to_string())
     for i in range(1, len(output_data)):
       leg = output_data[i]
+      if 'refuel' in leg:
+        print(('    -{3}- {0: >'+d_max_len+'.2f}%  / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T -{3}-> Refuel').format(
+            leg['percent'],
+            leg['refuel'],
+            leg['remaining'],
+            '!' if leg['percent'] < 0.0 or leg['percent'] > 100.0 else '-'))
+        continue
       dist = leg['src'].distance_to(leg['dst'])
       print(('    ={4}= {0: >'+d_max_len+'.2f}LY / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
             dist,
