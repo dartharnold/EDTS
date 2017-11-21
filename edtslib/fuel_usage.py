@@ -24,6 +24,7 @@ class Application(object):
     ap.add_argument("-b", "--boost", type=str.upper, choices=['0', '1', '2', '3', 'D', 'N'], help="FSD boost level (0 for none, D for white dwarf, N for neutron")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
+    ap.add_argument("-T", "--reserve-tank", type=float, required=False, help="The ship's reserve tank size")
     ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
     ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including % sign)")
@@ -35,18 +36,20 @@ class Application(object):
     self.args = ap.parse_args(arg)
 
     if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
-      self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
+      self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank, reserve_tank = self.args.reserve_tank)
     elif self.args.ship:
       loaded = ship.Ship.from_file(self.args.ship)
       fsd = self.args.fsd if self.args.fsd is not None else loaded.fsd
       mass = self.args.mass if self.args.mass is not None else loaded.mass
       tank = self.args.tank if self.args.tank is not None else loaded.tank_size
-      self.ship = ship.Ship(fsd, mass, tank)
+      reserve_tank = self.args.reserve_tank if self.args.reserve_tank is not None else loaded.reserve_tank
+      self.ship = ship.Ship(fsd, mass, tank, reserve_tank = reserve_tank)
     elif 'ship' in state:
       fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
       mass = self.args.mass if self.args.mass is not None else state['ship'].mass
       tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
-      self.ship = ship.Ship(fsd, mass, tank)
+      reserve_tank = self.args.reserve_tank if self.args.reserve_tank is not None else state['ship'].reserve_tank
+      self.ship = ship.Ship(fsd, mass, tank, reserve_tank = reserve_tank)
     else:
       log.error("Error: You must specify --ship, all of --fsd, --mass and --tank, or have previously set a ship")
       sys.exit(1)

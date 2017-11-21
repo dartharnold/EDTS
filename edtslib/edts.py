@@ -27,6 +27,7 @@ class Application(object):
     ap.add_argument("-b", "--boost", type=str.upper, choices=['0', '1', '2', '3', 'D', 'N'], help="FSD boost level (0 for none, D for white dwarf, N for neutron")
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
+    ap.add_argument("-T", "--reserve-tank", type=float, required=False, help="The ship's reserve tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
     ap.add_argument("-C", "--initial-cargo", type=int, default=0, help="Cargo already carried at the start of the journey")
     ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
@@ -77,13 +78,15 @@ class Application(object):
       fsd = self.args.fsd if self.args.fsd is not None else loaded.fsd
       mass = self.args.mass if self.args.mass is not None else loaded.mass
       tank = self.args.tank if self.args.tank is not None else loaded.tank_size
-      self.ship = ship.Ship(fsd, mass, tank)
+      reserve_tank = self.args.reserve_tank if self.args.reserve_tank is not None else loaded.reserve_tank
+      self.ship = ship.Ship(fsd, mass, tank, reserve_tank = reserve_tank)
     elif 'ship' in state:
       # If we have a cached ship, use that (with any overrides provided as part of this invocation)
       fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
       mass = self.args.mass if self.args.mass is not None else state['ship'].mass
       tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
-      self.ship = ship.Ship(fsd, mass, tank)
+      reserve_tank = self.args.reserve_tank if self.args.reserve_tank is not None else state['ship'].reserve_tank
+      self.ship = ship.Ship(fsd, mass, tank, reserve_tank = reserve_tank)
     else:
       # No ship is fine as long as we have a static jump range set
       if self.args.jump_range is None:

@@ -54,6 +54,7 @@ Required arguments:
 
 Optional arguments:
 
+* `-T N`/`--reserve-tank=N`: the size of the ship's reserve fuel tank
 * `-b N`/`--boost N`: level `1`-`3` FSD boost or `D` for white dwarf, `N` for neutron star); default: no boost
 * `-s N`/`--starting-fuel=N`: the amount of fuel to start the journey with; default: tank size
 * `-c N`/`--cargo=N`: the amount of cargo on board the ship

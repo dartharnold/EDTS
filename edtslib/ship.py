@@ -7,15 +7,16 @@ log = util.get_logger("ship")
 
 
 class Ship(object):
-  def __init__(self, fsd_info, mass, tank, max_cargo = 0):
+  def __init__(self, fsd_info, mass, tank, max_cargo = 0, reserve_tank = 0):
     # If we already have an FSD object, just use it as-is; otherwise assume a string and create a FSD object
     self.fsd = fsd_info if isinstance(fsd_info, FSD) else FSD(fsd_info)
     self.mass = mass
     self.tank_size = tank
+    self.reserve_tank = reserve_tank
     self.cargo_capacity = max_cargo
 
   def clone(self):
-    return Ship(self.fsd.clone(), self.mass, self.tank_size, self.cargo_capacity)
+    return Ship(self.fsd.clone(), self.mass, self.tank_size, self.cargo_capacity, self.reserve_tank)
 
   @classmethod
   def from_dict(self, data):
@@ -47,13 +48,28 @@ class Ship(object):
       log.error("Error reading file {}!", filename)
 
   def __str__(self):
-    return "Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]: jump range {3:.2f}LY ({4:.2f}LY)".format(str(self.fsd), self.mass, self.tank_size, self.range(), self.max_range())
+    return "Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]:{3} jump range {4:.2f}LY ({5:.2f}LY)".format(str(self.fsd), self.mass, self.tank_size, ' reserve {:d}kg'.format(int(self.reserve_tank * 1000)) if self.reserve_tank else '', self.range(), self.max_range())
 
   def __repr__(self):
     return "Ship({}, {}T, {}T)".format(str(self.fsd), self.mass, self.tank_size)
 
   def supercharge(self, boost):
     self.fsd.supercharge(boost)
+
+  def refuel(self, cur_fuel, amount = None, percent = 0, absolute = False):
+    if absolute:
+      if amount is None:
+        amount = self.tank_size * (percent / 100)
+      return max(0.0, amount - cur_fuel)
+    else:
+      amount = amount if amount is not None else (self.tank_size + self.reserve_tank) * (percent / 100)
+      return min(amount, self.tank_size - cur_fuel)
+
+  def refuel_percent(self, amount):
+    if amount < self.tank_size:
+      return 100 * amount / (self.tank_size + self.reserve_tank)
+    else:
+      return 100.0
 
   def max_range(self, cargo = 0):
     return self.fsd.max_range(self.mass, cargo)
