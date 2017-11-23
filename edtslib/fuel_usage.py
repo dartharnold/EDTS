@@ -6,6 +6,8 @@ from math import log10, floor, fabs
 import re
 import sys
 
+from .cow import ColumnObjectWriter
+from .dist import Lightyears
 from . import env
 from . import ship
 from . import util
@@ -87,17 +89,29 @@ class Application(object):
       return None
 
   def run(self):
+    headings = ['  ', 'Distance', 'System']
+    padding = ['>', '>', '<', '>']
+    intra = [' ', '  ', '  ', '  ']
+
+    refueling = False
     with env.use() as envdata:
       systems = envdata.parse_systems([arg for arg in self.args.systems if self.refuel(arg) is None])
       for y in self.args.systems:
         if self.refuel(y) is not None:
+          refueling = True
           continue
         if y not in systems or systems[y] is None:
           log.error("Could not find system \"{0}\"!", y)
           return
 
+    if refueling:
+      headings += ['Refuel', 'Percent']
+    headings += ['Fuel cost', 'Remaining']
+
     cur_fuel = self.args.starting_fuel
-    output_data = [{'src': systems[self.args.systems[0]]}]
+
+    cow = ColumnObjectWriter(len(headings), padding, intra)
+    cow.add(headings)
 
     prev = None
     for y in self.args.systems:
@@ -107,74 +121,44 @@ class Application(object):
         if extra_fuel > used_fuel:
           extra_fuel = used_fuel
         cur_fuel += extra_fuel
-        output_data.append({'refuel': extra_fuel, 'percent': self.ship.refuel_percent(extra_fuel), 'remaining': cur_fuel})
+        row = ['', '', '']
+        if refueling:
+          row += ['{:.2f}T'.format(extra_fuel), '{:.2f}%'.format(self.ship.refuel_percent(extra_fuel))]
+        row += ['', '{:.2f}T'.format(cur_fuel)]
+        cow.add(row)
         continue
       else:
         s = systems[y]
       if prev is None:
         # First iteration
         prev = s
+        row = ['', '', s]
+        if refueling:
+          row += ['', '']
+        row += ['', '{:.2f}T'.format(cur_fuel), '']
+        cow.add(row)
         continue
       distance = prev.distance_to(s)
-      is_long = False
       is_ok = True
+      fmax = self.ship.max_fuel_weight(distance, allow_invalid=True)
+      # Fudge factor to prevent cost coming out at exactly maxfuel (stupid floating point!)
+      cur_fuel = min(fmax - 0.000001, self.ship.tank_size)
+      is_long = (fmax >= 0.0 and fmax < self.ship.tank_size)
       if self.args.refuel:
-        fmax = self.ship.max_fuel_weight(distance, allow_invalid=True)
-        # Fudge factor to prevent cost coming out at exactly maxfuel (stupid floating point!)
-        cur_fuel = min(fmax - 0.000001, self.ship.tank_size)
-        is_long = (fmax >= 0.0 and fmax < self.ship.tank_size)
         is_ok = (is_ok and fmax >= 0.0)
 
       fuel_cost = self.ship.cost(distance, cur_fuel, self.args.cargo)
       cur_fuel -= fuel_cost
       is_ok = (is_ok and fuel_cost <= self.ship.fsd.maxfuel and cur_fuel >= 0.0)
-      output_data.append({
-          'src': prev, 'dst': s,
-          'distance': distance, 'cost': fuel_cost,
-          'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
+      row = ['!' if not is_ok else '*' if is_long else '', Lightyears(distance).to_string(True), s]
+      if refueling:
+        row += ['', '']
+      row += ['{:.2f}T'.format(fuel_cost), '{:.2f}T'.format(cur_fuel)]
+      cow.add(row)
       prev = s
 
-    d_max_len = 1.0
-    c_max_len = 1.0
-    f_max_len = 1.0
-    f_min_len = 1.0
-    for i in range(1, len(output_data)):
-      od = output_data[i]
-      if 'refuel' in od:
-        d_max_len = max(d_max_len, od['percent'])
-        c_max_len = max(c_max_len, od['refuel'])
-        f_max_len = max(f_max_len, od['remaining'])
-        f_min_len = min(f_min_len, od['remaining'])
-      else:
-        d_max_len = max(d_max_len, od['distance'])
-        c_max_len = max(c_max_len, od['cost'])
-        f_max_len = max(f_max_len, od['remaining'])
-        f_min_len = min(f_min_len, od['remaining'])
-    # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
-    d_max_len = str(int(floor(log10(fabs(d_max_len)))) + 4)
-    c_max_len = str(int(floor(log10(fabs(c_max_len)))) + 4)
-    f_max_len = int(floor(log10(fabs(f_max_len)))) + 4
-    f_min_len = int(floor(abs(log10(fabs(f_min_len))))) + (5 if f_min_len < 0.0 else 4)
-    f_len = str(max(f_max_len, f_min_len))
-
     print('')
-    print(output_data[0]['src'].to_string())
-    for i in range(1, len(output_data)):
-      leg = output_data[i]
-      if 'refuel' in leg:
-        print(('    -{3}- {0: >'+d_max_len+'.2f}%  / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T -{3}-> Refuel').format(
-            leg['percent'],
-            leg['refuel'],
-            leg['remaining'],
-            '!' if leg['percent'] < 0.0 or leg['percent'] > 100.0 else '-'))
-        continue
-      dist = leg['src'].distance_to(leg['dst'])
-      print(('    ={4}= {0: >'+d_max_len+'.2f}LY / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
-            dist,
-            leg['cost'],
-            leg['remaining'],
-            leg['dst'].to_string(),
-            _get_leg_char(leg)))
+    cow.out()
     print('')
 
 
