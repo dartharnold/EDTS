@@ -12,7 +12,7 @@ class Ship(object):
     self.fsd = fsd_info if isinstance(fsd_info, FSD) else FSD(fsd_info)
     self.mass = mass
     self.tank_size = tank
-    self.reserve_tank = reserve_tank
+    self.reserve_tank = reserve_tank if reserve_tank is not None else 0
     self.cargo_capacity = max_cargo
 
   def clone(self):
