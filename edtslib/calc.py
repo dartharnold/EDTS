@@ -37,14 +37,18 @@ def jump_count_range(a, b, jump_range, slf = default_slf):
   return minjumps, maxjumps
 
 # Calculate the fuel cost for a route, optionally taking lowered fuel usage into account
-# Note that this method has no guards against routes beyond the tank size (i.e. negative fuel amounts)
-def route_fuel_cost(route, ship, track_usage, starting_fuel = None):
+def route_fuel_cost(route, ship, track_usage, starting_fuel = None, strict = None):
   cost = 0.0
   cur_fuel = starting_fuel if starting_fuel is not None else ship.tank_size
   for i in range(1, len(route)):
-    cost += ship.cost(route[i-1].distance_to(route[i]), cur_fuel)
+    jump_cost = ship.cost(route[i-1].distance_to(route[i]), cur_fuel)
+    if strict and jump_cost > ship.fsd.maxfuel:
+      return None
+    cost += jump_cost
     if track_usage:
-      cur_fuel -= cost
+      cur_fuel -= jump_cost
+      if strict and cur_fuel < 0.0:
+        return None
   return cost
 
 # The cost to go from a to b, as used in simple (non-routed) solving
@@ -75,11 +79,15 @@ def trundle_cost(route, ship, starting_fuel = None):
   return (jump_count + var)
 
 # Gets the route cost for an A* route
-def astar_cost(a, b, route, jump_range, dist_threshold = None, witchspace_time = default_ws_time):
+def astar_cost(a, b, route, jump_range, dist_threshold = None, witchspace_time = default_ws_time, validate_fn = None):
   jcount = jump_count(a, b, jump_range)
   hs_jumps = time_for_jumps(jcount, witchspace_time)
   hs_jdist = a.distance_to(b)
   var = route_variance(route, route[0].distance_to(route[-1]))
+
+  if validate_fn is not None:
+    if validate_fn(route) is None:
+      return None
 
   penalty = 0.0
   # If we're allowing long jumps, we need to check whether to add an extra penalty
@@ -181,8 +189,11 @@ def astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn):
       if neighbor in closedset:
         continue
 
+      cost = cost_fn(current, neighbor, path)
+      if cost is None:
+        continue
       # tentative_g_score = g_score[current] + (current.position - neighbor.position).length
-      tentative_g_score = g_score[current] + cost_fn(current, neighbor, path)
+      tentative_g_score = g_score[current] + cost
 
       if neighbor not in g_score:
         g_score[neighbor] = sys.float_info.max

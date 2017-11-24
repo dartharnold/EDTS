@@ -7,8 +7,10 @@ from . import util
 
 log = util.get_logger("route")
 
-strategies = ["astar", "trunkle", "trundle"]
-default_strategy = "astar"
+route_strategies = ["astar", "trunkle", "trundle"]
+default_route_strategy = "astar"
+fuel_strategies = ["none", "optimal"]
+default_fuel_strategy = "optimal"
 default_rbuffer_ly = 40.0
 default_hbuffer_ly = 10.0
 hbuffer_relax_increment = 5.0
@@ -17,12 +19,12 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, ship, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_route_strategy, witchspace_time = calc.default_ws_time, starting_fuel = None, jump_range = None):
+  def __init__(self, ship, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_route_strategy, fuel_strategy = default_fuel_strategy, witchspace_time = calc.default_ws_time, starting_fuel = None, jump_range = None):
     self._ship = ship
     if jump_range is not None:
       self._starting_fuel = None
     else:
-      self._starting_fuel = starting_fuel
+      self._starting_fuel = starting_fuel if starting_fuel is not None else ship.tank_size
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
@@ -37,6 +39,7 @@ class Routing(object):
     self._trunkle_leg_size = 5.0
     self._trunkle_search_radius = 10.0
     self._trunkle_search_radius_relax_mul = 0.01
+    self._rejected_routes = {}
 
   def lerp(self, in_min, in_max, out_min, out_max, value):
     if in_max == in_min:
@@ -94,7 +97,8 @@ class Routing(object):
       stars.append(sys_to)
 
     valid_neighbour_fn = lambda n, current: n != current and n.distance_to(current) < jump_range
-    cost_fn = lambda cur, neighbour, path: calc.astar_cost(cur, neighbour, path, jump_range, full_range, witchspace_time=self._ws_time)
+    validate_fn = lambda route: self.apply_fuel_strategy(route)
+    cost_fn = lambda cur, neighbour, path: calc.astar_cost(cur, neighbour, path, jump_range, full_range, witchspace_time=self._ws_time, validate_fn=validate_fn)
     return calc.astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn)
 
   def plot_trunkle(self, sys_from, sys_to, avoid, jump_range, full_range):
@@ -219,6 +223,8 @@ class Routing(object):
         for route in self.trundle_get_viable_routes([sys_from], stars, sys_to, avoid, jump_range, add_jumps, hbuffer_ly):
           cost = calc.trundle_cost(route, self._ship, self._starting_fuel)
           if bestcost is None or cost < bestcost:
+            if not self.apply_fuel_strategy(route):
+              continue
             best = route
             bestcost = cost
           vrcount += 1
@@ -282,3 +288,20 @@ class Routing(object):
     else:
       route.append(sys_to)
       yield route
+
+  def apply_fuel_strategy(self, route):
+    if len(route) == 1:
+      return route
+    key = ','.join([str(s.id) for s in route])
+    if key in self._rejected_routes:
+      return None
+
+    if self._fuel_strategy == 'optimal':
+      return route
+    elif self._fuel_strategy == 'none':
+      cost = calc.route_fuel_cost(route, self._ship, True, self._starting_fuel, True)
+      if cost is not None:
+        return route
+
+    self._rejected_routes[key] = True
+    return None

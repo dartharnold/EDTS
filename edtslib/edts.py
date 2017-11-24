@@ -47,14 +47,14 @@ class Application(object):
     ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
     ap.add_argument("-O", "--tour", metavar="system[/station]", action='append', type=str, nargs='*', help="Following stations must be visited in order")
     ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
-    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
+    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_route_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
     ap.add_argument("-x", "--avoid", metavar='system', action='append', type=str, nargs='?', help="Reject routes that pass through named system(s)")
     ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
     ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
     ap.add_argument("--jump-time", type=float, default=calc.default_jump_time, help="Seconds taken per hyperspace jump")
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=calc.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
-    ap.add_argument("--route-strategy", default=rx.default_strategy, choices=rx.strategies, help="The strategy to use for route plotting")
+    ap.add_argument("--route-strategy", default=rx.default_route_strategy, choices=rx.route_strategies, help="The strategy to use for route plotting")
     ap.add_argument("--fuel-strategy", default=rx.default_fuel_strategy, choices=rx.fuel_strategies, help="The strategy to use for refueling")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
@@ -181,7 +181,7 @@ class Application(object):
       full_jump_range = self.ship.range()
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
-    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy, witchspace_time=self.args.witchspace_time, starting_fuel = self.starting_fuel, jump_range = self.args.jump_range)
+    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy, self.args.fuel_strategy, witchspace_time=self.args.witchspace_time, starting_fuel = self.starting_fuel, jump_range = self.args.jump_range)
     s = solver.Solver(jump_range, self.args.diff_limit, witchspace_time=self.args.witchspace_time)
 
     if len(tours) == 1:
