@@ -30,6 +30,7 @@ class Application(object):
     ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
     ap.add_argument("-T", "--reserve-tank", type=float, required=False, help="The ship's reserve tank size")
+    ap.add_argument(      "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
     ap.add_argument("-C", "--initial-cargo", type=int, default=0, help="Cargo already carried at the start of the journey")
     ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
@@ -54,6 +55,7 @@ class Application(object):
     ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
     ap.add_argument("--slf", type=float, default=calc.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
     ap.add_argument("--route-strategy", default=rx.default_strategy, choices=rx.strategies, help="The strategy to use for route plotting")
+    ap.add_argument("--fuel-strategy", default=rx.default_fuel_strategy, choices=rx.fuel_strategies, help="The strategy to use for refueling")
     ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
     ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
     ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
@@ -105,6 +107,8 @@ class Application(object):
         log.error("Error: FSD boost requires --ship or all of --fsd, --mass and --tank.")
         sys.exit(1)
       log.debug("Static jump range {0:.2f}LY", self.args.jump_range)
+
+    self.starting_fuel = self.args.starting_fuel
 
     # stations will always be parsed before any tours, because -O is greedy.
     if self.args.ordered:
@@ -177,7 +181,7 @@ class Application(object):
       full_jump_range = self.ship.range()
       jump_range = self.ship.max_range() if self.args.long_jumps else full_jump_range
 
-    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy, witchspace_time=self.args.witchspace_time)
+    r = rx.Routing(self.ship, self.args.rbuffer, self.args.hbuffer, self.args.route_strategy, witchspace_time=self.args.witchspace_time, starting_fuel = self.starting_fuel, jump_range = self.args.jump_range)
     s = solver.Solver(jump_range, self.args.diff_limit, witchspace_time=self.args.witchspace_time)
 
     if len(tours) == 1:

@@ -62,13 +62,13 @@ def solve_route_cost(route, jump_range, witchspace_time = default_ws_time):
   return cost
 
 # Gets the route cost for a trundle/trunkle route
-def trundle_cost(route, ship):
+def trundle_cost(route, ship, starting_fuel = None):
   # Prioritise jump count: we should always be returning the shortest route
   jump_count = (len(route)-1) * 1000
   if ship is not None:
     # If we have ship info, use the real fuel calcs to generate the cost
     # Scale the result by the FSD's maxfuel to try and keep the magnitude consistent
-    var = ship.range() * (route_fuel_cost(route, ship, False) / ship.fsd.maxfuel)
+    var = ship.range() * (route_fuel_cost(route, ship, False, starting_fuel) / ship.fsd.maxfuel)
   else:
     # Without ship info, use a function of the square of the jump distances to try to create a balanced route
     var = math.sqrt(sum(l*l for l in [route[i+1].distance_to(route[i]) for i in range(len(route)-1)]))

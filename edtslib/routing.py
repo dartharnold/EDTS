@@ -17,11 +17,16 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, ship, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_strategy, witchspace_time = calc.default_ws_time):
+  def __init__(self, ship, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_route_strategy, witchspace_time = calc.default_ws_time, starting_fuel = None, jump_range = None):
     self._ship = ship
+    if jump_range is not None:
+      self._starting_fuel = None
+    else:
+      self._starting_fuel = starting_fuel
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
+    self._fuel_strategy = fuel_strategy
     self._ws_time = witchspace_time
     self._trundle_max_addjumps = 4
     self._trunkle_max_addjumps_mul = 1.0
@@ -212,7 +217,7 @@ class Routing(object):
         log.debug("Attempt {0} at hbuffer {1:.1f}, jump count: {2}, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
         vrcount = 0
         for route in self.trundle_get_viable_routes([sys_from], stars, sys_to, avoid, jump_range, add_jumps, hbuffer_ly):
-          cost = calc.trundle_cost(route, self._ship)
+          cost = calc.trundle_cost(route, self._ship, self._starting_fuel)
           if bestcost is None or cost < bestcost:
             best = route
             bestcost = cost
