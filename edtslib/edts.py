@@ -327,8 +327,8 @@ class Application(object):
         if show_cruise:
           row += [
             Lightseconds(route[0].distance).to_string() if route[0].distance is not None else '',
-            '{}{}'.format(route[0].name if route[0].name is not None else '', ' ({})'.format(route[0].station_type) if route[0].station_type is not None else ''),
-            '' # Cruise time
+            '', # Cruise time
+            '{}{}'.format(route[0].name if route[0].name is not None else '', ' ({})'.format(route[0].station_type) if route[0].station_type is not None else '')
           ]
         row += ['<']
         cow.add(row)
@@ -481,7 +481,10 @@ class Application(object):
       else:
         row += ['<']
     else:
-      row += ['']
+      if show_cruise:
+        row += ['', '', '', '']
+      else:
+        row += ['']
     if self.ship is not None:
       row.append('{:.2f}T'.format(ld['fuel_cost']))
       if ld['max_tank'] is not None:
