@@ -84,7 +84,7 @@ class Star(Body):
 
   @property
   def scoopable(self):
-    return self.main_sequence()
+    return self.main_sequence
 
   @property
   def non_sequence(self):
