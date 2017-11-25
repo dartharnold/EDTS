@@ -86,6 +86,9 @@ class Ship(object):
   def fuel_weight_range(self, dist, cargo = 0, allow_invalid = False):
     return self.fsd.fuel_weight_range(dist, self.mass, cargo, allow_invalid)
 
+  def to_arrive_with(self, target, dist, cargo = 0, allow_invalid = False):
+    return self.fsd.fuel_weight_range(dist, self.mass + target, cargo, allow_invalid)[0]
+
   def get_modified(self, optmass = None, optmass_percent = None, maxfuel = None, maxfuel_percent = None, fsdmass = None, fsdmass_percent = None):
     fsd = self.fsd.get_modified(optmass, optmass_percent, maxfuel, maxfuel_percent, fsdmass, fsdmass_percent)
     s = Ship(fsd, self.mass, self.tank_size, self.cargo_capacity)

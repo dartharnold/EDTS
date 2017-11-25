@@ -209,19 +209,20 @@ class Application(object):
 
       for i in range(1, len(route)):
         cur_data = {'src': route[i-1], 'dst': route[i]}
+        cargo = self.args.initial_cargo + self.args.cargo * (i-1)
 
         if self.args.jump_range is not None:
           full_max_jump = self.args.jump_range - (self.args.jump_decay * (i-1))
           cur_max_jump = full_max_jump
         else:
-          full_max_jump = self.ship.range(cargo = self.args.initial_cargo + self.args.cargo * (i-1))
-          cur_max_jump = self.ship.max_range(cargo = self.args.initial_cargo + self.args.cargo * (i-1)) if self.args.long_jumps else full_max_jump
+          full_max_jump = self.ship.range(cargo = cargo)
+          cur_max_jump = self.ship.max_range(cargo = cargo) if self.args.long_jumps else full_max_jump
 
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], cur_max_jump, slf=self.args.slf)
         if self.args.route:
           log.debug("Doing route plot for {0} --> {1}", route[i-1].system_name, route[i].system_name)
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
-            leg_route = r.plot(route[i-1].system, route[i].system, avoid, cur_max_jump, full_max_jump)
+            leg_route = r.plot(route[i-1].system, route[i].system, avoid, cur_max_jump, full_max_jump, cargo)
           else:
             leg_route = [route[i-1].system, route[i].system]
 
