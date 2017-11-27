@@ -466,7 +466,7 @@ def generate_sql(filters):
         elif entry.operator in ['=','!=']:
           extra_str = " OR stations.max_pad_size IS NULL"
           filter_str.append("stations.max_pad_size {} ?{}".format(entry.operator, extra_str if entry.operator == '!=' else ''))
-          filter_params.append(entry.value)
+          filter_params.append(str(entry.value))
         else:
           valid_values = [p for p in PadSize.values if entry.matches(PadSize(p))]
           filter_str.append("stations.max_pad_size IN ({0})".format(",".join(["?"] * len(valid_values))))
