@@ -62,12 +62,12 @@ class Ship(object):
         amount = self.tank_size * (percent / 100)
       return max(0.0, amount - cur_fuel)
     else:
-      amount = amount if amount is not None else (self.tank_size + self.reserve_tank) * (percent / 100)
+      amount = amount if amount is not None else ((self.tank_size / 100.0) + (self.reserve_tank / 10.0)) * percent
       return min(amount, self.tank_size - cur_fuel)
 
   def refuel_percent(self, amount):
     if amount < self.tank_size:
-      return 100 * amount / (self.tank_size + self.reserve_tank)
+      return 100 * amount / (self.tank_size + (self.reserve_tank * 10.0))
     else:
       return 100.0
 
