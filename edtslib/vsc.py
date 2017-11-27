@@ -42,6 +42,7 @@ class Application(object):
     wp.add_argument("writefile", metavar="filename")
     wp.add_argument("-i", "--importfile", metavar="filename", nargs='?', help="File with list of stars")
     wp.add_argument("-r", "--recent", default=False, action="store_true", help="Create in RecentlyVisitedStars format")
+    wp.add_argument("-v", "--version", type=int, required=False, help="File version to write")
     wp.add_argument("filters", metavar="filters", nargs='*')
     wp.set_defaults(func=self.run_write)
 
@@ -241,7 +242,7 @@ class Application(object):
         iterator = envdata.find_systems_by_name([n.strip() for n in f], filters)
     else:
         iterator = envdata.find_all_systems(filters)
-    starcache.write_visited_stars_cache(args.writefile, iterator, self.args.recent)
+    starcache.write_visited_stars_cache(args.writefile, iterator, recent = self.args.recent, version = self.args.version)
 
 if __name__ == '__main__':
   env.start()

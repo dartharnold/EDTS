@@ -14,6 +14,7 @@ IMPORTFORMAT = 'ImportStars{}.txt'
 IMPORTEDFILE = "ImportStars.txt.imported"
 CACHEFILE = "VisitedStarsCache.dat"
 RECENTFILE = "RecentlyVisitedStars.dat"
+KNOWN_VERSIONS = [100]
 
 class VisitedStarsCacheHeader(object):
   def __init__(self):
@@ -22,16 +23,32 @@ class VisitedStarsCacheHeader(object):
     self.end_magic = 0x5AFEC0DE5AFEC0DE
     self.magic = self.start_magic
     self.recent = False
-    self.version = 100
+    self.version = KNOWN_VERSIONS[0]
     self.start = 0x30
     self.end = 0x30
     self.num_entries_offset = 0x18
     self.num_entries = 0
-    self.entry_len = 8
+    self.entry_len = self.expected_entry_len
     self.account_id = 0
-    self.unknown1 = 0
+    self.padding = 0
     self.cmdr_id = 0
-    self.unknown2 = 0
+
+  @property
+  def has_visit_count(self):
+    return self.version > KNOWN_VERSIONS[0]
+
+  @property
+  def has_last_visit_date(self):
+    return self.version > KNOWN_VERSIONS[0]
+
+  @property
+  def expected_entry_len(self):
+    exp_len = 8
+    if self.has_visit_count:
+      exp_len += 4
+    if self.has_last_visit_date:
+      exp_len += 4
+    return exp_len
 
 def read_struct(f, format, size):
   try:
@@ -80,17 +97,14 @@ def read_visited_stars_cache_header(f):
     elif recent:
       log.warning('Unexpected recent magic...')
     header.version = read_uint32(f)
-    if header.version != 100:
-      log.warning('Unexpected version {} not 100...', header.version)
+    if header.version not in KNOWN_VERSIONS:
+      log.warning('Unexpected version {} not {}...', header.version, ', '.join([str(version) for version in KNOWN_VERSIONS]))
     header.start = read_uint32(f)
     header.num_entries = read_uint32(f)
     header.entry_len = read_uint32(f)
     header.account_id = read_uint32(f)
-    header.unknown1 = read_uint32(f)
-    header.cmdr_id = read_uint32(f)
-    header.unknown2 = read_uint32(f)
-    if header.unknown2 != 0:
-      log.warning('Unexpected non-zero padding after CMDR ID...')
+    header.padding = read_uint32(f)
+    header.cmdr_id = read_uint64(f)
     if not header.recent:
       header.end = header.start + (header.num_entries * header.entry_len)
       f.seek(header.end, 0)
@@ -107,13 +121,16 @@ def read_visited_stars_cache_header(f):
   except:
     return None
 
-def write_visited_stars_cache(filename, systems, recent = False):
+def write_visited_stars_cache(filename, systems, recent = False, version = None):
   scratch = None
   try:
     dirname = os.path.dirname(filename)
     fd, scratch = tempfile.mkstemp('.tmp', os.path.basename(filename), dirname if dirname else '.')
     with os.fdopen(fd, 'wb') as f:
       header = VisitedStarsCacheHeader()
+      if version is not None:
+        header.version = version
+      header.entry_len = header.expected_entry_len
       write_str(f, header.magic)
       if recent:
         write_uint32(f, header.recent_magic)
@@ -125,14 +142,19 @@ def write_visited_stars_cache(filename, systems, recent = False):
       write_uint32(f, header.num_entries)
       write_uint32(f, header.entry_len)
       write_uint32(f, header.account_id)
-      write_uint32(f, header.unknown1)
-      write_uint32(f, header.cmdr_id)
-      write_uint32(f, header.unknown2)
+      write_uint32(f, header.padding)
+      write_uint64(f, header.cmdr_id)
       for system in systems:
         if system.id64 is None:
           log.error('{} has no id64!', system.name)
           continue
         write_uint64(f, system.id64)
+        if header.has_visit_count:
+          visit_count = 1
+          write_uint32(f, visit_count)
+        if header.has_last_visit_date:
+          last_visit_date = 0
+          write_uint32(f, last_visit_date)
         header.num_entries += 1
       if not recent:
         write_uint64(f, header.end_magic)
@@ -154,16 +176,19 @@ def parse_visited_stars_cache(filename):
     header = read_visited_stars_cache_header(f)
     if not header:
       return
-    cur_entry = f.read(header.entry_len)
-    while cur_entry is not None and len(cur_entry) == header.entry_len:
-      # Swap bytes to make it a sensible integer
-      cur_id = struct.unpack('<Q', cur_entry)[0]
+    n = 0
+    while n < header.num_entries:
+      cur_id = read_uint64(f)
       # Check if this matches the magic EOF value
       if cur_id == header.end_magic:
         break
+      if header.has_visit_count:
+        visit_count = read_uint32(f)
+      if header.has_last_visit_date:
+        last_visit_date = read_uint32(f)
+      n += 1
       # Return this ID
       yield cur_id
-      cur_entry = f.read(header.entry_len)
 
 
 def create_import_lists(data):
