@@ -598,7 +598,7 @@ def _construct_query(qtables, select, qfilter, select_params = None, filter_para
       qfilter.append("systems.eddb_id=stations.eddb_system_id")
 
   q1 = 'SELECT {} FROM {}'.format(','.join(select), ','.join(tables))
-  q2 = 'WHERE {}'.format(' AND '.join(qfilter)) if any(qfilter) else ''
+  q2 = 'WHERE {}'.format(' AND '.join(['({})'.format(clause) for clause in qfilter])) if any(qfilter) else ''
   q3 = ' '.join(qmodifier)
   query = '{} {} {}'.format(q1, q2, q3)
   params = select_params + filter_params + qmodifier_params
