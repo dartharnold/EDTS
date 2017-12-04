@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import argparse
 import math
 
-from .cow import ColumnObjectWriter
-from .dist import Lightseconds, Lightyears
+from .dist import Lightyears
 from . import env
 from . import filtering
 from . import util
@@ -16,54 +14,16 @@ log = util.get_logger(app_name)
 
 default_max_angle = 15.0
 
-
-class ApplicationAction(argparse.Action):
-  def __call__(self, parser, namespace, value, option_strings=None):
-    n = vars(namespace)
-    system_list = n['system'] if n['system'] is not None else []
-    need_new = True
-    i = 0
-    while i < len(system_list):
-      if self.dest not in system_list[i]:
-        need_new = False
-        break
-      i += 1
-    if need_new:
-      system_list.append({})
-    d = system_list[i]
-    if self.dest == 'system':
-      d['system'] = value[0]
-    else:
-      d[self.dest] = value
-      setattr(namespace, self.dest, value)
-    setattr(namespace, 'system', system_list)
-
+class Result(object):
+  def __init__(self, **args):
+    self.system = args.get(system)
+    self.distances = args.get(distances, {})
+    self.stations = args.get(stations, [])
 
 class Application(object):
 
-  def __init__(self, arg, hosted, state = {}):
-    ap_parents = [env.arg_parser] if not hosted else []
-    ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
-    ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
-    ap.add_argument("-d", "--min-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems less than this distance from reference")
-    ap.add_argument("-m", "--max-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
-    ap.add_argument("-S", "--arrival-star", type=str, required=False, help="Only show systems with arrival star of the given class(es)")
-    ap.add_argument("-a", "--allegiance", type=str, required=False, default=None, help="Only show systems with the specified allegiance")
-    ap.add_argument("-s", "--max-sc-distance", type=float, required=False, help="Only show systems with a starport less than this distance from entry point")
-    ap.add_argument("-p", "--pad-size", required=False, type=str.upper, choices=['S','M','L'], help="Only show systems with stations matching the specified pad size")
-    ap.add_argument("-l", "--list-stations", default=False, action='store_true', help="List stations in returned systems")
-    ap.add_argument("--direction", type=str, required=False, help="A system or set of coordinates that returned systems must be in the same direction as")
-    ap.add_argument("--direction-angle", type=float, required=False, default=default_max_angle, help="The maximum angle, in degrees, allowed for the direction check")
-
-    ap.add_argument("system", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
-
-    remaining = arg
-    args = argparse.Namespace()
-    while remaining:
-      args, remaining = ap.parse_known_args(remaining, namespace=args)
-      self.args = args
-    if not hasattr(self, 'args'):
-      self.args = ap.parse_args(arg)
+  def __init__(self, args = {}):
+    self.args = args
 
   def run(self):
     with env.use() as envdata:
@@ -117,51 +77,14 @@ class Application(object):
       if self.args.num:
         asys = asys[0:self.args.num]
 
-      if not len(asys):
-        print("")
-        print("No matching systems")
-        print("")
-      else:
-        indent = 8
-        cow = ColumnObjectWriter(3, ['<', '>', '<'])
         stations = {}
         if self.args.list_stations:
           stations = envdata.find_stations(asys)
 
-        distances = { d['sysobj'].name: { s.name: s.distance_to(d['sysobj']) for s in asys } for d in self.args.system }
-        print("")
-        print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in self.args.system])))
-        print("")
         for i in range(0, len(asys)):
-          cow.add([
-            '    {}'.format(asys[i].name),
-            '{} '.format(Lightyears(distances[self.args.system[0]['sysobj'].name][asys[i].name]).to_string(True)) if len(self.args.system) == 1 else '',
-            asys[i].arrival_star.to_string(True)
-          ])
-          if self.args.list_stations:
-            stlist = stations.get(asys[i], [])
-            stlist.sort(key=lambda t: t.distance if t.distance else 0.0)
-            for stn in stlist:
-              cow.add([
-                '{}{}'.format(' ' * indent, stn.name),
-                '({})'.format(str(Lightseconds(stn.distance)) if stn.distance is not None else '???'),
-                stn.station_type if stn.station_type is not None else '???'
-              ])
-        cow.add(['', '', ''])
-        if len(self.args.system) > 1:
-          for d in self.args.system:
-            cow.add(["  Distance from {0}:".format(d['system']), '', ''])
-            cow.add(['', '', ''])
-            asys.sort(key=lambda t: t.distance_to(d['sysobj']))
-            for i in range(0, len(asys)):
-              # Print distance from the current candidate system to the current start system
-              cow.add([
-                '    {}'.format(asys[i].name),
-                '{} '.format(Lightyears(distances[self.args.system[0]['sysobj'].name][asys[i].name]).to_string(True)),
-                asys[i].arrival_star.to_string(True)
-              ])
-            cow.add(['', '' ,''])
-        cow.out()
+          stnlist = stations.get(asys[i], [])
+          stnlist.sort(key=lambda t: t.distance if t.distance else 0.0)
+          yield Result(system = asys[i], distances = { d['sysobj'].name: Lightyears(asys[i].distance_to(d['sysobj'])) for d in self.args.system }, stations = stnlist)
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
     for d in starts:

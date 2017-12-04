@@ -1,11 +1,9 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import argparse
-import math
-import sys
 from . import env
 from . import calc
+from . import ship
 from . import ship
 from . import routing as rx
 from . import util
@@ -13,99 +11,50 @@ from . import solver
 from .cow import ColumnObjectWriter
 from .dist import Lightseconds, Lightyears
 from .station import Station
+from .opaque_types import Fuel, Jumps, Location, WaypointTime, Waypoint
 
 app_name = "edts"
 
 log = util.get_logger(app_name)
 
+class Result(object):
+  def __init__(self, **args):
+    self.destination = args.get('destination')
+    self.origin = args.get('origin', self.destination)
+    self.distance = args.get('distance', Lightyears(0))
+    self.obscured = args.get('obscured', False)
+    self.behind = args.get('behind', False)
+    self.fuel = args.get('fuel', Fuel())
+    self.fuel_percent = args.get('fuel_percent', Fuel())
+    self.jumps = args.get('jumps', Jumps())
+    self.is_long = args.get('is_long', False)
+    self.ok = args.get('ok', True)
+    self.summary = args.get('summary', False)
+    self.waypoint = args.get('waypoint', False)
 
 class Application(object):
 
-  def __init__(self, arg, hosted, state = {}):
-    ap_parents = [env.arg_parser] if not hosted else []
-    ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=ap_parents, prog = app_name)
-    ap.add_argument(      "--ship", metavar="filename", type=str, required=False, help="Load ship data from export file")
-    ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
-    ap.add_argument("-b", "--boost", type=str.upper, choices=['0', '1', '2', '3', 'D', 'N'], help="FSD boost level (0 for none, D for white dwarf, N for neutron")
-    ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
-    ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
-    ap.add_argument("-T", "--reserve-tank", type=float, required=False, help="The ship's reserve tank size")
-    ap.add_argument(      "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
-    ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo to collect at each station")
-    ap.add_argument("-C", "--initial-cargo", type=int, default=0, help="Cargo already carried at the start of the journey")
-    ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
-    ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
-    ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including %% sign)")
-    ap.add_argument("-j", "--jump-range", type=float, required=False, help="The ship's max jump range with full fuel and empty cargo")
-    ap.add_argument("-w", "--witchspace-time", type=int, default=calc.default_ws_time, help="Time in seconds spent in hyperspace jump")
-    ap.add_argument("-s", "--start", type=str, required=True, help="The starting station, in the form 'system/station' or 'system'")
-    ap.add_argument("-e", "--end", type=str, required=True, help="The end station, in the form 'system/station' or 'system'")
-    ap.add_argument("-n", "--num-jumps", default=None, type=int, help="The number of stations to visit, not including the start/end")
-    ap.add_argument("-p", "--pad-size", default="M", type=str.upper, choices=['S','M','L'], help="The landing pad size of the ship (S/M/L)")
-    ap.add_argument("-d", "--jump-decay", type=float, default=0.0, help="An estimate of the range decay per jump in LY (e.g. due to taking on cargo)")
-    ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
-    ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
-    ap.add_argument("-O", "--tour", metavar="system[/station]", action='append', type=str, nargs='*', help="Following stations must be visited in order")
-    ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
-    ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=rx.default_route_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
-    ap.add_argument("-x", "--avoid", metavar='system', action='append', type=str, nargs='?', help="Reject routes that pass through named system(s)")
-    ap.add_argument("--format", default='long', type=str.lower, choices=['long','summary','short','csv'], help="The format to display the output in")
-    ap.add_argument("--reverse", default=False, action='store_true', help="Whether to reverse the generated route")
-    ap.add_argument("--jump-time", type=float, default=calc.default_jump_time, help="Seconds taken per hyperspace jump")
-    ap.add_argument("--diff-limit", type=float, default=1.5, help="The multiplier of the fastest route which a route must be over to be discounted")
-    ap.add_argument("--slf", type=float, default=calc.default_slf, help="The multiplier to apply to multi-jump legs to account for imperfect system positions")
-    ap.add_argument("--route-strategy", default=rx.default_route_strategy, choices=rx.route_strategies, help="The strategy to use for route plotting")
-    ap.add_argument("--fuel-strategy", default=rx.default_fuel_strategy, choices=rx.fuel_strategies, help="The strategy to use for refueling")
-    ap.add_argument("--rbuffer", type=float, default=rx.default_rbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid stars for routing")
-    ap.add_argument("--hbuffer", type=float, default=rx.default_hbuffer_ly, help="A minimum buffer distance, in LY, used to search for valid next legs. Not used by the 'astar' strategy.")
-    ap.add_argument("--solve-mode", type=str, default=solver.CLUSTERED, choices=solver.modes, help="The mode used by the travelling salesman solver")
-    ap.add_argument("--tolerance", type=float, default=5, help="Tolerance checking for obscured jumps")
-    ap.add_argument("stations", metavar="system[/station]", nargs="*", help="A station to travel via, in the form 'system/station' or 'system'")
-    self.args = ap.parse_args(arg)
+  def __init__(self, args = {}):
+    self.args = args
+    self.ship = self.args.ship
 
     if self.args.tolerance is not None:
       if self.args.tolerance < 0 or self.args.tolerance > 100:
-        log.error("Tolerance must be in range 0 to 100 (percent)!")
-        sys.exit(1)
+        raise RuntimeError("Tolerance must be in range 0 to 100 (percent)!")
 
-    if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
-      # If user has provided full ship data in this invocation, use it
-      # TODO: support cargo capacity?
-      self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
-      if self.args.fsd_optmass is not None or self.args.fsd_mass is not None or self.args.fsd_maxfuel is not None:
-        fsd_optmass = util.parse_number_or_add_percentage(self.args.fsd_optmass, self.ship.fsd.stock_optmass)
-        fsd_mass = util.parse_number_or_add_percentage(self.args.fsd_mass, self.ship.fsd.stock_mass)
-        fsd_maxfuel = util.parse_number_or_add_percentage(self.args.fsd_maxfuel, self.ship.fsd.stock_maxfuel)
-        self.ship = self.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
-    elif self.args.ship:
-      loaded = ship.Ship.from_file(self.args.ship)
-      fsd = self.args.fsd if self.args.fsd is not None else loaded.fsd
-      mass = self.args.mass if self.args.mass is not None else loaded.mass
-      tank = self.args.tank if self.args.tank is not None else loaded.tank_size
-      reserve_tank = self.args.reserve_tank if self.args.reserve_tank is not None else loaded.reserve_tank
-      self.ship = ship.Ship(fsd, mass, tank, reserve_tank = reserve_tank)
-    elif 'ship' in state:
-      # If we have a cached ship, use that (with any overrides provided as part of this invocation)
-      fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
-      mass = self.args.mass if self.args.mass is not None else state['ship'].mass
-      tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
-      reserve_tank = self.args.reserve_tank if self.args.reserve_tank is not None else state['ship'].reserve_tank
-      self.ship = ship.Ship(fsd, mass, tank, reserve_tank = reserve_tank)
-    else:
-      # No ship is fine as long as we have a static jump range set
-      if self.args.jump_range is None:
-        log.error("Error: You must specify --ship or all of --fsd, --mass and --tank and/or --jump-range.")
-        sys.exit(1)
-      else:
-        self.ship = None
     if self.ship is not None:
       if self.args.boost:
         self.ship.supercharge(self.args.boost)
       log.debug(str(self.ship))
     else:
+      # No ship is fine as long as we have a static jump range set
+      if self.args.jump_range is None:
+        raise RuntimeError("Error: You must specify --ship or all of --fsd, --mass and --tank and/or --jump-range.")
+      else:
+        self.ship = None
+
       if self.args.boost:
-        log.error("Error: FSD boost requires --ship or all of --fsd, --mass and --tank.")
-        sys.exit(1)
+        raise RuntimeError("Error: FSD boost requires --ship or all of --fsd, --mass and --tank.")
       log.debug("Static jump range {0:.2f}LY", self.args.jump_range)
 
     self.starting_fuel = self.args.starting_fuel
@@ -193,16 +142,8 @@ class Application(object):
     if self.args.reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
 
-    totaldist = 0.0
-    totaldist_sl = 0.0
-    totaljumps_min = 0
-    totaljumps_max = 0
-    totalsc = 0
-    totalsc_accurate = True
-
     output_data = []
     total_fuel_cost = 0.0
-    total_fuel_cost_exact = True
 
     if route is not None and len(route) > 0:
       output_data.append({'src': route[0].to_string()})
@@ -233,19 +174,8 @@ class Application(object):
             cur_data['jumpcount_max'] = route_jcount
           else:
             log.warning("No valid route found for leg: {0} --> {1}", route[i-1].system_name, route[i].system_name)
-            total_fuel_cost_exact = False
-        else:
-          total_fuel_cost_exact = False
 
         cur_data['legsldist'] = route[i-1].distance_to(route[i])
-        totaldist_sl += cur_data['legsldist']
-        totaljumps_min += cur_data['jumpcount_min']
-        totaljumps_max += cur_data['jumpcount_max']
-        if route[i].distance is not None and route[i].distance != 0:
-          totalsc += route[i].distance
-        elif route[i].name is not None:
-          # Only say the SC time is inaccurate if it's actually a *station* we don't have the distance for
-          totalsc_accurate = False
 
         cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
         if self.args.route and leg_route is not None:
@@ -258,13 +188,17 @@ class Application(object):
             fuel_cost = None
             min_tank = None
             max_tank = None
+            initial_fuel = None
+            final_fuel = None
             if cur_fuel is not None:
               fuel_cost = min(self.ship.cost(ldist, cur_fuel), self.ship.fsd.maxfuel)
               min_tank, max_tank = self.ship.fuel_weight_range(ldist, self.args.initial_cargo + self.args.cargo * (i-1))
               if max_tank is not None and max_tank >= self.ship.tank_size:
                 max_tank = None
               total_fuel_cost += fuel_cost
+              initial_fuel = cur_fuel
               cur_fuel -= fuel_cost
+              final_fuel = cur_fuel
               # TODO: Something less arbitrary than this?
               if cur_fuel < 0:
                 cur_fuel = self.ship.tank_size if self.ship is not None else self.args.tank
@@ -272,252 +206,75 @@ class Application(object):
             cur_data['leg_route'].append({
                 'is_long': is_long, 'ldist': ldist,
                 'src': Station.none(leg_route[j-1]), 'dst': Station.none(leg_route[j]),
-                'fuel_cost': fuel_cost, 'min_tank': min_tank, 'max_tank': max_tank
+                'fuel_cost': fuel_cost, 'min_tank': min_tank, 'max_tank': max_tank,
+                'initial_fuel': initial_fuel, 'final_fuel': final_fuel,
+                'fuel_cost_percent': self.ship.refuel_percent(fuel_cost),
+                'min_tank_percent': self.ship.refuel_percent(min_tank),
+                'max_tank_percent': self.ship.refuel_percent(max_tank) if max_tank is not None else None,
+                'initial_fuel_percent': self.ship.refuel_percent(initial_fuel),
+                'final_fuel_percent': self.ship.refuel_percent(final_fuel)
             })
-          totaldist += cur_data['legdist']
 
         if route[i].name is not None:
-          cur_data['sc_time'] = "{0:.0f}".format(calc.sc_time(route[i].distance)) if (route[i].distance is not None and route[i].distance != 0) else "???"
+          cur_data['sc_time'] = calc.sc_time(route[i].distance) if (route[i].distance is not None and route[i].distance != 0) else None
+          cur_data['sc_time_accurate'] = (cur_data['sc_time'] is not None)
+        else:
+          cur_data['sc_time'] = None
+          cur_data['sc_time_accurate'] = True
+        cur_data['jump_time_min'] = calc.route_time([Station.none(route[i-1]), Station.none(route[i])], cur_data['jumpcount_min'], witchspace_time = self.args.witchspace_time)
+        cur_data['jump_time_max'] = cur_data['jump_time_min'] if cur_data['jumpcount_max'] == cur_data['jumpcount_min'] else calc.route_time([Station.none(route[i-1]), Station.none(route[i])], cur_data['jumpcount_max'], witchspace_time = self.args.witchspace_time)
         # Add current route to list
         output_data.append(cur_data)
 
       log.debug("All solving/routing finished after {}", util.format_timer(timer))
 
-      # Get suitably formatted ETA string
-      est_time_min = calc.route_time(route, totaljumps_min, witchspace_time=self.args.witchspace_time)
-      est_time_min_m = math.floor(est_time_min / 60)
-      est_time_min_s = int(est_time_min) % 60
-      est_time_str = "{0:.0f}:{1:02.0f}".format(est_time_min_m, est_time_min_s)
-      if totaljumps_min != totaljumps_max:
-        est_time_max = calc.route_time(route, totaljumps_max, witchspace_time=self.args.witchspace_time)
-        est_time_max_m = math.floor(est_time_max / 60)
-        est_time_max_s = int(est_time_max) % 60
-        est_time_str += " - {0:.0f}:{1:02.0f}".format(est_time_max_m, est_time_max_s)
-
-      totaljumps_str = "{0:d}".format(totaljumps_max) if totaljumps_min == totaljumps_max else "{0:d} - {1:d}".format(totaljumps_min, totaljumps_max)
-
-      print_summary = True
-
-      if self.args.format in ['long','summary']:
-        show_cruise = any([hop.name for hop in route])
-        headings = ['', '', 'Distance', '', 'System']
-        padding = ['<', '<', '>', '<', '<']
-        intra = [' ', ' ', ' ', ' ']
-        if show_cruise:
-          headings += ['Cruise', '', '']
-          padding += ['>', '>', '<']
-          intra += ['   ', '   ', ' ', ' ']
+      summary = not self.args.route
+      directions = [None, output_data[1]['src'].system, output_data[1]['dst'].system]
+      for i in range(1, len(route)):
+        od = output_data[i]
+        wp = Waypoint(direct = Lightyears(od['legsldist']), distance = Lightyears(od['legsldist']), jumps = Jumps(min = od['jumpcount_min'], max = od['jumpcount_max']), time = WaypointTime(accurate = od['sc_time_accurate'], cruise = od['sc_time'], jumps = Jumps(min = od['jump_time_min'], max = od['jump_time_max'])))
+        if i == 1:
+          yield Result(
+            origin = Location(system = od['src'].system, station = od['src'] if od['src'].name is not None else None),
+            destination = Location(system = od['src'].system, station = od['src'] if od['src'].name is not None else None),
+            summary = summary,
+            waypoint = Waypoint()
+          )
+        if 'leg_route' in od:
+          last_leg = len(od['leg_route']) - 1
+          for j in range(0, len(od['leg_route'])):
+            ld = od['leg_route'][j]
+            if j == last_leg:
+              waypoint = wp
+              waypoint.distance = Lightyears(od['legdist'])
+              destination_station = od['dst']
+            else:
+              waypoint = None
+              destination_station = ld['dst']
+            if j == 0:
+              origin_station = od['src']
+            else:
+              origin_station = ld['src']
+            if j < last_leg - 1:
+              nd = od['leg_route'][j + 1]
+              directions = [directions[1], nd['src'].system, nd['dst'].system]
+            else:
+              directions = [directions[1], ld['dst'].system, route[i].system]
+            direction = self.direction_hint(*directions) if all(directions) else ''
+            yield Result(
+              origin = Location(system = ld['src'].system, station = origin_station if origin_station.name is not None else None),
+              destination = Location(system = ld['dst'].system, station = destination_station if destination_station.name is not None else None),
+              distance = Lightyears(ld['ldist']),
+              direct = ldist,
+              fuel = Fuel(min = ld['min_tank'], max = ld['max_tank'], cost = ld['fuel_cost'], initial = ld['initial_fuel'], final = ld['final_fuel']),
+              fuel_percent = Fuel(min = ld['min_tank_percent'], max = ld['max_tank_percent'], cost = ld['fuel_cost_percent'], initial = ld['initial_fuel_percent'], final = ld['final_fuel_percent']),
+              is_long = ld['is_long'],
+              waypoint = waypoint,
+              obscured = (direction == 'X'),
+              behind = (direction == 'o')
+            )
         else:
-          intra += [' ']
-        headings += ['']
-        padding += ['<']
-        intra += ['   ']
-        if self.ship is not None and self.args.route:
-          headings += ['Fuel', 'Fuel', 'range']
-          padding += ['<', '>', '<']
-          intra += ['   ', ' ', '   ']
-        headings += ['Hop', 'dist.']
-        padding += ['>', '<']
-        intra += [' ']
-        cow = ColumnObjectWriter(len(headings), padding, intra)
-        cow.add(headings)
-        cow.add([])
-        row = [
-          '', # Obscured
-          '', # Long
-          '', # Distance
-          '>',
-          route[0].system_name
-        ]
-        if show_cruise:
-          row += [
-            Lightseconds(route[0].distance).to_string() if route[0].distance is not None else '',
-            '', # Cruise time
-            '{}{}'.format(route[0].name if route[0].name is not None else '', ' ({})'.format(route[0].station_type) if route[0].station_type is not None else '')
-          ]
-        row += ['<']
-        cow.add(row)
-        directions = [None, output_data[1]['src'].system, output_data[1]['dst'].system]
-
-        # For each leg (not including start point)
-        for i in range(1, len(route)):
-          od = output_data[i]
-          if self.args.format == 'long' and 'leg_route' in od:
-            # For every jump except the last...
-            for j in range(0, len(od['leg_route'])-1):
-              ld = od['leg_route'][j]
-              if j < len(od['leg_route']) - 2:
-                nd = od['leg_route'][j + 1]
-                directions = [directions[1], nd['src'].system, nd['dst'].system]
-              else:
-                directions = [directions[1], ld['dst'].system, route[i].system]
-              cow.add([self.direction_hint(*directions) if all(directions) else ''] + self.format_leg(ld, None, show_cruise))
-            # For the last jump...
-            ld = od['leg_route'][-1]
-            if i < len(route) - 1:
-              nd = output_data[i + 1]
-              if len(nd['leg_route']) > 1:
-                directions = [directions[1], directions[2], nd['leg_route'][0]['dst'].system]
-              else:
-                directions = [directions[1], directions[2], route[i + 1].system]
-            else:
-              directions = [None, None, None]
-            cow.add([self.direction_hint(*directions) if all(directions) else ''] + self.format_leg(ld, od, show_cruise))
-          else:
-            fuel_fewest = None
-            fuel_most = None
-            if self.ship is not None:
-              # Estimate fuel cost assuming average jump size and full tank.
-              fuel_fewest = self.ship.cost(od['legsldist'] / max(0.001, float(od['jumpcount_min']))) * int(od['jumpcount_min'])
-              fuel_most = self.ship.cost(od['legsldist'] / max(0.001, float(od['jumpcount_max']))) * int(od['jumpcount_max'])
-              total_fuel_cost += max(fuel_fewest, fuel_most)
-            row = ['', '', Lightyears(od['legsldist']).to_string(True), '>', od['dst'].system_name]
-            if show_cruise:
-              row += self.format_cruise(od)
-            else:
-              row += ['<']
-            fuel_str = ""
-            if self.ship is not None:
-              if od['jumpcount_min'] == od['jumpcount_max']:
-                fuel_str = " [{0:.2f}T{1}]".format(fuel_fewest, '+' if od['jumpcount_min'] > 1 else '')
-              else:
-                fuel_str = " [{0:.2f}T+ - {1:.2f}T+]".format(min(fuel_fewest, fuel_most), max(fuel_fewest, fuel_most))
-            if od['jumpcount_min'] == od['jumpcount_max']:
-              row += [od['jumpcount_min'], 'jump{}'.format('' if od['jumpcount_min'] == 1 else 's')]
-            else:
-              row += ['{} - {}'.format(od['jumpcount_min'], od['jumpcount_max']), 'jumps']
-            cow.add(row)
-        print("")
-        cow.out()
-
-      elif self.args.format == 'short':
-        print("")
-        sys.stdout.write(str(route[0]))
-        for i in range(1, len(route)):
-          od = output_data[i]
-          if 'leg_route' in od:
-            for j in range(0, len(od['leg_route'])):
-              ld = od['leg_route'][j]
-              sys.stdout.write(", {0}".format(str(ld['dst'])))
-          else:
-            sys.stdout.write(", {0}".format(str(od['dst'])))
-        print("")
-
-      elif self.args.format == 'csv':
-        print("{0},{1},{2},{3},".format(
-              route[0].system_name,
-              route[0].name if route[0].name is not None else '',
-              0.0,
-              route[0].distance if route[0].uses_sc and route[0].distance is not None else 0))
-        directions = [None, output_data[1]['src'].system, output_data[1]['dst'].system]
-        for i in range(1, len(route)):
-          od = output_data[i]
-          if 'leg_route' in od:
-            for j in range(0, len(od['leg_route'])-1):
-              ld = od['leg_route'][j]
-              if j < len(od['leg_route']) - 2:
-                nd = od['leg_route'][j + 1]
-                directions = [directions[1], nd['src'].system, nd['dst'].system]
-              else:
-                directions = [directions[1], ld['dst'].system, route[i].system]
-              print("{0},{1},{2},{3},{4}".format(
-                    ld['dst'].system_name,
-                    ld['dst'].name if ld['dst'].name is not None else '',
-                    ld['ldist'],
-                    ld['dst'].distance if ld['dst'].uses_sc and ld['dst'].distance is not None else 0,
-                    self.direction_hint(*directions) if all(directions) else ''))
-            ld = od['leg_route'][-1]
-            if i < len(route) - 1:
-              nd = output_data[i + 1]
-              if len(nd['leg_route']) > 1:
-                directions = [directions[1], directions[2], nd['leg_route'][0]['dst'].system]
-              else:
-                directions = [directions[1], directions[2], route[i + 1].system]
-            else:
-              directions = [None, None, None]
-            print("{0},{1},{2},{3},{4}".format(
-                  od['dst'].system_name,
-                  od['dst'].name if od['dst'].name is not None else '',
-                  ld['ldist'],
-                  od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0,
-                  self.direction_hint(*directions) if all(directions) else ''))
-          else:
-            print("{0},{1},{2},{3},".format(
-                  od['dst'].system_name,
-                  od['dst'].name if od['dst'].name is not None else '',
-                  od['legsldist'],
-                  od['dst'].distance if od['dst'].uses_sc and od['dst'].distance is not None else 0))
-        print_summary = False
-
-      if print_summary:
-        totaldist_str = "{0:.2f}LY ({1:.2f}LY)".format(totaldist, totaldist_sl) if totaldist >= totaldist_sl else "{0:.2f}LY".format(totaldist_sl)
-        fuel_str = "; fuel cost: {0:.2f}T{1}".format(total_fuel_cost, '+' if not total_fuel_cost_exact else '') if total_fuel_cost else ''
-        print("")
-        print("Total distance: {0}; total jumps: {1}".format(totaldist_str, totaljumps_str))
-        print("Total SC distance: {0:d}Ls{1}; ETT: {2}{3}".format(totalsc, "+" if not totalsc_accurate else "", est_time_str, fuel_str))
-        print("")
-
-    else:
-      print("")
-      print("No viable route found :(")
-      print("")
-
-  def format_cruise(self, od):
-    if od['dst'].name is not None:
-      return [
-        '{}'.format(Lightseconds(od['dst'].distance).to_string(True) if od['dst'].distance is not None else '???'),
-        '~{}s'.format(od['sc_time'] if 'sc_time' in od else ''),
-        '{}{}'.format(od['dst'].name, ' ({})'.format(od['dst'].station_type) if od['dst'].station_type is not None else ''),
-        '<'
-      ]
-    else:
-      return ['', '', '', '<']
-
-  def format_leg(self, ld, od = None, show_cruise = True):
-    row = [
-      '!' if ld['is_long'] else '',
-      Lightyears(ld['ldist']).to_string(True),
-      '>' if od is not None else '',
-      ld['dst'].system_name
-    ]
-    if od is not None:
-      if show_cruise:
-        row += self.format_cruise(od)
-      else:
-        row += ['<']
-    else:
-      if show_cruise:
-        row += ['', '', '', '']
-      else:
-        row += ['']
-    if self.ship is not None:
-      row.append('{:.2f}T'.format(ld['fuel_cost']))
-      if ld['max_tank'] is not None:
-        row += [
-        '{:.2f}-{:.2f}T'.format(
-          ld['min_tank'],
-          ld['max_tank']
-        ),
-        '({:d}-{:d}%)'.format(
-          int(100.0*ld['min_tank']/self.ship.tank_size),
-          int(100.0*ld['max_tank']/self.ship.tank_size)
-        )
-      ]
-      elif ld['min_tank'] is not None:
-        row += [
-          '{:.2f}T'.format(ld['min_tank']),
-          '({:d}%) +'.format(int(100.0*ld['min_tank']/self.ship.tank_size))
-        ]
-      else:
-        row += ['', '']
-    if od is not None:
-      row += [
-        Lightyears(od['legdist']).to_string(True),
-        'for ' + Lightyears(od['legsldist']).to_string(True),
-      ]
-    else:
-      row += ['', '']
-    return row
+          yield Result(origin = Location(system = od['src'].system, station = od['src'] if od['src'].name is not None else None), destination = Location(system = od['dst'].system, station = od['dst'] if od['dst'].name is not None else None), distance = wp.direct, fuel = None, summary = summary, waypoint = wp)
 
   def direction_hint(self, reference, src, dst):
     v = (src.position - reference.position).get_normalised()
