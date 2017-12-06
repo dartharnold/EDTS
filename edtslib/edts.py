@@ -257,7 +257,7 @@ class Application(object):
             })
 
         if route[i].name is not None:
-          cur_data['sc_time'] = calc.sc_time(route[i].distance) if (route[i].distance is not None and route[i].distance != 0) else None
+          cur_data['sc_time'] = calc.sc_time(route[i].distance.lightseconds) if (route[i].distance.lightseconds is not None and route[i].distance.lightseconds != 0) else None
           cur_data['sc_time_accurate'] = (cur_data['sc_time'] is not None)
         else:
           cur_data['sc_time'] = None

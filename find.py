@@ -3,7 +3,6 @@
 from __future__ import print_function
 import argparse
 from edtslib.cow import ColumnObjectWriter
-from edtslib.dist import Lightseconds
 from edtslib import env
 from edtslib import find
 
@@ -52,7 +51,7 @@ def run(args, hosted = False, state = {}):
       for stn in entry.stations:
         cow.add([
           '{}{}'.format(' ' * indent, stn.name),
-          '({})'.format(str(Lightseconds(stn.distance)) if stn.distance is not None else '???'),
+          '({})'.format(stn.distance.to_string() if stn.distance is not None else '???'),
           stn.station_type if stn.station_type is not None else '???'
         ])
       cow.out()
@@ -72,7 +71,7 @@ def run(args, hosted = False, state = {}):
         '',
         entry.station.system.name,
         '{}{}'.format(entry.station.name, id),
-        Lightseconds(entry.station.distance).to_string(True) if entry.station.distance is not None else '???',
+        entry.station.distance.to_string() if entry.station.distance is not None else '???',
         entry.station.station_type if entry.station.station_type is not None else '???'
       ])
     cow.out()

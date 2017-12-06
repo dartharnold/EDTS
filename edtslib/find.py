@@ -5,6 +5,7 @@ import fnmatch
 import re
 import sys
 
+from .dist import Lightseconds, Metres
 from .opaque_types import Opaq
 from . import env
 from . import filtering
@@ -66,7 +67,7 @@ class Application(object):
       for system in sys_matches:
         if self._list_stations:
           stations = envdata.find_stations(sys_matches).get(system)
-          stations.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
+          stations.sort(key=lambda t: (t.distance if t.distance else Metres(sys.maxsize)))
         else:
           stations = []
         yield Result(system = system, stations = stations)

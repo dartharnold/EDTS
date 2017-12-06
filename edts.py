@@ -3,7 +3,6 @@
 from __future__ import print_function
 import argparse
 from edtslib.cow import ColumnObjectWriter
-from edtslib.dist import Lightseconds
 from edtslib import calc
 from edtslib import edts
 from edtslib import env
@@ -105,7 +104,7 @@ def format_leg(entry, show_cruise = False, show_route = False):
   if show_cruise:
     if entry.destination.station is not None:
       row += [
-        Lightseconds(entry.destination.station.distance).to_string(True) if entry.destination.station.distance is not None else '???',
+        entry.destination.station.distance.to_string() if entry.destination.station.distance is not None else '???',
         '~{}s'.format(int(entry.waypoint.time.cruise)) if entry.waypoint is not None else '',
         entry.destination.station.name,
         entry.destination.station.station_type if entry.destination.station.station_type is not None else ''
@@ -202,7 +201,7 @@ def run(args, hosted = False, state = {}):
     ]
     if show_cruise:
       row += [
-        Lightseconds(origin.station.distance).to_string() if origin.station is not None and origin.station.distance is not None else '',
+        origin.station.distance.to_string() if origin.station is not None and origin.station.distance is not None else '',
         '', # Cruise time
         origin.station.name if origin.station is not None else '',
         origin.station.station_type if origin.station is not None and origin.station.station_type is not None else ''
@@ -217,7 +216,7 @@ def run(args, hosted = False, state = {}):
       origin.system.name,
       origin.station.name if origin.station is not None else '',
       str(0.0),
-      str(origin.station.distance) if origin.station is not None and origin.station.distance is not None else '',
+      origin.station.distance.to_string() if origin.station is not None and origin.station.distance is not None else '',
       ''
     ]))
     print_summary = False
@@ -240,7 +239,7 @@ def run(args, hosted = False, state = {}):
       totalsc_accurate &= entry.waypoint.time.accurate
       if entry.destination.station is not None:
         if entry.destination.station.distance is not None:
-          totalsc += entry.destination.station.distance
+          totalsc += entry.destination.station.distance.lightseconds
       if entry.waypoint.time.jumps is not None:
         est_time_min += entry.waypoint.time.jumps.min
         est_time_max += entry.waypoint.time.jumps.max
