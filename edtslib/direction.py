@@ -26,7 +26,7 @@ class Result(object):
 
 class Application(object):
 
-  def __init__(self, args):
+  def __init__(self, **args):
     self._check = args.get('check')
     self._normal = args.get('normal')
     self._tolerance = args.get('tolerance')
@@ -50,6 +50,8 @@ class Application(object):
         if reference is None:
           log.error("Could not find reference system \"{0}\"!", self._reference)
           return
+      else:
+        reference = None
 
       a, b = [systems[y].position for y in self._systems]
       entry = Result(origin = Location(system = a), destination = Location(system = b), reference = Location(system = reference))
@@ -76,6 +78,6 @@ class Application(object):
           log.debug("Normalising {0}", v)
           entry.direction = v.get_normalised()
           entry.normalised = True
-        else:
+        elif reference is not None:
           entry.angle = v.angle_to(a - reference.position)
       yield entry
