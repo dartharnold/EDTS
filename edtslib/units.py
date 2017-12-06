@@ -25,16 +25,16 @@ class Application(object):
     self._suffix = args.get('suffix')
 
     if self._suffix is None:
-      m = re.match(r'^([0-9.]+)(.*)?', self._distance)
+      m = re.match(r'^([0-9.]+)(.*)?', str(self._distance))
       if m is not None:
         if len(m.groups()) > 1:
           suffix = m.group(2).lower()
-          for choice in Dist.SUFFICES:
-            if choice.lower() == suffix:
-              self._suffix = choice
-          if self._suffix is None:
-            log.error('Invalid suffix: {}', suffix)
-            return False
+          if suffix:
+              for choice in Dist.SUFFICES:
+                if choice.lower() == suffix:
+                  self._suffix = choice
+              if self._suffix is None:
+                raise RuntimeError('Invalid suffix: {}', suffix)
           self._distance = m.group(1)
     self._distance = float(self._distance)
 

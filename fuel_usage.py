@@ -17,7 +17,7 @@ def parse_args(arg, hosted, state):
   ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
   ap.add_argument("-T", "--reserve-tank", type=float, required=False, help="The ship's reserve tank size")
   ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
-  ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
+  ap.add_argument("-c", "--cargo", type=int, default=fuel_usage.default_cargo, help="Cargo on board the ship")
   ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including % sign)")
   ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including % sign)")
   ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including % sign)")

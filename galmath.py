@@ -9,7 +9,7 @@ def parse_args(arg, hosted, state):
   ap = argparse.ArgumentParser(description = "Magic Number plotting for the Galactic Core", fromfile_prefix_chars="@", prog = galmath.app_name)
   ap.add_argument("-j", "--jump-range", required=('ship' not in state), type=float, help="The full jump range of the ship")
   ap.add_argument("-c", "--core-distance", required=True, type=float, help="Current distance from the centre of the core (Sagittarius A*) in kLY")
-  ap.add_argument("-d", "--distance", required=False, type=float, default=1000.0, help="The distance to travel")
+  ap.add_argument("-d", "--distance", required=False, type=float, default=galmath.default_distance, help="The distance to travel")
 
   parsed = ap.parse_args(arg)
 

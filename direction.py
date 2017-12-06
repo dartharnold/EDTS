@@ -12,8 +12,8 @@ def parse_args(arg, hosted, state):
   ap.add_argument("-a", "--angle", default=False, action='store_true', help="Return angle not vector")
   ap.add_argument("-c", "--check", default=False, action='store_true', help="Check if second system is in the same direction as the first from the reference")
   ap.add_argument("-n", "--normal", default=False, action='store_true', help="Return normalised direction vector")
-  ap.add_argument("-r", "--reference", metavar="system", nargs='?', default="Sol", help="Reference system for angle calculation")
-  ap.add_argument("-t", "--tolerance", type=float, default=5, help="Tolerance in percent for --check")
+  ap.add_argument("-r", "--reference", metavar="system", nargs='?', default=direction.default_reference, help="Reference system for angle calculation")
+  ap.add_argument("-t", "--tolerance", type=float, default=direction.default_tolerance, help="Tolerance in percent for --check")
   ap.add_argument("systems", metavar="system", nargs=2, help="Systems")
 
   return ap.parse_args(arg)

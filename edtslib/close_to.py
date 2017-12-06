@@ -12,6 +12,7 @@ app_name = "close_to"
 
 log = util.get_logger(app_name)
 
+default_num = 10
 default_max_angle = 15.0
 
 class Result(object):
@@ -29,7 +30,7 @@ class Application(object):
     self._direction_angle = args.get('direction_angle')
     self._list_stations = args.get('list_stations')
     self._max_sc_distance = args.get('max_sc_distance')
-    self._num = args.get('num')
+    self._num = args.get('num', default_num)
     self._pad_size = args.get('pad_size')
     self._systems = args.get('systems')
 

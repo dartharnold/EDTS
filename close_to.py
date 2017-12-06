@@ -31,7 +31,7 @@ class ApplicationAction(argparse.Action):
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
   ap = argparse.ArgumentParser(description = "Find Nearby Systems", fromfile_prefix_chars="@", parents = ap_parents, prog = close_to.app_name)
-  ap.add_argument("-n", "--num", type=int, required=False, default=10, help="Show the specified number of nearby systems")
+  ap.add_argument("-n", "--num", type=int, required=False, default=close_to.default_num, help="Show the specified number of nearby systems")
   ap.add_argument("-d", "--min-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems less than this distance from reference")
   ap.add_argument("-m", "--max-dist", type=float, required=False, action=ApplicationAction, help="Exclude systems further this distance from reference")
   ap.add_argument("-S", "--arrival-star", type=str, required=False, help="Only show systems with arrival star of the given class(es)")

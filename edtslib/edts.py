@@ -17,6 +17,20 @@ app_name = "edts"
 
 log = util.get_logger(app_name)
 
+default_cargo = 0
+default_diff_limit = 1.5
+default_fuel_strategy = rx.default_fuel_strategy
+default_hbuffer = rx.default_hbuffer_ly
+default_initial_cargo = 0
+default_jump_decay = 0.0
+default_pad_size = 'M'
+default_rbuffer = rx.default_rbuffer_ly
+default_route_strategy = rx.default_route_strategy
+default_slf = calc.default_slf
+default_solve_mode = solver.CLUSTERED
+default_tolerance = 5
+default_ws_time = calc.default_ws_time
+
 class Result(object):
   def __init__(self, **args):
     self.destination = args.get('destination')
@@ -37,32 +51,32 @@ class Application(object):
   def __init__(self, **args):
     self._avoid = args.get('avoid')
     self._boost = args.get('boost')
-    self._cargo = args.get('cargo')
-    self._diff_limit = args.get('diff_limit')
+    self._cargo = args.get('cargo', default_cargo)
+    self._diff_limit = args.get('diff_limit', default_diff_limit)
     self._end = args.get('end')
-    self._fuel_strategy = args.get('fuel_strategy')
-    self._hbuffer = args.get('hbuffer')
-    self._initial_cargo = args.get('initial_cargo')
-    self._jump_decay = args.get('jump_decay')
+    self._fuel_strategy = args.get('fuel_strategy', default_fuel_strategy)
+    self._hbuffer = args.get('hbuffer', default_hbuffer)
+    self._initial_cargo = args.get('initial_cargo', default_initial_cargo)
+    self._jump_decay = args.get('jump_decay', default_jump_decay)
     self._jump_range = args.get('jump_range')
     self._long_jumps = args.get('long_jumps')
     self._num_jumps = args.get('num_jumps')
     self._ordered = args.get('ordered')
-    self._pad_size = args.get('pad_size')
-    self._rbuffer = args.get('rbuffer')
+    self._pad_size = args.get('pad_size', default_pad_size)
+    self._rbuffer = args.get('rbuffer', default_rbuffer)
     self._reverse = args.get('reverse')
     self._route = args.get('route')
-    self._route_strategy = args.get('route_strategy')
-    self._slf = args.get('slf')
-    self._solve_mode = args.get('solve_mode')
+    self._route_strategy = args.get('route_strategy', default_route_strategy)
+    self._slf = args.get('slf', default_slf)
+    self._solve_mode = args.get('solve_mode', default_solve_mode)
     self._ship = args.get('ship')
     self._tank = args.get('tank')
     self._start = args.get('start')
     self._starting_fuel = args.get('starting_fuel')
-    self._stations = args.get('stations')
+    self._stations = args.get('stations', [])
     self._tour = args.get('tour')
-    self._tolerance = args.get('tolerance')
-    self._witchspace_time = args.get('witchspace_time')
+    self._tolerance = args.get('tolerance', default_tolerance)
+    self._witchspace_time = args.get('witchspace_time', default_ws_time)
 
     if self._tolerance is not None:
       if self._tolerance < 0 or self._tolerance > 100:
@@ -234,11 +248,11 @@ class Application(object):
                 'src': Station.none(leg_route[j-1]), 'dst': Station.none(leg_route[j]),
                 'fuel_cost': fuel_cost, 'min_tank': min_tank, 'max_tank': max_tank,
                 'initial_fuel': initial_fuel, 'final_fuel': final_fuel,
-                'fuel_cost_percent': self._ship.refuel_percent(fuel_cost),
-                'min_tank_percent': self._ship.refuel_percent(min_tank),
-                'max_tank_percent': self._ship.refuel_percent(max_tank) if max_tank is not None else None,
-                'initial_fuel_percent': self._ship.refuel_percent(initial_fuel),
-                'final_fuel_percent': self._ship.refuel_percent(final_fuel)
+                'fuel_cost_percent': self._ship.refuel_percent(fuel_cost) if self._ship is not None else None,
+                'min_tank_percent': self._ship.refuel_percent(min_tank) if self._ship is not None else None,
+                'max_tank_percent': self._ship.refuel_percent(max_tank) if self._ship is not None and max_tank is not None else None,
+                'initial_fuel_percent': self._ship.refuel_percent(initial_fuel) if self._ship is not None else None,
+                'final_fuel_percent': self._ship.refuel_percent(final_fuel) if self._ship is not None else None,
             })
 
         if route[i].name is not None:

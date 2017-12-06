@@ -11,6 +11,9 @@ app_name = "direction"
 
 log = util.get_logger(app_name)
 
+default_reference = 'Sol'
+default_tolerance = 5
+
 class Result(object):
   def __init__(self, **args):
     self.angle = args.get('angle')
@@ -18,11 +21,11 @@ class Result(object):
     self.check = args.get('check')
     self.opposite = args.get('opposite')
     self.deviation = args.get('deviation')
-    self.tolerance = args.get('tolerance', 0)
+    self.tolerance = args.get('tolerance', default_tolerance)
     self.normalised = args.get('normalised', False)
     self.origin = args.get('origin')
     self.destination = args.get('destination')
-    self.reference = args.get('reference')
+    self.reference = args.get('reference', default_reference)
 
 class Application(object):
 
@@ -54,7 +57,7 @@ class Application(object):
         reference = None
 
       a, b = [systems[y].position for y in self._systems]
-      entry = Result(origin = Location(system = a), destination = Location(system = b), reference = Location(system = reference))
+      entry = Result(origin = Location(system = a), destination = Location(system = b), reference = Location(system = reference) if reference is not None else None)
       if self._check:
         v = (a - reference.position).get_normalised()
         w = (b - reference.position).get_normalised()

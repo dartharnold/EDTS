@@ -11,6 +11,8 @@ app_name = "galmath"
 
 log = util.get_logger(app_name)
 
+default_distance = 1000.0
+
 class Result(object):
   def __init__(self, **args):
     self.core_distance = args.get('core_distance')
@@ -25,7 +27,7 @@ class Application(object):
 
   def __init__(self, **args):
     self._core_distance = args.get('core_distance')
-    self._distance = args.get('distance')
+    self._distance = args.get('distance', default_distance)
     self._jump_range = args.get('jump_range')
 
     if self._jump_range is None:

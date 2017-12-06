@@ -15,6 +15,8 @@ app_name = "fuel_usage"
 
 log = util.get_logger(app_name)
 
+default_cargo = 0
+
 class Result(object):
   def __init__(self, **args):
     self.origin = args.get('origin')
@@ -31,14 +33,14 @@ class Application(object):
 
   def __init__(self, **args):
     self._boost = args.get('boost')
-    self._cargo = args.get('cargo')
+    self._cargo = args.get('cargo', default_cargo)
     self._refuel = args.get('refuel')
     self._ship = args.get('ship')
     self._starting_fuel = args.get('starting_fuel')
     self._systems = args.get('systems')
 
     if self._ship is None:
-      raise RuntimeError("Error: You must specify --ship, all of --fsd, --mass and --tank, or have previously set a ship")
+      raise RuntimeError("Error: You must specify a ship")
 
     if self._boost:
       self._ship.supercharge(self._boost)
