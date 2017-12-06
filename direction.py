@@ -20,7 +20,7 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
-  for entry in direction.Application(parsed).run():
+  for entry in direction.Application(**vars(parsed)).run():
     if parsed.check:
       if entry.check:
         print('OK {:0.2f}% deviation'.format(entry.deviation))

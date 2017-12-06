@@ -148,7 +148,7 @@ def format_leg(entry, show_cruise = False, show_route = False):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
-  results = list(edts.Application(parsed).run())
+  results = list(edts.Application(**vars(parsed)).run())
 
   if not len(results):
     print("")

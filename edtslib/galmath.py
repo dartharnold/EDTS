@@ -23,19 +23,21 @@ class Result(object):
 
 class Application(object):
 
-  def __init__(self, args):
-    self.args = args
+  def __init__(self, **args):
+    self._core_distance = args.get('core_distance')
+    self._distance = args.get('distance')
+    self._jump_range = args.get('jump_range')
 
-    if self.args.jump_range is None:
+    if self._jump_range is None:
       raise RuntimeError('Jump range not provided')
 
   def run(self):
-    num_jumps = int(math.floor(self.args.distance / self.args.jump_range))
-    low_max_dist = num_jumps * self.args.jump_range
+    num_jumps = int(math.floor(self._distance / self._jump_range))
+    low_max_dist = num_jumps * self._jump_range
 
-    ans = low_max_dist - ((num_jumps / 4.0) + ((self.args.core_distance + 1) * 2.0))
+    ans = low_max_dist - ((num_jumps / 4.0) + ((self._core_distance + 1) * 2.0))
     inaccuracy = low_max_dist * 0.0025
 
-    log.debug("M = {0:.2f}, N = {1}, D = {2:.2f}", low_max_dist, num_jumps, self.args.core_distance)
+    log.debug("M = {0:.2f}, N = {1}, D = {2:.2f}", low_max_dist, num_jumps, self._core_distance)
 
-    yield Result(core_distance = Lightyears(self.args.core_distance * 1000), distance = Lightyears(self.args.jump_range), inaccuracy = Lightyears(inaccuracy), low_max_dist = Lightyears(low_max_dist), jump_range = Lightyears(self.args.jump_range), plot_min = Lightyears(ans - inaccuracy), plot_max = Lightyears(ans + inaccuracy))
+    yield Result(core_distance = Lightyears(self._core_distance * 1000), distance = Lightyears(self._jump_range), inaccuracy = Lightyears(inaccuracy), low_max_dist = Lightyears(low_max_dist), jump_range = Lightyears(self._jump_range), plot_min = Lightyears(ans - inaccuracy), plot_max = Lightyears(ans + inaccuracy))

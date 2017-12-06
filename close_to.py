@@ -10,7 +10,7 @@ from edtslib import env
 class ApplicationAction(argparse.Action):
   def __call__(self, parser, namespace, value, option_strings=None):
     n = vars(namespace)
-    system_list = n['system'] if n['system'] is not None else []
+    system_list = n['systems'] if n['systems'] is not None else []
     need_new = True
     i = 0
     while i < len(system_list):
@@ -21,12 +21,12 @@ class ApplicationAction(argparse.Action):
     if need_new:
       system_list.append({})
     d = system_list[i]
-    if self.dest == 'system':
+    if self.dest == 'systems':
       d['system'] = value[0]
     else:
       d[self.dest] = value
       setattr(namespace, self.dest, value)
-    setattr(namespace, 'system', system_list)
+    setattr(namespace, 'systems', system_list)
 
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
@@ -42,7 +42,7 @@ def parse_args(arg, hosted, state):
   ap.add_argument("--direction", type=str, required=False, help="A system or set of coordinates that returned systems must be in the same direction as")
   ap.add_argument("--direction-angle", type=float, required=False, default=close_to.default_max_angle, help="The maximum angle, in degrees, allowed for the direction check")
 
-  ap.add_argument("system", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
+  ap.add_argument("systems", metavar="system", nargs=1, action=ApplicationAction, help="The system to find other systems near")
 
   parsed = None
   remaining = arg
@@ -56,7 +56,7 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
-  results = list(close_to.Application(parsed).run())
+  results = list(close_to.Application(**vars(parsed)).run())
   if not len(results):
     print("")
     print("No matching systems")
@@ -66,12 +66,12 @@ def run(args, hosted = False, state = {}):
   indent = 8
   cow = ColumnObjectWriter(3, ['<', '>', '<'])
   print("")
-  print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in parsed.system])))
+  print("Matching systems close to {0}:".format(', '.join([d["sysobj"].name for d in parsed.systems])))
   print("")
   for entry in results:
     cow.add([
       '    {}'.format(entry.system.name),
-      '{} '.format(entry.distances[parsed.system[0]['sysobj'].name].to_string(True)) if len(entry.distances) == 1 else '',
+      '{} '.format(entry.distances[parsed.systems[0]['sysobj'].name].to_string(True)) if len(entry.distances) == 1 else '',
       entry.system.arrival_star.to_string(True)
     ])
     for stn in entry.stations:
@@ -81,8 +81,8 @@ def run(args, hosted = False, state = {}):
         stn.station_type if stn.station_type is not None else '???'
       ])
   cow.add(['', '', ''])
-  if len(parsed.system) > 1:
-    for d in parsed.system:
+  if len(parsed.systems) > 1:
+    for d in parsed.systems:
       cow.add(["  Distance from {0}:".format(d['system']), '', ''])
       cow.add(['', '', ''])
       results.sort(key=lambda t: t.distances[d['sysobj'].name])

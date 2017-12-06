@@ -17,7 +17,7 @@ def parse_args(arg, hosted, state):
   ap.add_argument("-r", "--regex", default=False, action='store_true', help="Takes input as a regex rather than a glob")
   ap.add_argument("--id64", required=False, type=str.upper, choices=['INT', 'HEX', 'VSC'], help="Show system ID64 in output")
   ap.add_argument("--filters", required=False, metavar='filter', nargs='*')
-  ap.add_argument("system", metavar="system", type=str, nargs='?', help="The system or station to find")
+  ap.add_argument("pattern", metavar="system/station", type=str, nargs='?', help="The system or station to find")
   return ap.parse_args(arg)
 
 def run(args, hosted = False, state = {}):
@@ -27,7 +27,7 @@ def run(args, hosted = False, state = {}):
   stn_matches = []
   sys_matches = []
 
-  for entry in find.Application(parsed).run():
+  for entry in find.Application(**vars(parsed)).run():
     if entry.station is not None:
       stn_matches.append(entry)
     elif entry.system is not None:

@@ -22,43 +22,47 @@ class Result(object):
 
 class Application(object):
 
-  def __init__(self, args):
-    self.args = args
+  def __init__(self, **args):
+    self._filters = args.get('filters')
+    self._pattern = args.get('pattern')
+    self._stations = args.get('stations')
+    self._systems = args.get('systems')
+    self._regex = args.get('_regex')
 
-    if self.args.system is None:
-      if self.args.filters is None:
-        raise ArgumentError('Supply at least one system or filter!')
+    if self._pattern is None:
+      if self._filters is None:
+        raise RuntimeError('Supply at least one pattern or filter!')
       # Find only by filter, defaulting to system-only search.
-      self.args.system = ['.*' if self.args.regex else '*']
-      if not self.args.stations:
-        self.args.systems = True
+      self._pattern = ['.*' if self._regex else '*']
+      if not self._stations:
+        self._systems = True
     else:
-      self.args.system = [self.args.system]
+      self._pattern = [self._pattern]
 
   def run(self):
     sys_matches = []
     stn_matches = []
 
     with env.use() as envdata:
-      filters = filtering.entry_separator.join(self.args.filters) if self.args.filters is not None else None
-      if self.args.regex:
-        if self.args.systems or not self.args.stations:
-          sys_matches = list(envdata.find_systems_by_regex(self.args.system[0], filters=filters))
-        if self.args.stations or not self.args.systems:
-          stn_matches = list(envdata.find_stations_by_regex(self.args.system[0], filters=filters))
-      elif re.match(r'^\d+$', self.args.system[0]):
-        id64 = int(self.args.system[0], 10)
-        if self.args.systems or not self.args.stations:
+      filters = filtering.entry_separator.join(self._filters) if self._filters is not None else None
+      if self._regex:
+        if self._systems or not self._stations:
+          sys_matches = list(envdata.find_systems_by_regex(self._pattern[0], filters=filters))
+        if self._stations or not self._systems:
+          stn_matches = list(envdata.find_stations_by_regex(self._pattern[0], filters=filters))
+      elif re.match(r'^\d+$', self._pattern[0]):
+        id64 = int(self._pattern[0], 10)
+        if self._systems or not self._stations:
           id64_match = system.from_id64(id64)
           sys_matches = [id64_match] if id64_match else []
       else:
-        if self.args.systems or not self.args.stations:
-          sys_matches = list(envdata.find_systems_by_glob(self.args.system[0], filters=filters))
-        if self.args.stations or not self.args.systems:
-          stn_matches = list(envdata.find_stations_by_glob(self.args.system[0], filters=filters))
+        if self._systems or not self._stations:
+          sys_matches = list(envdata.find_systems_by_glob(self._pattern[0], filters=filters))
+        if self._stations or not self._systems:
+          stn_matches = list(envdata.find_stations_by_glob(self._pattern[0], filters=filters))
 
       for system in sys_matches:
-        if self.args.list_stations:
+        if self._list_stations:
           stations = envdata.find_stations(sys_matches).get(system)
           stations.sort(key=lambda t: (t.distance if t.distance else sys.maxsize))
         else:

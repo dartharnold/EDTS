@@ -22,7 +22,7 @@ def parse_args(arg, hosted, state):
   return parsed
 
 def run(args, hosted = False, state = {}):
-  for entry in galmath.Application(parse_args(args, hosted, state)).run():
+  for entry in galmath.Application(**vars(parse_args(args, hosted, state))).run():
     print("")
     print("Travelling {} with a {} jump range, at around {} from the core centre:".format(entry.distance.to_string(True), entry.jump_range.to_string(True), entry.core_distance.to_string(True)))
     print("")

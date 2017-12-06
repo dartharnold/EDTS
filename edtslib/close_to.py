@@ -22,69 +22,77 @@ class Result(object):
 
 class Application(object):
 
-  def __init__(self, args = {}):
-    self.args = args
+  def __init__(self, **args):
+    self._allegiance = args.get('allegiance')
+    self._arrival_star = args.get('arrival_star')
+    self._direction = args.get('direction')
+    self._direction_angle = args.get('direction_angle')
+    self._list_stations = args.get('list_stations')
+    self._max_sc_distance = args.get('max_sc_distance')
+    self._num = args.get('num')
+    self._pad_size = args.get('pad_size')
+    self._systems = args.get('systems')
 
   def run(self):
     with env.use() as envdata:
       # Add the system object to each system arg
-      tmpsystems = envdata.parse_systems([d['system'] for d in self.args.system])
-      for d in self.args.system:
+      tmpsystems = envdata.parse_systems([d['system'] for d in self._systems])
+      for d in self._systems:
         d['sysobj'] = tmpsystems.get(d['system'], None)
         if d['sysobj'] is None:
           log.error("Could not find start system \"{0}\"!", d['system'])
           return
 
-      if self.args.direction is not None:
-        direction_obj = envdata.parse_system(self.args.direction)
+      if self._direction is not None:
+        direction_obj = envdata.parse_system(self._direction)
         if direction_obj is None:
-          log.error("Could not find direction system \"{0}\"!", self.args.direction)
+          log.error("Could not find direction system \"{0}\"!", self._direction)
           return
 
     asys = []
 
     close_to_list = []
-    for s in self.args.system:
+    for s in self._systems:
       min_dist = [filtering.Operator('>=', s['min_dist'])] if 'min_dist' in s else []
       max_dist = [filtering.Operator('<',  s['max_dist'])] if 'max_dist' in s else []
       close_to_list.append({filtering.PosArgs: [filtering.Operator('=', s['sysobj'])], 'distance': min_dist + max_dist})
-    if not any([('max_dist' in s) for s in self.args.system]):
+    if not any([('max_dist' in s) for s in self._systems]):
       log.warning("database query will be slow unless at least one reference system has a max distance specified with --max-dist")
 
     filters = {}
     filters['close_to'] = close_to_list
-    if self.args.pad_size is not None:
+    if self._pad_size is not None:
       # Retain previous behaviour: 'M' counts as 'any'
-      filters['pad'] = [{filtering.PosArgs: [filtering.Operator('>=', filtering.PadSize('L') if self.args.pad_size == 'L' else filtering.Any)]}]
-    if self.args.max_sc_distance is not None:
-      filters['sc_distance'] = [{filtering.PosArgs: [filtering.Operator('<', self.args.max_sc_distance)]}]
-    if self.args.allegiance is not None:
-      filters['allegiance'] = [{filtering.PosArgs: [filtering.Operator('=', self.args.allegiance)]}]
-    if self.args.num is not None:
+      filters['pad'] = [{filtering.PosArgs: [filtering.Operator('>=', filtering.PadSize('L') if self._pad_size == 'L' else filtering.Any)]}]
+    if self._max_sc_distance is not None:
+      filters['sc_distance'] = [{filtering.PosArgs: [filtering.Operator('<', self._max_sc_distance)]}]
+    if self._allegiance is not None:
+      filters['allegiance'] = [{filtering.PosArgs: [filtering.Operator('=', self._allegiance)]}]
+    if self._num is not None:
       # Get extras, in case we get our reference systems as a result
-      filters['limit'] = [{filtering.PosArgs: [filtering.Operator('=', self.args.num + len(self.args.system))]}]
-    if self.args.direction is not None:
+      filters['limit'] = [{filtering.PosArgs: [filtering.Operator('=', self._num + len(self._systems))]}]
+    if self._direction is not None:
       for entry in filters['close_to']:
         entry['direction'] = [filtering.Operator('=', direction_obj)]
-        entry['angle'] = [filtering.Operator('<', self.args.direction_angle)]
-    if self.args.arrival_star is not None:
-      filters['arrival_star'] = self.args.arrival_star
+        entry['angle'] = [filtering.Operator('<', self._direction_angle)]
+    if self._arrival_star is not None:
+      filters['arrival_star'] = self._arrival_star
 
     with env.use() as envdata:
       # Filter out our reference systems from the results
-      names = [d['sysobj'].name for d in self.args.system]
+      names = [d['sysobj'].name for d in self._systems]
       asys = [s for s in envdata.find_all_systems(filters=envdata.convert_filter_object(filters)) if s.name not in names]
-      if self.args.num:
-        asys = asys[0:self.args.num]
+      if self._num:
+        asys = asys[0:self._num]
 
         stations = {}
-        if self.args.list_stations:
+        if self._list_stations:
           stations = envdata.find_stations(asys)
 
         for i in range(0, len(asys)):
           stnlist = stations.get(asys[i], [])
           stnlist.sort(key=lambda t: t.distance if t.distance else 0.0)
-          yield Result(system = asys[i], distances = { d['sysobj'].name: Lightyears(asys[i].distance_to(d['sysobj'])) for d in self.args.system }, stations = stnlist)
+          yield Result(system = asys[i], distances = { d['sysobj'].name: Lightyears(asys[i].distance_to(d['sysobj'])) for d in self._systems }, stations = stnlist)
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
     for d in starts:

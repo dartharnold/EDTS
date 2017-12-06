@@ -17,13 +17,13 @@ class Result(object):
 
 class Application(object):
 
-  def __init__(self, args):
-    self.args = args
+  def __init__(self, **args):
+    self._systems = args.get('systems')
 
   def run(self):
     with env.use() as envdata:
-      systems = envdata.parse_systems(self.args.system)
-      for name in self.args.system:
+      systems = envdata.parse_systems(self._systems)
+      for name in self._systems:
         if name not in systems or systems[name] is None:
           pgsys = pgnames.get_system(name)
           if pgsys is not None:
@@ -32,5 +32,5 @@ class Application(object):
             log.error("Could not find system \"{0}\"!", name)
             return
 
-    for name in self.args.system:
+    for name in self._systems:
       yield Result(system = systems[name])

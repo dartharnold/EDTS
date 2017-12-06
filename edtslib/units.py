@@ -19,22 +19,24 @@ class Result(object):
 
 class Application(object):
 
-  def __init__(self, args):
-    self.args = args
+  def __init__(self, **args):
+    self._distance = args.get('distance')
+    self._result = args.get('result')
+    self._suffix = args.get('suffix')
 
-    if self.args.suffix is None:
-      m = re.match(r'^([0-9.]+)(.*)?', self.args.dist)
+    if self._suffix is None:
+      m = re.match(r'^([0-9.]+)(.*)?', self._distance)
       if m is not None:
         if len(m.groups()) > 1:
           suffix = m.group(2).lower()
           for choice in Dist.SUFFICES:
             if choice.lower() == suffix:
-              self.args.suffix = choice
-          if self.args.suffix is None:
+              self._suffix = choice
+          if self._suffix is None:
             log.error('Invalid suffix: {}', suffix)
             return False
-          self.args.dist = m.group(1)
-    self.args.dist = float(self.args.dist)
+          self._distance = m.group(1)
+    self._distance = float(self._distance)
 
   def run(self):
-    yield Result(distance = Dist(self.args.dist, self.args.suffix, self.args.result), source = self.args.dist, scale = self.args.result)
+    yield Result(distance = Dist(self._distance, self._suffix, self._result), source = self._distance, scale = self._result)

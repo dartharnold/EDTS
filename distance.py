@@ -15,7 +15,7 @@ def parse_args(arg, hosted, state):
   ap.add_argument("-f", "--full-width", action='store_true', default=False, help="Do not truncate heading names for readability")
   ap.add_argument("-s", "--start", type=str, required=False, help="Defines a start system to calculate all other distances from")
   ap.add_argument("-r", "--route", action='store_true', default=False, help="List of systems is a sequential list to visit and get distances between")
-  ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
+  ap.add_argument("systems", metavar="systems", nargs='+', help="Systems")
 
   return ap.parse_args(arg)
 
@@ -39,7 +39,7 @@ def run(args, hosted = False, state = {}):
     shown_header = False
     cow.expand(len(parsed.systems) + (1 if not parsed.csv else 0), ['>'], [',' if parsed.csv else '   '])
 
-  for entry in distance.Application(parsed).run():
+  for entry in distance.Application(**vars(parsed)).run():
     if raikogram_mode:
       if entry.origin.system != last_origin:
         if len(row):

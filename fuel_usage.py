@@ -60,7 +60,7 @@ def run(args, hosted = False, state = {}):
   intra = [' ', '  ', '  ', '  ']
   refueling = False
 
-  results = list(fuel_usage.Application(parsed).run())
+  results = list(fuel_usage.Application(**vars(parsed)).run())
   for entry in results:
     if entry.refuel is not None:
       refueling = True
