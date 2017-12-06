@@ -29,7 +29,7 @@ class Application(object):
     self._pattern = args.get('pattern')
     self._stations = args.get('stations')
     self._systems = args.get('systems')
-    self._regex = args.get('_regex')
+    self._regex = args.get('regex')
 
     if self._pattern is None:
       if self._filters is None:
