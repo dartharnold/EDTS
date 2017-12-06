@@ -20,7 +20,7 @@ class Result(object):
     self.origin = args.get('origin')
     self.destination = args.get('destination')
     self.distance = args.get('distance', Lightyears(0))
-    self.cargo = args.get('distance', 0)
+    self.cargo = args.get('cargo', 0)
     self.fuel = args.get('fuel', Fuel())
     self.is_long = args.get('is_long', False)
     self.ok = args.get('ok', True)
