@@ -80,7 +80,7 @@ def run(args, hosted = False, state = {}):
         '({})'.format(str(Lightseconds(stn.distance)) if stn.distance is not None else '???'),
         stn.station_type if stn.station_type is not None else '???'
       ])
-    cow.add(['', '', ''])
+  cow.add(['', '', ''])
   if len(parsed.system) > 1:
     for d in parsed.system:
       cow.add(["  Distance from {0}:".format(d['system']), '', ''])
