@@ -5,6 +5,7 @@ import fnmatch
 import re
 import sys
 
+from .opaque_types import Opaq
 from . import env
 from . import filtering
 from . import system
@@ -14,7 +15,7 @@ app_name = "find"
 
 log = util.get_logger(app_name)
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.station = args.get('station')
     self.stations = args.get('stations', [])

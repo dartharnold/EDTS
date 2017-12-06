@@ -6,7 +6,7 @@ import re
 import sys
 
 from .dist import Lightyears
-from .opaque_types import Fuel, Refuel, Location
+from .opaque_types import Fuel, Refuel, Location, Opaq
 from . import env
 from . import ship
 from . import util
@@ -17,7 +17,7 @@ log = util.get_logger(app_name)
 
 default_cargo = 0
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.origin = args.get('origin')
     self.destination = args.get('destination')

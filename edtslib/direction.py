@@ -2,7 +2,7 @@
 
 from __future__ import print_function
 
-from .opaque_types import Location
+from .opaque_types import Location, Opaq
 from . import env
 from . import util
 from . import vector3
@@ -14,7 +14,7 @@ log = util.get_logger(app_name)
 default_reference = 'Sol'
 default_tolerance = 5
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.angle = args.get('angle')
     self.direction = args.get('direction')

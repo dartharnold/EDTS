@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
+from .opaque_types import Opaq
 from . import env
 from . import calc
 from . import ship
@@ -31,7 +32,7 @@ default_solve_mode = solver.CLUSTERED
 default_tolerance = 5
 default_ws_time = calc.default_ws_time
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.destination = args.get('destination')
     self.origin = args.get('origin', self.destination)

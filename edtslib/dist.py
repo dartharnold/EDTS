@@ -88,6 +88,9 @@ class Dist(object):
     else:
       return self.prettyprint(self.metres, self.M_SUFFIX, full, long)
 
+  def __repr__(self):
+    return self.convert(self.suffix, True)
+
   def __str__(self):
     return self.convert(self.suffix)
 

@@ -9,13 +9,13 @@ from . import env
 from . import pgnames
 from . import util
 from .dist import Lightyears
-from .opaque_types import Location
+from .opaque_types import Location, Opaq
 
 app_name = "distance"
 
 log = util.get_logger(app_name)
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.origin = args.get('origin')
     self.destination = args.get('destination')

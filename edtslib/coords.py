@@ -5,13 +5,14 @@ from __future__ import print_function
 from . import env
 from . import pgnames
 from . import util
+from .opaque_types import Opaq
 
 app_name = "coords"
 
 log = util.get_logger(app_name)
 
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.system = args.get('system')
 

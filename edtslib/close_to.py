@@ -4,6 +4,7 @@ from __future__ import print_function
 import math
 
 from .dist import Lightyears
+from .opaque_types import Opaq
 from . import env
 from . import filtering
 from . import util
@@ -15,7 +16,7 @@ log = util.get_logger(app_name)
 default_num = 10
 default_max_angle = 15.0
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.system = args.get('system')
     self.distances = args.get('distances', {})

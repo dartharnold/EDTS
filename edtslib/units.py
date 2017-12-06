@@ -4,6 +4,7 @@ from __future__ import print_function
 import re
 
 from .dist import *
+from .opaque_types import Opaq
 from . import env
 from . import util
 
@@ -11,7 +12,7 @@ app_name = "units"
 
 log = util.get_logger(app_name)
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.distance = args.get('distance')
     self.scale = args.get('scale')

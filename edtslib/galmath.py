@@ -5,6 +5,7 @@ import math
 import sys
 
 from .dist import Lightyears
+from .opaque_types import Opaq
 from . import util
 
 app_name = "galmath"
@@ -13,7 +14,7 @@ log = util.get_logger(app_name)
 
 default_distance = 1000.0
 
-class Result(object):
+class Result(Opaq):
   def __init__(self, **args):
     self.core_distance = args.get('core_distance')
     self.distance = args.get('distance')
