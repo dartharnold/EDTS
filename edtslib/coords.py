@@ -33,4 +33,4 @@ class Application(object):
             return
 
     for name in self.args.system:
-      yield Result(systems[name])
+      yield Result(system = systems[name])
