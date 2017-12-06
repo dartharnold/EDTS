@@ -24,6 +24,7 @@ class Application(object):
 
   def __init__(self, **args):
     self._filters = args.get('filters')
+    self._list_stations = args.get('list_stations')
     self._pattern = args.get('pattern')
     self._stations = args.get('stations')
     self._systems = args.get('systems')
