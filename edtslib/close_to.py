@@ -16,9 +16,9 @@ default_max_angle = 15.0
 
 class Result(object):
   def __init__(self, **args):
-    self.system = args.get(system)
-    self.distances = args.get(distances, {})
-    self.stations = args.get(stations, [])
+    self.system = args.get('system')
+    self.distances = args.get('distances', {})
+    self.stations = args.get('stations', [])
 
 class Application(object):
 
