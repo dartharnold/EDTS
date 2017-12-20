@@ -114,7 +114,7 @@ def format_leg(entry, show_cruise = False, show_route = False):
   row += ['<' if entry.waypoint is not None else '']
 
   if entry.fuel is not None:
-    row += ['{:.2f}T'.format(entry.fuel.cost)]
+    row += ['{:.2f}T'.format(entry.fuel.cost) if entry.fuel.cost is not None else '']
     if entry.fuel.max is not None:
       row += [
         '{:.2f}-{:.2f}T'.format(
@@ -243,7 +243,7 @@ def run(args, hosted = False, state = {}):
       if entry.waypoint.time.jumps is not None:
         est_time_min += entry.waypoint.time.jumps.min
         est_time_max += entry.waypoint.time.jumps.max
-    if entry.fuel is not None:
+    if entry.fuel is not None and entry.fuel.cost is not None:
       total_fuel_cost += entry.fuel.cost
     if cow is not None:
       cow.add(format_leg(entry, show_cruise, show_route))
