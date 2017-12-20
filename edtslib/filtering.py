@@ -211,7 +211,7 @@ def _global_conv(val, specials = None):
   return (val, True)
 
 
-def parse(filter_string, **kwargs):
+def parse(filter_string, *args, **kwargs):
   entries = filter_string.split(entry_separator)
   # This needs to be ordered so that literal args ('?') are hit in the correct order
   output = collections.OrderedDict()
@@ -241,9 +241,9 @@ def parse(filter_string, **kwargs):
     if key not in output:
       output[key] = []
     output[key].append(value)
-  return convert(output, **kwargs)
+  return convert(output, *args, **kwargs)
 
-def convert(fobj, **kwargs):
+def convert(fobj, *args, **kwargs):
   extra_converters = kwargs.get('extra_converters', {})
   literalarg_count = 0
   # Check if we should normalise object before continuing

@@ -87,13 +87,13 @@ class Env(object):
   def filter_converters(self):
     return {'system': self._filter_parse_system, 'station': self._filter_parse_station}
 
-  def parse_filter_string(self, s, **kwargs):
+  def parse_filter_string(self, s, *args, **kwargs):
     kwargs['extra_converters'] = self.filter_converters
-    return filtering.parse(s, **kwargs)
+    return filtering.parse(s, *args, **kwargs)
 
-  def convert_filter_object(self, o, **kwargs):
+  def convert_filter_object(self, o, *args, **kwargs):
     kwargs['extra_converters'] = self.filter_converters
-    return filtering.convert(o, **kwargs)
+    return filtering.convert(o, *args, **kwargs)
 
   def _filter_parse_system(self, s):
     if isinstance(s, system_internal.System):
