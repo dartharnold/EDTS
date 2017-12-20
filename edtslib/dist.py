@@ -88,6 +88,24 @@ class Dist(object):
     else:
       return self.prettyprint(self.metres, self.M_SUFFIX, full, long)
 
+  def __eq__(self, other):
+    return self.metres == other.metres
+
+  def __ge__(self, other):
+    return self.metres >= other.metres
+
+  def __gt__(self, other):
+    return self.metres > other.metres
+
+  def __le__(self, other):
+    return self.metres <= other.metres
+
+  def __lt__(self, other):
+    return self.metres < other.metres
+
+  def __repr__(self):
+    return self.convert(self.suffix, True)
+
   def __str__(self):
     return self.convert(self.suffix)
 

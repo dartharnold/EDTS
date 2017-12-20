@@ -1,7 +1,8 @@
+from .dist import Lightseconds
 
 class Station(object):
   def __init__(self, obj, sysobj):
-    self.distance = int(obj['distance_to_star']) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] is not None) else None
+    self.distance = Lightseconds(int(obj['distance_to_star'])) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] is not None) else None
     self.uses_sc = (self.distance is not None)
     self.system = sysobj
     self.name = obj['name'] if obj is not None else None

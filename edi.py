@@ -19,16 +19,16 @@ env.configure_logging(env.global_args.log_level)
 log = util.get_logger("edi")
 
 # Now env is loaded, import the apps
-from edtslib import edts
-from edtslib import close_to
-from edtslib import coords
-from edtslib import direction
-from edtslib import distance
-from edtslib import find
-from edtslib import galmath
-from edtslib import fuel_usage
-from edtslib import units
-from edtslib import vsc
+import edts
+import close_to
+import coords
+import direction
+import distance
+import find
+import galmath
+import fuel_usage
+import units
+import vsc
 
 
 class EDI(cmd.Cmd):
@@ -42,8 +42,7 @@ class EDI(cmd.Cmd):
   def run_application(self, ns, args):
     try:
       args = shlex.split(args)
-      app = ns.Application(args, True, self.state)
-      app.run()
+      ns.run(args, True, self.state)
     except KeyboardInterrupt:
       log.debug("Interrupt detected")
       pass
@@ -57,7 +56,7 @@ class EDI(cmd.Cmd):
 
   def run_help(self, ns):
     try:
-      ns.Application(['-h'], True, self.state).run()
+      ns.run(['-h'], True, self.state)
     except SystemExit:
       pass
     return True
