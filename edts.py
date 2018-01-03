@@ -243,6 +243,9 @@ def run(args, hosted = False, state = {}):
       if entry.waypoint.time.jumps is not None:
         est_time_min += entry.waypoint.time.jumps.min
         est_time_max += entry.waypoint.time.jumps.max
+      if entry.waypoint.time.cruise is not None:
+        est_time_min += entry.waypoint.time.cruise
+        est_time_max += entry.waypoint.time.cruise
     if entry.fuel is not None and entry.fuel.cost is not None:
       total_fuel_cost += entry.fuel.cost
     if cow is not None:
