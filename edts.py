@@ -92,7 +92,7 @@ def direction_hint(entry):
       hint = 'X'
   return hint
 
-def format_leg(entry, show_cruise = False, show_route = False):
+def format_leg(entry, show_cruise = False, show_route = False, show_fuel = False):
   row = [
     direction_hint(entry),
     '!' if entry.is_long else '',
@@ -113,34 +113,42 @@ def format_leg(entry, show_cruise = False, show_route = False):
       row += ['', '', '', '']
   row += ['<' if entry.waypoint is not None else '']
 
-  if entry.fuel is not None:
-    row += ['{:.2f}T'.format(entry.fuel.cost) if entry.fuel.cost is not None else '']
-    if entry.fuel.max is not None:
-      row += [
-        '{:.2f}-{:.2f}T'.format(
-          entry.fuel.min,
-          entry.fuel.max
-        ),
-        '({:d}-{:d}%)'.format(
-          int(entry.fuel_percent.min),
-          int(entry.fuel_percent.max),
-        )
-      ]
-    elif entry.fuel.min is not None:
-      row += [
-        '{:.2f}T'.format(entry.fuel.min),
-        '({:d}%) +'.format(int(entry.fuel_percent.min))
-      ]
-    else:
-      row += ['', '']
+  if show_fuel:
+    if entry.fuel is not None:
+      row += ['{:.2f}T'.format(entry.fuel.cost) if entry.fuel.cost is not None else '']
+      if entry.fuel.max is not None:
+        row += [
+          '{:.2f}-{:.2f}T'.format(
+            entry.fuel.min,
+            entry.fuel.max
+          ),
+          '({:d}-{:d}%)'.format(
+            int(entry.fuel_percent.min),
+            int(entry.fuel_percent.max),
+          )
+        ]
+      elif entry.fuel.min is not None:
+        row += [
+          '{:.2f}T'.format(entry.fuel.min),
+          '({:d}%) +'.format(int(entry.fuel_percent.min))
+        ]
+      else:
+        row += ['', '']
 
   if entry.waypoint is not None:
     row += [
       entry.waypoint.distance.to_string(True),
       'for ' + entry.waypoint.direct.to_string(True)
     ]
+    if entry.waypoint.jumps.min == entry.waypoint.jumps.max:
+      row += [entry.waypoint.jumps.min]
+    else:
+      row += ['{} - {}'.format(
+        entry.waypoint.jumps.min,
+        entry.waypoint.jumps.max
+      )]
   else:
-    row += ['', '']
+    row += ['', '', '']
 
   return row
 
@@ -186,9 +194,9 @@ def run(args, hosted = False, state = {}):
       headings += ['Fuel', 'Fuel', 'range']
       padding += ['<', '>', '<']
       intra += ['   ', ' ', '   ']
-    headings += ['Hop', 'dist.']
-    padding += ['>', '<']
-    intra += [' ']
+    headings += ['Hop', 'dist.', 'Jumps']
+    padding += ['>', '<', '>']
+    intra += [' ', '  ']
     cow = ColumnObjectWriter(len(headings), padding, intra)
     cow.add(headings)
     cow.add([])
@@ -249,7 +257,7 @@ def run(args, hosted = False, state = {}):
     if entry.fuel is not None and entry.fuel.cost is not None:
       total_fuel_cost += entry.fuel.cost
     if cow is not None:
-      cow.add(format_leg(entry, show_cruise, show_route))
+      cow.add(format_leg(entry, show_cruise, show_route, parsed.ship is not None))
     elif parsed.format == 'short':
       sys.stdout.write(', {}'.format(str(entry.destination.station) if entry.destination.station is not None else str(entry.destination.system)))
     elif parsed.format == 'csv':
