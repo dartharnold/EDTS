@@ -165,7 +165,7 @@ class Application(object):
       tours.append([stations[sname] for sname in tour])
     stations = [stations[sname] for sname in self.stations]
 
-    if len(filter(lambda stn: stn != anywhere, [start, end] + stations)) < 2:
+    if len(list(filter(lambda stn: stn != anywhere, [start, end] + stations))) < 2:
       log.error('Not enough stations to form a route!')
       return
 
