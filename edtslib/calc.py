@@ -27,6 +27,8 @@ def jump_count(a, b, jump_range, slf = default_slf):
 # Gets an estimated range of number of jumps required to jump from a to b
 def jump_count_range(a, b, jump_range, slf = default_slf):
   legdist = a.distance_to(b)
+  if legdist == float('inf'):
+    return 0, 0
 
   minjumps = int(math.ceil(legdist / jump_range))
   # If we're doing multiple jumps, apply the straight-line factor
