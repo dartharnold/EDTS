@@ -12,6 +12,7 @@ from . import solver
 from .cow import ColumnObjectWriter
 from .dist import Lightseconds, Lightyears
 from .station import Station
+from .system_internal import System
 from .opaque_types import Fuel, Jumps, Location, WaypointTime, Waypoint
 
 app_name = "edts"
@@ -124,8 +125,9 @@ class Application(object):
   def run(self):
     timer = util.start_timer()
     with env.use() as envdata:
-      start = envdata.parse_station(self._start)
-      end = envdata.parse_station(self._end)
+      anywhere = Station.none(System(float('inf'), float('inf'), float('inf'), 'Anywhere'))
+      start = envdata.parse_station(self._start) if self._start is not None else anywhere
+      end = envdata.parse_station(self._end) if self._end is not None else anywhere
 
       if start is None:
         log.error("Error: start system/station {0} could not be found. Stopping.", self._start)
@@ -163,6 +165,10 @@ class Application(object):
       tours.append([stations[sname] for sname in tour])
     stations = [stations[sname] for sname in self.stations]
 
+    if len(filter(lambda stn: stn != anywhere, [start, end] + stations)) < 2:
+      log.error('Not enough stations to form a route!')
+      return
+
     # Prefer a static jump range if provided, to allow user to override ship's range
     if self._jump_range is not None:
       full_jump_range = self._jump_range
@@ -179,6 +185,8 @@ class Application(object):
     else:
       # Add 2 to the jump count for start + end
       route, is_definitive = s.solve(tours, stations, start, end, self._num_jumps + 2, self._solve_mode)
+
+    route = [stn for stn in route if stn != anywhere]
 
     if self._reverse:
       route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]

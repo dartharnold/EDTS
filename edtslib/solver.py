@@ -37,7 +37,7 @@ class _Cluster(object):
 
   def get_closest(self, target):
     best = None
-    bestdist = sys.float_info.max
+    bestdist = float('inf')
     for s in self.systems:
       if isinstance(s, _Cluster) and s.is_supercluster:
         newsys, newdist = s.get_closest(target)
@@ -205,7 +205,7 @@ class Solver(object):
 
   def solve_clustered_repeat_with_cost(self, tours, stations, start, end, maxstops, iterations = cluster_repeat_limit):
     minroute = None
-    mincost = sys.float_info.max
+    mincost = float('inf')
     for _ in range(0, iterations):
       route, cost = self.solve_clustered_with_cost(tours, stations, start, end, maxstops)
       if cost < mincost:
@@ -342,7 +342,7 @@ class Solver(object):
 
   def _get_best_cluster_route(self, clusters, start, end, route = []):
     best = None
-    bestcost = sys.float_info.max
+    bestcost = float('inf')
     if not route:
       log.debug("In get_best_cluster_route, input = {}, start = {}, end = {}", clusters, start, end)
     if len(route) < len(clusters):
