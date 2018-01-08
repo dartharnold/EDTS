@@ -137,6 +137,9 @@ class FSD(object):
     return self.range(mass, self.maxfuel, cargo)
 
   def max_fuel_weight(self, dist, mass, cargo = 0, allow_invalid = False):
+    # If we're not going anywhere, you can have as much fuel as you like
+    if dist == 0.0:
+      return float('inf')
     # self.maxfuel == self.fuelmul * math.pow(dist * ((mass + fuel + cargo) / (self.optmass * self.boost)), self.fuelpower)
     # self.maxfuel / self.fuelmul == math.pow(dist * ((mass + fuel + cargo) / (self.optmass * self.boost)), self.fuelpower)
     # math.pow(self.maxfuel / self.fuelmul, 1 / self.fuelpower) * (self.optmass * self.boost) / dist == (mass + fuel + cargo)
