@@ -1,5 +1,4 @@
 import math
-import sys
 from . import ship
 from .station import Station
 from . import util
@@ -196,7 +195,7 @@ def astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn):
       tentative_g_score = g_score[current] + cost
 
       if neighbor not in g_score:
-        g_score[neighbor] = sys.float_info.max
+        g_score[neighbor] = float('inf')
 
       if neighbor not in openset or tentative_g_score < g_score[neighbor]:
         came_from[neighbor] = current

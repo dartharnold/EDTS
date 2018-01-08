@@ -2,7 +2,6 @@
 
 import math
 import numbers
-import sys
 
 from . import util
 from . import vector3
@@ -112,7 +111,7 @@ class HARegion(Sector):
     self._size = size
     self._spheres = list(spheres)
     self._needs_permit = needs_permit
-    o = [sys.float_info.max, sys.float_info.max, sys.float_info.max]
+    o = [float('inf'), float('inf'), float('inf')]
     for s in self.spheres:
       o[0] = min(o[0], s.origin.x)
       o[1] = min(o[1], s.origin.y)
