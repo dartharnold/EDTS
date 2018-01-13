@@ -54,8 +54,8 @@ def run(args, hosted = False, state = {}):
           '({})'.format(stn.distance.to_string() if stn.distance is not None else '???'),
           stn.station_type if stn.station_type is not None else '???'
         ])
-      cow.out()
-      print("")
+    cow.out()
+    print("")
 
   if len(stn_matches) > 0:
     print("")
