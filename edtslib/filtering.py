@@ -407,17 +407,30 @@ def generate_sql(filters):
   if 'close_to' in filters:
     start_idx = idx
     req_tables.add('systems')
+    order_indexes = []
     for oentry in filters['close_to']:
       for entry in oentry[PosArgs]:
         pos = util.get_as_position(entry.value)
-        select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
-        select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
+        # Get X/Y/Z distances of candidate system to reference system
+        select_str.append("(? - systems.pos_x) AS diff{}".format(idx+0))
+        select_str.append("(? - systems.pos_y) AS diff{}".format(idx+1))
+        select_str.append("(? - systems.pos_z) AS diff{}".format(idx+2))
+        # Get 3D distance of candidate system to reference system
+        select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{}".format(idx+3))
+        select_params += [pos.x, pos.y, pos.z, pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
         # For each operator and value...
         if 'distance' in oentry:
           for opval in oentry['distance']:
-            filter_str.append("diff{} {} ? * ?".format(idx, opval.operator))
+            # If we're checking within a radius, restrict to a cube first to pare candidates down faster
+            if opval.operator in ('<', '<=', '='):
+              filter_str.append('diff{} {} ?'.format(idx+0, opval.operator))
+              filter_str.append('diff{} {} ?'.format(idx+1, opval.operator))
+              filter_str.append('diff{} {} ?'.format(idx+2, opval.operator))
+              filter_params += [opval.value, opval.value, opval.value]
+            filter_str.append("diff{} {} ? * ?".format(idx+3, opval.operator))
             filter_params += [opval.value, opval.value]
-        idx += 1
+        order_indexes.append(idx+3)
+        idx += 4
         if 'direction' in oentry:
           for dentry in oentry['direction']:
             dpos = util.get_as_position(dentry.value)
@@ -428,8 +441,9 @@ def generate_sql(filters):
                 angle = aentry.value * math.pi / 180.0
                 filter_str.append("diff{} {} ?".format(idx, aentry.operator))
                 filter_params.append(angle)
+            order_indexes.append(idx)
             idx += 1
-    order_str.append("+".join(["diff{}".format(i) for i in range(start_idx, idx)]))
+    order_str.append("+".join(["diff{}".format(i) for i in order_indexes]))
   if 'allegiance' in filters:
     req_tables.add('systems')
     for oentry in filters['allegiance']:
