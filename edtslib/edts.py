@@ -125,6 +125,9 @@ class Application(object):
   def run(self):
     timer = util.start_timer()
     with env.use() as envdata:
+      sysstats = [envdata.parse_station(name, True) for name in ([self._start, self._end] + self.stations + self.avoid) if name is not None]
+      envdata.find_systems_from_edsm(sysstat[0] for sysstat in sysstats)
+      envdata.find_stations_in_systems_from_edsm(sysstat[0] for sysstat in sysstats if sysstat[1] is not None)
       anywhere = Station.none(System(float('inf'), float('inf'), float('inf'), 'Anywhere'))
       start = envdata.parse_station(self._start) if self._start is not None else anywhere
       end = envdata.parse_station(self._end) if self._end is not None else anywhere
@@ -210,6 +213,7 @@ class Application(object):
 
         cur_data['jumpcount_min'], cur_data['jumpcount_max'] = calc.jump_count_range(route[i-1], route[i], cur_max_jump, slf=self._slf)
         if self._route:
+          envdata.find_intermediate_systems_from_edsm(route[i-1].system.position, route[i].system.position)
           log.debug("Doing route plot for {0} --> {1}", route[i-1].system_name, route[i].system_name)
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
             leg_route = r.plot(route[i-1].system, route[i].system, avoid, cur_max_jump, full_max_jump, cargo)

@@ -37,8 +37,10 @@ class Application(object):
 
   def run(self):
     with env.use() as envdata:
+      snames = [d['system'] for d in self._systems]
+      envdata.find_systems_from_edsm([self._direction] + snames)
       # Add the system object to each system arg
-      tmpsystems = envdata.parse_systems([d['system'] for d in self._systems])
+      tmpsystems = envdata.parse_systems(snames)
       for d in self._systems:
         d['sysobj'] = tmpsystems.get(d['system'], None)
         if d['sysobj'] is None:
@@ -81,6 +83,7 @@ class Application(object):
       filters['arrival_star'] = self._arrival_star
 
     with env.use() as envdata:
+      envdata.find_filtered_systems_from_edsm(filters)
       # Filter out our reference systems from the results
       names = [d['sysobj'].name for d in self._systems]
       asys = [s for s in envdata.find_all_systems(filters=envdata.convert_filter_object(filters)) if s.name not in names]

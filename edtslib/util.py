@@ -169,6 +169,10 @@ def _path_to_url_py3(path): return urllib.parse.urljoin('file:', urllib.request.
 def _path_to_url_py2(path): return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
 path_to_url = _path_to_url_py3 if sys.version_info >= (3, 0) else _path_to_url_py2
 
+def _urlencode_py3(args): return urllib.parse.urlencode(args)
+def _urlencode_py2(args): return urllib.urlencode(args)
+urlencode = _urlencode_py3 if sys.version_info >= (3, 0) else _urlencode_py2
+
 def get_relative_path(p1, p2):
   common_prefix = os.path.commonprefix([os.path.abspath(p1), os.path.abspath(p2)])
   p1r = os.path.relpath(p1, common_prefix)

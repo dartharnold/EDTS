@@ -1,5 +1,6 @@
 import collections
 import json
+import math
 import re
 import sqlite3
 import time
@@ -10,10 +11,11 @@ from . import filtering
 from . import util
 from . import vector3
 from .bodies import Star
+from .edsm import EDSMCache, EDSMCacheHit
 
 log = util.get_logger("db_sqlite3")
 
-schema_version = 10
+schema_version = 11
 
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
@@ -90,7 +92,7 @@ def log_versions():
   log.debug("SQLite3: {} / PySQLite: {}", sqlite3.sqlite_version, sqlite3.version)
 
 
-def open_db(filename = defs.default_db_path, check_version = True):
+def open_db(filename = defs.default_db_path, check_version = True, use_edsm = 'never'):
   conn = sqlite3.connect(filename)
   conn.row_factory = sqlite3.Row
   conn.create_function("REGEXP", 2, _regexp)
@@ -107,7 +109,7 @@ def open_db(filename = defs.default_db_path, check_version = True):
     log.debug("Opening DB connection without checking schema version")
     db_version = 0
   log.debug("DB connection opened")
-  return SQLite3DBConnection(conn, db_version)
+  return SQLite3DBConnection(conn, db_version, use_edsm)
 
 
 def initialise_db(filename = defs.default_db_path):
@@ -117,9 +119,17 @@ def initialise_db(filename = defs.default_db_path):
 
 
 class SQLite3DBConnection(eb.EnvBackend):
-  def __init__(self, conn, schema_version):
+  def __init__(self, conn, schema_version, use_edsm):
     super(SQLite3DBConnection, self).__init__("db_sqlite3")
     self._conn = conn
+    self._use_edsm = use_edsm
+    if use_edsm == 'never':
+      self._edsm_cache = None
+    else:
+      args = { 'conn': conn }
+      if use_edsm != 'periodically':
+        args['cache_time'] = 0
+      self._edsm_cache = EDSMCache(**args)
     self._schema_version = schema_version
     self._is_closed = False
 
@@ -146,6 +156,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.execute('CREATE TABLE stations (id INTEGER PRIMARY KEY, edsm_id INTEGER, eddb_id INTEGER, system_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, eddb_parent_body_id INTEGER, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, has_refuel BOOLEAN, is_planetary BOOLEAN)')
     # c.execute('CREATE TABLE bodies (eddb_id INTEGER NOT NULL, eddb_system_id INTEGER NOT NULL, id64 INTEGER, body_type TEXT NOT NULL, body_class TEXT NOT NULL)
     c.execute('CREATE TABLE coriolis_fsds (id TEXT NOT NULL PRIMARY KEY, data TEXT NOT NULL)')
+    c.execute('CREATE TABLE edsm_cache (id INTEGER PRIMARY KEY, api TEXT NOT NULL, endpoint TEXT NOT NULL, name TEXT COLLATE NOCASE NOT NULL, timestamp INTEGER NOT NULL)')
 
     self._conn.commit()
     log.debug("Done.")
@@ -236,6 +247,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     if systems_source == 'eddb':
       c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
     c.execute('CREATE INDEX idx_systems_id64 ON systems (id64)')
+    c.execute('CREATE UNIQUE INDEX idx_edsm_cache_entry ON edsm_cache (api, endpoint, name)')
     self._conn.commit()
     log.debug("Indexes added.")
 
@@ -371,6 +383,137 @@ class SQLite3DBConnection(eb.EnvBackend):
       return [_process_system_result(r) for r in result]
     else:
       return None
+
+  def assert_systems_source_edsm(self):
+    c = self._conn.cursor()
+    cmd = 'SELECT systems_source FROM edts_info'
+    c.execute(cmd)
+    result = c.fetchone()
+    if result is not None:
+      systems_source = result['systems_source']
+      if systems_source == 'edsm':
+        return
+      if systems_source is not None:
+        raise ValueError("invalid systems_source provided to use EDSM API")
+    c.execute('UPDATE edts_info SET systems_source=?', ('edsm',))
+    self._conn.commit()
+
+  def find_systems_from_edsm(self, names):
+    if self._edsm_cache is None:
+      return
+    self.assert_systems_source_edsm()
+    snames = self._edsm_cache.filter_names(names)
+    if not len(snames):
+      return
+    found = { name: False for name in snames }
+    if self._use_edsm != 'always':
+      systems = self.get_systems_by_name(snames)
+      if systems is not None:
+        for system in systems:
+          found[system['name'].lower()] = True
+      missing = [f[0] for f in filter(lambda f: not f[1], found.items())]
+      if not len(missing):
+        return
+    else:
+      missing = snames
+    try:
+      log.debug('Checking EDSM for systems not found in database: {}', ', '.join(missing))
+      systems = self._edsm_cache.get_systems(missing)
+      if systems:
+        self.insert_or_replace_systems_edsm(systems, mode = 'REPLACE')
+    except EDSMCacheHit:
+      pass
+
+  def find_sphere_systems_from_edsm(self, names, radius, inner = 0):
+    if self._edsm_cache is None:
+      return
+    if self._use_edsm == 'when-missing':
+      return
+    self.assert_systems_source_edsm()
+    for system in names:
+      log.debug('Checking EDSM for systems between {}Ly and {}Ly from {}', inner, radius, system)
+      try:
+        systems = self._edsm_cache.sphere_systems(system, radius = radius, inner = inner)
+        if systems:
+          self.insert_or_replace_systems_edsm(systems, mode = 'REPLACE')
+      except EDSMCacheHit:
+        pass
+
+  def find_intermediate_systems_from_edsm(self, spos, dpos, radius):
+    if self._edsm_cache is None:
+      return
+    v = dpos - spos
+    u = v.get_normalised()
+    dist = v.length
+    systems = []
+    if dist <= radius * 2:
+      r = dist / 2
+      systems = [spos + (u * r)]
+    else:
+      steps = int(math.ceil(dist / (radius * 2)))
+      d = dist / steps
+      r = d / 2
+      spos = spos - (u * r)
+      for i in range(0, steps):
+        systems.append(spos + (u * (d * (i + 1))))
+    return self.find_sphere_systems_from_edsm(systems, radius = r)
+
+  def find_filtered_systems_from_edsm(self, filters, as_strings = False):
+    if self._edsm_cache is None:
+      return
+
+    if as_strings:
+      systems = []
+      for f in filters:
+        for ekv in f.split(filtering.entry_separator):
+          for kv in ekv.split(','):
+            parts = kv.split('=')
+            if len(parts) > 1 and parts[0] in ['close_to', 'direction']:
+              systems.append(parts[1].lower())
+      return self.find_systems_from_edsm(systems)
+
+    if 'close_to' in filters:
+      for f in filters['close_to']:
+        if 'distance' in f:
+          args = {}
+          system = f[filtering.PosArgs][0].value.name.lower()
+          for distance in f['distance']:
+            if distance.operator in ['<', '<=']:
+              args['radius'] = distance.value
+            elif distance.operator in ['>', '>=']:
+              args['inner'] = distance.value
+          if 'radius' not in args:
+            if 'inner' in args:
+              if args['inner'] < defs.edsm_sphere_radius:
+                args['radius'] = defs.edsm_sphere_radius
+            if 'radius' not in args:
+              continue
+          self.find_sphere_systems_from_edsm([system], **args)
+
+  def find_stations_in_systems_from_edsm(self, systems):
+    if self._edsm_cache is None:
+      return
+    self.assert_systems_source_edsm()
+    snames = self._edsm_cache.filter_names(systems)
+    if not len(snames):
+      return
+    if self._use_edsm != 'always':
+      found = { name: False for name in snames }
+      for system in self.get_systems_by_name(snames):
+        found[system['name'].lower()] = any(list(self.find_stations_by_system_id(system['id'])))
+      missing = [f[0] for f in filter(lambda f: not f[1], found.items())]
+      if not len(missing):
+        return
+    else:
+      missing = snames
+    for system in missing:
+      log.debug('Checking EDSM for stations in system {} not found in database', system)
+      try:
+        stations = self._edsm_cache.get_stations_in_system(system)
+        if stations:
+          self.insert_or_replace_stations_edsm(stations, mode = 'REPLACE')
+      except EDSMCacheHit:
+        pass
 
   def get_station_by_names(self, sysname, stnname):
     c = self._conn.cursor()
