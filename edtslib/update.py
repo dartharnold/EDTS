@@ -33,6 +33,7 @@ class DownloadOnly(object):
   def close(self): pass
 
 edsm_systems_url  = "https://www.edsm.net/dump/systemsWithCoordinates.json"
+edsm_stations_url = "https://www.edsm.net/dump/stations.json"
 eddb_systems_url  = "https://eddb.io/archive/v5/systems.csv"
 eddb_syspop_url   = "https://eddb.io/archive/v5/systems_populated.jsonl"
 eddb_stations_url = "https://eddb.io/archive/v5/stations.jsonl"
@@ -41,6 +42,7 @@ coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/ma
 
 local_path = 'data'
 edsm_systems_local_path  = os.path.join(local_path, "systemsWithCoordinates.json")
+edsm_stations_local_path  = os.path.join(local_path, "stations.json")
 eddb_systems_local_path  = os.path.join(local_path, "systems.csv")
 eddb_syspop_local_path   = os.path.join(local_path, "systems_populated.jsonl")
 eddb_stations_local_path = os.path.join(local_path, "stations.jsonl")
@@ -160,10 +162,10 @@ class Application(object):
 
     if self.args.print_urls:
       if self.args.local:
-        for path in [edsm_systems_local_path if self.args.systems_source == 'edsm' else eddb_systems_local_path, eddb_syspop_local_path, eddb_stations_local_path, coriolis_fsds_local_path]:
+        for path in [edsm_systems_local_path if self.args.systems_source == 'edsm' else eddb_systems_local_path, eddb_syspop_local_path, edsm_stations_local_path if self.args.systems_source == 'edsm' else eddb_stations_local_path, coriolis_fsds_local_path]:
           print(path)
       else:
-        for path in [edsm_systems_url if self.args.systems_source == 'edsm' else eddb_systems_url, eddb_syspop_url, eddb_stations_url, coriolis_fsds_url]:
+        for path in [edsm_systems_url if self.args.systems_source == 'edsm' else eddb_systems_url, eddb_syspop_url, edsm_stations_url if self.args.systems_source == 'edsm' else eddb_stations_url, coriolis_fsds_url]:
           print(path)
       return
 
@@ -206,6 +208,7 @@ class Application(object):
     try:
       # Repoint local paths to use the right relative path
       cur_edsm_systems_local_path  = os.path.join(relpath, edsm_systems_local_path)
+      cur_edsm_stations_local_path = os.path.join(relpath, edsm_stations_local_path)
       cur_eddb_systems_local_path  = os.path.join(relpath, eddb_systems_local_path)
       cur_eddb_syspop_local_path   = os.path.join(relpath, eddb_syspop_local_path)
       cur_eddb_stations_local_path = os.path.join(relpath, eddb_stations_local_path)
@@ -213,6 +216,7 @@ class Application(object):
       cur_coriolis_fsds_local_path = os.path.join(relpath, coriolis_fsds_local_path)
       # Decide whether to source data from local paths or remote URLs
       edsm_systems_path  = util.path_to_url(cur_edsm_systems_local_path)  if self.args.local else edsm_systems_url
+      edsm_stations_path = util.path_to_url(cur_edsm_stations_local_path) if self.args.local else edsm_stations_url
       eddb_systems_path  = util.path_to_url(cur_eddb_systems_local_path)  if self.args.local else eddb_systems_url
       eddb_syspop_path   = util.path_to_url(cur_eddb_syspop_local_path)   if self.args.local else eddb_syspop_url
       eddb_stations_path = util.path_to_url(cur_eddb_stations_local_path) if self.args.local else eddb_stations_url
@@ -236,7 +240,10 @@ class Application(object):
         dbc.update_table_systems(self.import_json_from_url(eddb_syspop_path, cur_eddb_syspop_local_path, 'EDDB populated systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
         log.info("Done.")
       if 'stations' in self.args.steps:
-        dbc.populate_table_stations(self.import_json_from_url(eddb_stations_path, cur_eddb_stations_local_path, 'EDDB stations', self.args.batch_size, is_url_local=self.args.local))
+        if self.args.systems_source == 'edsm':
+          dbc.populate_table_stations(self.import_json_from_url(edsm_stations_path, cur_edsm_stations_local_path, 'EDSM stations', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
+        elif self.args.systems_source == 'eddb':
+          dbc.populate_table_stations(self.import_json_from_url(eddb_stations_path, cur_eddb_stations_local_path, 'EDDB stations', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
         log.info("Done.")
       if 'fsds' in self.args.steps:
         dbc.populate_table_coriolis_fsds(self.import_json_from_url(coriolis_fsds_path, cur_coriolis_fsds_local_path, 'Coriolis FSDs', None, is_url_local=self.args.local, key='fsd'))
