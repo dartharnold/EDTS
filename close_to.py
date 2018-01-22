@@ -14,7 +14,7 @@ class ApplicationAction(argparse.Action):
     need_new = True
     i = 0
     while i < len(system_list):
-      if self.dest not in system_list[i]:
+      if ('system' if self.dest == 'systems' else self.dest) not in system_list[i]:
         need_new = False
         break
       i += 1

@@ -27,7 +27,7 @@ def run(args, hosted = False, state = {}):
   if parsed.route:
     # Route mode.
     cow.expand(4, ['<', '>', '<', '<'], ['   ', ' ', ' ', '   '])
-  elif parsed.start is not None:
+  elif parsed.start is not None or len(parsed.systems) == 2:
     # Reference mode.
     cow.expand(6, ['<', '<', '>', '>', '<'], ['   ', ' '])
   else:
