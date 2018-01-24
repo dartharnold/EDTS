@@ -13,6 +13,10 @@ No further steps are necessary to start from a clean database.  You may, however
 
 `python update.py --steps systems,stations`
 
+For a _much_ smaller download, consider fetching only populated system and station data:
+
+`python update.py --steps systems_populated,stations`
+
 
 # Cache usage
 
