@@ -234,9 +234,9 @@ class Application(object):
 
       if 'systems' in self.args.steps:
         if self.args.systems_source == 'edsm':
-          dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, cur_edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
+          dbc.populate_table_systems(self.import_json_from_url(edsm_systems_path, cur_edsm_systems_local_path, 'EDSM systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source, True)
         elif self.args.systems_source == 'eddb':
-          dbc.populate_table_systems(self.import_csv_from_url(eddb_systems_path, cur_eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source)
+          dbc.populate_table_systems(self.import_csv_from_url(eddb_systems_path, cur_eddb_systems_local_path, 'EDDB systems', self.args.batch_size, is_url_local=self.args.local), self.args.systems_source, True)
         else:
           raise Exception("invalid systems source option provided")
         log.info("Done.")
