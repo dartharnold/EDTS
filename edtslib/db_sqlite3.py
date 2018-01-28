@@ -146,6 +146,22 @@ class SQLite3DBConnection(eb.EnvBackend):
     self._is_closed = True
     log.debug("DB connection closed")
 
+  def _drop_indices(self, indices, cursor = None, commit = False):
+    c = cursor if cursor is not None else self._conn.cursor()
+    for index in util.flatten(indices):
+      log.debug("Dropping index ", index)
+      c.execute("DROP INDEX IF EXISTS {}".format(index))
+    if commit:
+      self._conn.commit()
+
+  def _create_indices(self, indices, unique = False, cursor = None, commit = False):
+    c = cursor if cursor is not None else self._conn.cursor()
+    for index in util.flatten(indices):
+      log.debug("Creating index ", index)
+      c.execute("CREATE {} INDEX IF NOT EXISTS {}".format('UNIQUE' if unique else '', index))
+    if commit:
+      self._conn.commit()
+
   def _create_tables(self):
     log.debug("Creating tables...")
     c = self._conn.cursor()
@@ -227,9 +243,20 @@ class SQLite3DBConnection(eb.EnvBackend):
     c.executemany('{} INTO systems VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)'.format(mode), self._generate_systems_edsm(many))
     self._conn.commit()
 
-  def populate_table_systems(self, many, systems_source):
+  def populate_table_systems(self, many, systems_source, drop_indices = False):
     c = self._conn.cursor()
     c.execute('UPDATE edts_info SET systems_source=?', (systems_source,))
+    c = self._conn.cursor()
+    c.execute('UPDATE edts_info SET systems_source=?', (systems_source,))
+    if drop_indices:
+      self._drop_indices([
+        'idx_systems_name',
+        'idx_systems_pos',
+        'idx_systems_id',
+        'idx_systems_edsm_id',
+        'idx_systems_eddb_id',
+        'idx_systems_id64'
+      ], cursor = c)
     if systems_source == 'edsm':
       self.insert_or_replace_systems_edsm(many, cursor = c, mode = 'REPLACE')
     elif systems_source == 'eddb':
@@ -240,14 +267,16 @@ class SQLite3DBConnection(eb.EnvBackend):
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to systems for name, pos_x/pos_y/pos_z, id...")
-    c.execute('CREATE INDEX idx_systems_name ON systems (name COLLATE NOCASE)')
-    c.execute('CREATE INDEX idx_systems_pos ON systems (pos_x, pos_y, pos_z)')
-    c.execute('CREATE INDEX idx_systems_id ON systems (id)')
-    c.execute('CREATE INDEX idx_systems_edsm_id ON systems (edsm_id)')
+    self._create_indices([
+      'idx_systems_name ON systems (name COLLATE NOCASE)',
+      'idx_systems_pos ON systems (pos_x, pos_y, pos_z)',
+      'idx_systems_id ON systems (id)',
+      'idx_systems_edsm_id ON systems (edsm_id)'
+    ], cursor = c)
     if systems_source == 'eddb':
-      c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
-    c.execute('CREATE INDEX idx_systems_id64 ON systems (id64)')
-    c.execute('CREATE UNIQUE INDEX idx_edsm_cache_entry ON edsm_cache (api, endpoint, name)')
+      self._create_indices('idx_systems_eddb_id ON systems (eddb_id)', cursor = c)
+    self._create_indices('idx_systems_id64 ON systems (id64)', cursor = c)
+    self._create_indices('idx_edsm_cache_entry ON edsm_cache (api, endpoint, name)', unique = True, cursor = c)
     self._conn.commit()
     log.debug("Indexes added.")
 
@@ -260,7 +289,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     log.debug("Done, {} rows affected.", c.rowcount)
     if systems_source != 'eddb':
       log.debug("Going to add indexes to systems for eddb_id...")
-      c.execute('CREATE INDEX idx_systems_eddb_id ON systems (eddb_id)')
+      self._create_indices('idx_systems_eddb_id ON systems (eddb_id)', cursor = c)
     self._conn.commit()
     log.debug("Indexes added.")
 
@@ -290,9 +319,10 @@ class SQLite3DBConnection(eb.EnvBackend):
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to stations for name, system_id...")
-    c.execute('CREATE INDEX idx_stations_name ON stations (name COLLATE NOCASE)')
-    log.debug("Going to add index to stations for system_id...")
-    c.execute('CREATE INDEX idx_stations_sysid ON stations (system_id)')
+    self._create_indices([
+      'idx_stations_name ON stations (name COLLATE NOCASE)',
+      'idx_stations_sysid ON stations (system_id)'
+    ], cursor = c)
     self._conn.commit()
     log.debug("Indexes added.")
 
@@ -315,7 +345,7 @@ class SQLite3DBConnection(eb.EnvBackend):
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to coriolis_fsds for id...")
-    c.execute('CREATE INDEX idx_coriolis_fsds_id ON coriolis_fsds (id)')
+    self._create_indices('idx_coriolis_fsds_id ON coriolis_fsds (id)', cursor = c)
     self._conn.commit()
     log.debug("Indexes added.")
 
