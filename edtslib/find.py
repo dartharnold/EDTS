@@ -47,6 +47,7 @@ class Application(object):
     stn_matches = []
 
     with env.use() as envdata:
+      envdata.find_filtered_systems_from_edsm(self._filters)
       filters = filtering.entry_separator.join(self._filters) if self._filters is not None else None
       if self._regex:
         if self._systems or not self._stations:
@@ -60,12 +61,14 @@ class Application(object):
           sys_matches = [id64_match] if id64_match else []
       else:
         if self._systems or not self._stations:
+          envdata.find_systems_from_edsm([self._pattern[0]])
           sys_matches = list(envdata.find_systems_by_glob(self._pattern[0], filters=filters))
         if self._stations or not self._systems:
           stn_matches = list(envdata.find_stations_by_glob(self._pattern[0], filters=filters))
 
       for system in sys_matches:
         if self._list_stations:
+          envdata.find_stations_in_systems_from_edsm([s.name for s in sys_matches])
           stations = envdata.find_stations(sys_matches).get(system)
           stations.sort(key=lambda t: (t.distance if t.distance else Metres(sys.maxsize)))
         else:

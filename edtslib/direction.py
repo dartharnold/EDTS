@@ -42,6 +42,7 @@ class Application(object):
 
   def run(self):
     with env.use() as envdata:
+      envdata.find_systems_from_edsm([self._reference] + self._systems)
       systems = envdata.parse_systems(self._systems)
       for y in self._systems:
         if y not in systems or systems[y] is None:

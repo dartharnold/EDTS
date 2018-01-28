@@ -69,7 +69,9 @@ class Application(object):
   def run(self):
     refueling = False
     with env.use() as envdata:
-      systems = envdata.parse_systems([arg for arg in self._systems if self.refuel(arg) is None])
+      snames = [arg for arg in self._systems if self.refuel(arg) is None]
+      envdata.find_systems_from_edsm(snames)
+      systems = envdata.parse_systems(snames)
       for y in self._systems:
         if self.refuel(y) is not None:
           refueling = True

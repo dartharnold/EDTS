@@ -32,6 +32,7 @@ class Application(object):
 
   def run(self):
     with env.use() as envdata:
+      envdata.find_systems_from_edsm([self._start] + self._systems)
       start_obj = None
       if self._start is not None:
         start_obj = envdata.parse_system(self._start)

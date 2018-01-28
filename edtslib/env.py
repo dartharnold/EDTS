@@ -51,7 +51,7 @@ def _get_default_backend(path):
     else:
       log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
       return None
-  return db_sqlite3.open_db(db_path)
+  return db_sqlite3.open_db(db_path, use_edsm = global_args.use_edsm)
 
 register_backend(default_backend_name, _get_default_backend)
 
@@ -74,6 +74,30 @@ class Env(object):
     self.is_data_loaded = False
     self._backend = backend
     self._load_data()
+
+  def find_systems_from_edsm(self, names):
+    return self._backend.find_systems_from_edsm(names)
+
+  def find_sphere_systems_from_edsm(self, names, radius = defs.edsm_sphere_radius, inner = defs.edsm_sphere_inner):
+    return self._backend.find_sphere_systems_from_edsm(names, radius = radius, inner = inner)
+
+  def find_intermediate_systems_from_edsm(self, spos, dpos, radius = defs.edsm_sphere_radius):
+    return self._backend.find_intermediate_systems_from_edsm(spos, dpos, radius = radius)
+
+  def find_filtered_systems_from_edsm(self, filters):
+    if filters is None:
+      return
+    if not isinstance(filters, list):
+      filters = [filters]
+    if not len(filters):
+      return
+    filterstrings = [f for f in filters if util.is_str(f)]
+    self._backend.find_filtered_systems_from_edsm(filterstrings, True)
+    for f in filters:
+      return self._backend.find_filtered_systems_from_edsm(self._get_as_filters(f))
+
+  def find_stations_in_systems_from_edsm(self, names):
+    return self._backend.find_stations_in_systems_from_edsm(names)
 
   def close(self):
     if self._backend is not None:
@@ -115,11 +139,11 @@ class Env(object):
     else:
       return s
 
-  def parse_station(self, statstr):
+  def parse_station(self, statstr, name_only = False):
     parts = statstr.split("/", 1)
     sysname = parts[0]
     statname = parts[1] if len(parts) > 1 else None
-    return self.get_station(sysname, statname)
+    return (sysname, statname) if name_only else self.get_station(sysname, statname)
 
   def parse_stations(self, statlist):
     namelist = []
@@ -229,8 +253,8 @@ class Env(object):
 
   def find_stations(self, args, filters = None):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
-    sysobjs = {s.eddb_id: s for s in sysobjs if s.eddb_id is not None}
-    result = [_make_station(sysobjs[stndata['eddb_system_id']], stndata) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
+    sysobjs = {s.id: s for s in sysobjs if s.id is not None}
+    result = [_make_station(sysobjs[stndata['system_id']], stndata) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
     return {sy: [st for st in result if st.system == sy] for sy in sysobjs.values()}
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
@@ -360,4 +384,5 @@ def use(path = default_path, backend = default_backend_name):
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Travel Scripts", fromfile_prefix_chars="@", add_help=False)
 arg_parser.add_argument("-v", "--verbose", dest='log_level', type=int, default=2, help="Increases the logging output")
 arg_parser.add_argument("--db-file", type=str, default=defs.default_db_file, help="Specifies the database file to use")
-global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])    
+arg_parser.add_argument("--use-edsm", type=str.lower, choices=['always', 'periodically', 'when-missing', 'never'], default=defs.use_edsm, help="Refresh system and station data from EDSM")
+global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])

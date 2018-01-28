@@ -23,6 +23,7 @@ class Application(object):
 
   def run(self):
     with env.use() as envdata:
+      envdata.find_systems_from_edsm(self._systems)
       systems = envdata.parse_systems(self._systems)
       for name in self._systems:
         if name not in systems or systems[name] is None:
