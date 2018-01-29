@@ -22,7 +22,7 @@ log = util.get_logger("update")
 
 
 class DownloadOnly(object):
-  def ignore(self, many, systems_source = None):
+  def ignore(self, many, systems_source = None, drop_indices = False):
     for _ in many:
       continue
   populate_table_systems = ignore
