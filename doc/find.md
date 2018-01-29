@@ -10,10 +10,10 @@ Once the [First Run Setup](firstrun.md) is done, the script can be used:
 #!text
 Matching systems:
 
-  Turd Wu
-  Turdetani
-  Turd Wura
-  Turdet
+  Turd Wu        M (red) star
+  Turd Wura      L (brown dwarf) tar
+  Turdet         M (red) tar
+  Turdetani      M (red) tar
 ```
 
 `python find.py '* b23-9'`
@@ -22,12 +22,12 @@ Matching systems:
 #!text
 Matching systems:
 
-  Bleia Dryiae PM-T b23-9
-  Col 173 Sector XZ-N b23-9
-  Col 285 Sector LP-K b23-9
-  Col 173 Sector XU-N b23-9
-  Col 173 Sector WU-N b23-9
-  Col 285 Sector NK-K b23-9
+  Bleia Dryiae PM-T b23-9        M (red) star
+  Col 173 Sector XZ-N b23-9      M (red) star
+  Col 285 Sector LP-K b23-9      M (red) star
+  Col 173 Sector XU-N b23-9      M (red) star
+  Col 173 Sector WU-N b23-9      M (red) star
+  Col 285 Sector NK-K b23-9      M (red) star
 ```
 
 `python find.py 'Futh?r?'`
@@ -36,8 +36,8 @@ Matching systems:
 #!text
 Matching systems:
 
-  Futhark
-  Futhorc
+  Futhark      G (white-yellow) star
+  Futhorc      G (white-yellow) star
 ```
 
 `python find.py 'Enoch*'`
@@ -46,7 +46,7 @@ Matching systems:
 #!text
 Matching stations:
 
-  Agartha, Enoch Port (878Ls, Coriolis Starport)
+  Agartha (G)   Enoch Port   888Ls   Coriolis Starport
 ```
 
 ## Usage ##

@@ -36,13 +36,14 @@ def run(args, hosted = False, state = {}):
     print("")
     print("Matching systems:")
     print("")
-    cow = ColumnObjectWriter(3, ['<', '>', '<'])
+    cow = ColumnObjectWriter(4, ['<', '<', '>', '<'])
     for entry in sorted(sys_matches, key=lambda t: t.system.name):
       if parsed.show_ids or parsed.id64:
         id = " ({})".format(entry.system.pretty_id64(parsed.id64) if parsed.id64 else entry.system.id)
       else:
         id = ""
       cow.add([
+        '',
         '{}{}'.format(entry.system.name, id),
         '',
         entry.system.arrival_star.to_string(True)
@@ -50,6 +51,7 @@ def run(args, hosted = False, state = {}):
 
       for stn in entry.stations:
         cow.add([
+          '',
           '{}{}'.format(' ' * indent, stn.name),
           '({})'.format(stn.distance.to_string() if stn.distance is not None else '???'),
           stn.station_type if stn.station_type is not None else '???'
@@ -69,7 +71,7 @@ def run(args, hosted = False, state = {}):
         id = ""
       cow.add([
         '',
-        entry.station.system.name,
+        entry.station.system.to_string(),
         '{}{}'.format(entry.station.name, id),
         entry.station.distance.to_string() if entry.station.distance is not None else '???',
         entry.station.station_type if entry.station.station_type is not None else '???'

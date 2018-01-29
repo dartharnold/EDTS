@@ -12,16 +12,16 @@ This finds the closest 10 systems to Sol within a max distance of 25LY:
 #!text
 Matching systems close to Sol:
 
-    Alpha Centauri (4.38Ly)
-    Barnard's Star (5.95Ly)
-    Luhman 16 (6.57Ly)
-    WISE 0855-0714 (7.17Ly)
-    Wolf 359 (7.78Ly)
-    Lalande 21185 (8.29Ly)
-    UV Ceti (8.58Ly)
-    Sirius (8.59Ly)
-    Ross 154 (9.69Ly)
-    Yin Sector CL-Y d127 (9.86Ly)
+    Alpha Centauri         4.38Ly   G (white-yellow) star 
+    Barnard's Star         5.95Ly   M (red) star          
+    Luhman 16              6.57Ly   L (brown dwarf) star  
+    WISE 0855-0714         7.17Ly   Y (brown dwarf) star  
+    Wolf 359               7.78Ly   M (red) star          
+    Lalande 21185          8.29Ly   M (red) star          
+    UV Ceti                8.58Ly   M (red) star          
+    Sirius                 8.59Ly   A (blue-white) star   
+    Ross 154               9.69Ly   M (red) star          
+    Yin Sector CL-Y d127   9.86Ly   K (yellow-orange) star
 ```
 
 Use of the `-m` flag is highly recommended - it specifies the maximum distance from the reference system(s) to search at, which can significantly speed up searching.
@@ -36,22 +36,22 @@ This specifies that all returned systems must have at least one station with a l
 #!text
 Matching systems close to Sol:
 
-    Barnard's Star (5.95Ly)
-        Levi-Strauss Installation (7Ls, Civilian Outpost)
-        Haller City (37Ls, Planetary Port)
-        Kuttner's Pride (37Ls, Planetary Outpost)
-        Miller Depot (38Ls, Orbis Starport)
-        Boston Base (63Ls, Coriolis Starport)
-        Silves' Claim (63Ls, Planetary Outpost)
-    Luhman 16 (6.57Ly)
-        Jenner Orbital (10Ls, Civilian Outpost)
-        Heisenberg Colony (14Ls, Civilian Outpost)
-        Edison Hub (14Ls, Planetary Outpost)
-    Wolf 359 (7.78Ly)
-        Lomas Orbiter (53Ls, Orbis Starport)
-        Cayley Enterprise (53Ls, Planetary Outpost)
-        Powell High (99Ls, Coriolis Starport)
-        Tryggvason Installation (99Ls, Planetary Port)
+    Barnard's Star                    5.95Ly   M (red) star        
+        Levi-Strauss Installation      (6Ls)   Outpost             
+        Miller Depot                  (37Ls)   Orbis Starport      
+        Kuttner's Pride               (37Ls)   Planetary Outpost   
+        Haller City                   (37Ls)   Planetary Outpost   
+        Silves' Claim                 (61Ls)   Planetary Outpost   
+        Boston Base                   (62Ls)   Coriolis Starport   
+    Luhman 16                         6.57Ly   L (brown dwarf) star
+        Jenner Orbital                (10Ls)   Outpost             
+        Heisenberg Colony             (13Ls)   Outpost             
+        Edison Hub                    (13Ls)   Planetary Outpost   
+    Wolf 359                          7.78Ly   M (red) star        
+        Lomas Orbiter                 (52Ls)   Orbis Starport      
+        Cayley Enterprise             (52Ls)   Planetary Outpost   
+        Powell High                   (98Ls)   Coriolis Starport   
+        Tryggvason Installation       (98Ls)   Planetary Outpost   
 ```
 
 You can also specify multiple systems; this will result in a list of systems which are closest to all the named systems.
