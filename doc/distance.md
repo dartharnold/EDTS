@@ -9,9 +9,7 @@ Once the [First Run Setup](firstrun.md) is done, the script can be used:
 ```
 #!text
 
-Sol
-    ===   82.53Ly ===> Alioth
-
+   Sol (G) > 82.53Ly > Alioth (A)
 ```
 
 This variant creates a "Raikogram" providing the distances between all systems provided:
@@ -21,12 +19,11 @@ This variant creates a "Raikogram" providing the distances between all systems p
 ```
 #!text
 
-                     Achenar      Alioth  Beta-1 T..         Sol
-         Achenar           -      221.68       24.30      139.45
-          Alioth      221.68           -      217.13       82.53
-  Beta-1 Tucanae       24.30      217.13           -      135.05
-             Sol      139.45       82.53      135.05           -
-
+                  Achenar     Alioth   Beta-1 Tucanae        Sol
+       Achenar          -   221.68Ly           24.3Ly   139.45Ly
+        Alioth   221.68Ly          -         217.13Ly    82.53Ly
+Beta-1 Tucanae     24.3Ly   217.13Ly                -   135.05Ly
+           Sol   139.45Ly    82.53Ly         135.05Ly          -
 ```
 
 This variant specifies that you want to know the distances from a particular system to all others:
@@ -36,10 +33,9 @@ This variant specifies that you want to know the distances from a particular sys
 ```
 #!text
 
- Sol ===   82.53Ly ===> Alioth
- Sol ===  135.05Ly ===> Beta-1 Tucanae
- Sol ===  139.45Ly ===> Achenar
-
+   Sol (G) >  82.53Ly > Alioth (A)         
+   Sol (G) > 135.05Ly > Beta-1 Tucanae (B) 
+   Sol (G) > 139.45Ly > Achenar (B)        
 ```
 
 ## Usage ##

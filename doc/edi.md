@@ -8,18 +8,21 @@ The **edi** tool allows all the other tools to be run more quickly within a simp
 #!text
 EDI> distance Sol Alioth
 
-Sol
-    ===   82.53Ly ===> Alioth
+   Sol (G) > 82.53Ly > Alioth (A)
 
 EDI> set_ship -f 6A -m 521.8 -t 16
+
+Ship [FSD: 6A, mass: 521.8T, fuel: 16T]: jump range 40.81LY (41.43LY)
+
 EDI> fuel_usage Sol Sirius Altair Aulin "LP 98-132" Sobek
 
-Sol
-    ===  8.59Ly / 0.14T / 15.86T ===> Sirius
-    === 25.05Ly / 2.25T / 13.61T ===> Altair
-    === 36.73Ly / 6.01T /  7.60T ===> Aulin
-    === 12.51Ly / 0.35T /  7.25T ===> LP 98-132
-    === 35.73Ly / 5.43T /  1.82T ===> Sobek
+   Distance  System         Fuel cost  Remaining  
+             Sol (G)                      15.86T  
+     8.59Ly  Sirius (A)         0.14T     15.86T  
+    25.05Ly  Altair (A)         2.25T     13.75T  
+    36.73Ly  Aulin (K)          6.08T      9.92T  
+    12.51Ly  LP 98-132 (M)      0.37T     15.63T  
+    35.73Ly  Sobek (G)          5.66T     10.34T  
 
 EDI> 
 ```

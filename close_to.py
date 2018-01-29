@@ -71,13 +71,13 @@ def run(args, hosted = False, state = {}):
   for entry in results:
     cow.add([
       '    {}'.format(entry.system.name),
-      '{} '.format(entry.distances[parsed.systems[0]['sysobj'].name].to_string(True)) if len(entry.distances) == 1 else '',
+      '{}'.format(entry.distances[parsed.systems[0]['sysobj'].name].to_string(True)) if len(entry.distances) == 1 else '',
       entry.system.arrival_star.to_string(True)
     ])
     for stn in entry.stations:
       cow.add([
         '{}{}'.format(' ' * indent, stn.name),
-        '({})'.format(str(Lightseconds(stn.distance)) if stn.distance is not None else '???'),
+        '({})'.format(str(Lightseconds(stn.distance.lightseconds)) if stn.distance is not None else '???'),
         stn.station_type if stn.station_type is not None else '???'
       ])
   cow.add(['', '', ''])

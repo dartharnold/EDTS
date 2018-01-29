@@ -94,6 +94,9 @@ class Application(object):
         raise RuntimeError("Error: You must specify --ship or all of --fsd, --mass and --tank and/or --jump-range.")
       else:
         self._ship = None
+        if self._tank is not None:
+          log.info('Ignoring tank with explicit jump range.')
+          self._tank = None
 
       if self._boost:
         raise RuntimeError("Error: FSD boost requires --ship or all of --fsd, --mass and --tank.")

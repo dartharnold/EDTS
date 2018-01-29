@@ -65,7 +65,7 @@ Query again, allowing EDSM download.
 #!text
 Matching systems:
 
-Lave      K (yellow-orange) star
+  Lave      K (yellow-orange) star
 ```
 
 Note that no stations are known.
@@ -77,7 +77,7 @@ Note that no stations are known.
 
 Matching systems:
 
-Lave      K (yellow-orange) star
+  Lave      K (yellow-orange) star
 ```
 
 Query again, allowing EDSM download (for stations).
@@ -89,7 +89,7 @@ Query again, allowing EDSM download (for stations).
 
 Matching systems:
 
-Lave                                    K (yellow-orange) star
+  Lave                                  K (yellow-orange) star
         Lave Station          (298Ls)   Coriolis Starport     
         Warinus               (862Ls)   Asteroid base         
         Chern Terminal       (2600Ls)   Planetary Outpost     

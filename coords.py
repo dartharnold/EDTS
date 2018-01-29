@@ -17,10 +17,11 @@ def parse_args(arg, hosted, state):
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
   fmt = '8g' if parsed.full_width else '8.2f'
-  cow = ColumnObjectWriter(4, '>', '')
+  cow = ColumnObjectWriter(5, ['<', '>'], ['  ', ''])
   for entry in coords.Application(**vars(parsed)).run():
     position = [('{:' + fmt + '}').format(coord) for coord in entry.system.position]
     cow.add([
+      '',
       entry.system.name,
       ': [',
       position[0],
