@@ -116,22 +116,8 @@ class Star(Body):
   def __init__(self, data):
     super(Star, self).__init__(self.STAR, data.get('name'))
     self.spectral_class = None
-    self.arrival = bool(data.get('is_main_star') or data.get('isMainStar'))
-    if data.get('spectral_class'):
-      # EDDB data.
-      self.spectral_class = data['spectral_class']
-    elif data.get('group_name') == 'Compact star':
-      # EDDB data.
-      star_type = data.get('type_name', '').lower()
-      if star_type.startswith('neutron'):
-        self.spectral_class = self.NEUTRON
-      elif star_type == 'supermassive black hole':
-        self.spectral_class = 'SMBH'
-      elif star_type.endswith('black hole'):
-        self.spectral_class = 'BH'
-      elif star_type == 'exotic':
-        self.spectral_class = self.EXOTIC
-    elif data.get('isScoopable') is not None:
+    self.arrival = bool(data.get('isMainStar'))
+    if data.get('isScoopable') is not None:
       # EDSM star data.
       star_type = data.get('type')
       if star_type is not None:

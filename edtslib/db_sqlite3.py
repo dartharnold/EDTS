@@ -15,7 +15,7 @@ from .edsm import EDSMCache, EDSMCacheHit
 
 log = util.get_logger("db_sqlite3")
 
-schema_version = 11
+schema_version = 12
 
 _find_operators = ['=','LIKE','REGEXP']
 # This is nasty, and it may well not be used up in the main code
@@ -29,14 +29,14 @@ _bad_char_regex = re.compile(r"[^a-zA-Z0-9'&+:*^%_?.,/#@!=`() -|\[\]]")
 
 def _process_system_result(r):
   return {
-    'id': r['system_id'], 'edsm_id': r['system_edsm_id'], 'eddb_id': r['system_eddb_id'],
+    'id': r['system_id'],
     'name': r['system_name'], 'x': r['pos_x'], 'y': r['pos_y'], 'z': r['pos_z'],
     'id64': r['id64'], 'needs_permit': r['needs_permit'], 'arrival_star_class': r['arrival_star_class'],
   }
 
 def _process_station_result(r):
   return {
-    'id': r['station_id'], 'edsm_id': r['station_edsm_id'], 'eddb_id': r['station_eddb_id'],
+    'id': r['station_id'],
     'system_id': r['system_id'], 'name': r['station_name'], 'type': r['station_type'],
     'distance_to_star': r['sc_distance'], 'has_refuel': r['has_refuel'],
     'max_landing_pad_size': r['max_pad_size'], 'is_planetary': r['is_planetary'],
@@ -44,8 +44,6 @@ def _process_station_result(r):
 
 _find_method_systems_entries = [
   'systems.id AS system_id',
-  'systems.edsm_id AS system_edsm_id',
-  'systems.eddb_id AS system_eddb_id',
   'systems.name AS system_name',
   'systems.pos_x AS pos_x',
   'systems.pos_y AS pos_y',
@@ -57,8 +55,6 @@ _find_method_systems_entries = [
 
 _find_method_stations_entries = [
   'stations.id AS station_id',
-  'stations.edsm_id AS station_edsm_id',
-  'stations.eddb_id AS station_eddb_id',
   'stations.name AS station_name',
   'stations.station_type AS station_type',
   'stations.sc_distance AS sc_distance',
@@ -165,12 +161,11 @@ class SQLite3DBConnection(eb.EnvBackend):
   def _create_tables(self):
     log.debug("Creating tables...")
     c = self._conn.cursor()
-    c.execute('CREATE TABLE edts_info (db_version INTEGER, db_mtime INTEGER NOT NULL, systems_source TEXT)')
-    c.execute('INSERT INTO edts_info VALUES (?, ?, NULL)', (schema_version, int(time.time())))
+    c.execute('CREATE TABLE edts_info (db_version INTEGER, db_mtime INTEGER NOT NULL)')
+    c.execute('INSERT INTO edts_info VALUES (?, ?)', (schema_version, int(time.time())))
 
-    c.execute('CREATE TABLE systems (id INTEGER PRIMARY KEY, name TEXT COLLATE NOCASE NOT NULL, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, edsm_id INTEGER, eddb_id INTEGER, id64 INTEGER, needs_permit BOOLEAN, allegiance TEXT, arrival_star_class TEXT)')
-    c.execute('CREATE TABLE stations (id INTEGER PRIMARY KEY, edsm_id INTEGER, eddb_id INTEGER, system_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, eddb_parent_body_id INTEGER, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, has_refuel BOOLEAN, is_planetary BOOLEAN)')
-    # c.execute('CREATE TABLE bodies (eddb_id INTEGER NOT NULL, eddb_system_id INTEGER NOT NULL, id64 INTEGER, body_type TEXT NOT NULL, body_class TEXT NOT NULL)
+    c.execute('CREATE TABLE systems (id INTEGER PRIMARY KEY, name TEXT COLLATE NOCASE NOT NULL, pos_x REAL NOT NULL, pos_y REAL NOT NULL, pos_z REAL NOT NULL, id64 INTEGER, needs_permit BOOLEAN, allegiance TEXT, arrival_star_class TEXT)')
+    c.execute('CREATE TABLE stations (id INTEGER PRIMARY KEY, system_id INTEGER NOT NULL, name TEXT COLLATE NOCASE NOT NULL, sc_distance INTEGER, station_type TEXT, max_pad_size TEXT, has_refuel BOOLEAN, is_planetary BOOLEAN)')
     c.execute('CREATE TABLE coriolis_fsds (id TEXT NOT NULL PRIMARY KEY, data TEXT NOT NULL)')
     c.execute('CREATE TABLE edsm_cache (id INTEGER PRIMARY KEY, api TEXT NOT NULL, endpoint TEXT NOT NULL, name TEXT COLLATE NOCASE NOT NULL, timestamp INTEGER NOT NULL)')
 
@@ -197,24 +192,7 @@ class SQLite3DBConnection(eb.EnvBackend):
         classification = Star(s.get('primaryStar', {})).classification
       else:
         classification = None
-      yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, int(s['id']), id64, s.get('needsPermit'), info.get('allegiance'), classification)
-
-  def _generate_systems_eddb(self, systems):
-    from . import id64data
-    for s in systems:
-      pos = vector3.Vector3(float(s['x']), float(s['y']), float(s['z']))
-      s_id64 = id64data.get_id64(s['name'], pos)
-      yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, int(s['edsm_id']) if 'edsm_id' in s and s['edsm_id'] else None, int(s['id']), s_id64, bool(s['needs_permit']), s['allegiance'])
-
-  def _generate_systems_update_eddb(self, systems, id_column):
-    for s in systems:
-      yield (int(s['id']), bool(s['needs_permit']), s['allegiance'], s[id_column])
-
-  def _generate_systems_arrival_star_update_eddb(self, bodies):
-    # Only update for arrival stars
-    for b in bodies:
-      if bool(b['is_main_star']):
-        yield (Star(b).classification, int(b['system_id']))
+      yield (int(s['id']), s['name'], pos.x, pos.y, pos.z, id64, s.get('needsPermit'), info.get('allegiance'), classification)
 
   def _generate_stations_edsm(self, stations):
     for s in stations:
@@ -227,11 +205,7 @@ class SQLite3DBConnection(eb.EnvBackend):
       system_id = s.get('systemId', s.get('system', {}).get('id'))
       if not system_id:
         return
-      yield (int(s['id']), int(s['id']), None, int(system_id), s['name'], None, int(s['distanceToArrival']) if s.get('distanceToArrival') is not None else None, s['type'], pad, bool('Refuel' in s.get('otherServices')), bool(str(s['type']).startswith('Planetary')))
-
-  def _generate_stations_eddb(self, stations):
-    for s in stations:
-      yield (int(s['id']), None, int(s['id']), int(s['system_id']), s['name'], int(s['body_id']) if s['body_id'] is not None else None, int(s['distance_to_star']) if s['distance_to_star'] is not None else None, s['type'], s['max_landing_pad_size'], bool(s['has_refuel']), bool(s['is_planetary']))
+      yield (int(s['id']), int(system_id), s['name'], int(s['distanceToArrival']) if s.get('distanceToArrival') is not None else None, s['type'], pad, bool('Refuel' in s.get('otherServices')), bool(str(s['type']).startswith('Planetary')))
 
   def _generate_coriolis_fsds(self, fsds):
     for fsd in fsds:
@@ -240,30 +214,19 @@ class SQLite3DBConnection(eb.EnvBackend):
   def insert_or_replace_systems_edsm(self, many, cursor = None, mode = 'INSERT'):
     c = cursor if cursor is not None else self._conn.cursor()
     log.debug('Going for {} INTO systems...', mode)
-    c.executemany('{} INTO systems VALUES (?, ?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)'.format(mode), self._generate_systems_edsm(many))
+    c.executemany('{} INTO systems VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'.format(mode), self._generate_systems_edsm(many))
     self._conn.commit()
 
-  def populate_table_systems(self, many, systems_source, drop_indices = False):
+  def populate_table_systems(self, many, drop_indices = False):
     c = self._conn.cursor()
-    c.execute('UPDATE edts_info SET systems_source=?', (systems_source,))
-    c = self._conn.cursor()
-    c.execute('UPDATE edts_info SET systems_source=?', (systems_source,))
     if drop_indices:
       self._drop_indices([
         'idx_systems_name',
         'idx_systems_pos',
         'idx_systems_id',
-        'idx_systems_edsm_id',
-        'idx_systems_eddb_id',
         'idx_systems_id64'
       ], cursor = c)
-    if systems_source == 'edsm':
-      self.insert_or_replace_systems_edsm(many, cursor = c, mode = 'REPLACE')
-    elif systems_source == 'eddb':
-      log.debug("Going for REPLACE INTO systems...")
-      c.executemany('REPLACE INTO systems VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)', self._generate_systems_eddb(many))
-    else:
-      raise ValueError("invalid systems_source provided to populate_table_systems")
+    self.insert_or_replace_systems_edsm(many, cursor = c, mode = 'REPLACE')
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to systems for name, pos_x/pos_y/pos_z, id...")
@@ -271,25 +234,9 @@ class SQLite3DBConnection(eb.EnvBackend):
       'idx_systems_name ON systems (name COLLATE NOCASE)',
       'idx_systems_pos ON systems (pos_x, pos_y, pos_z)',
       'idx_systems_id ON systems (id)',
-      'idx_systems_edsm_id ON systems (edsm_id)'
     ], cursor = c)
-    if systems_source == 'eddb':
-      self._create_indices('idx_systems_eddb_id ON systems (eddb_id)', cursor = c)
     self._create_indices('idx_systems_id64 ON systems (id64)', cursor = c)
     self._create_indices('idx_edsm_cache_entry ON edsm_cache (api, endpoint, name)', unique = True, cursor = c)
-    self._conn.commit()
-    log.debug("Indexes added.")
-
-  def update_table_systems(self, many, systems_source):
-    c = self._conn.cursor()
-    log.debug("Going for UPDATE systems...")
-    id_column = 'id' if systems_source == 'eddb' else 'edsm_id'
-    c.executemany('UPDATE systems SET eddb_id=?, needs_permit=?, allegiance=? WHERE id=?', self._generate_systems_update_eddb(many, id_column))
-    self._conn.commit()
-    log.debug("Done, {} rows affected.", c.rowcount)
-    if systems_source != 'eddb':
-      log.debug("Going to add indexes to systems for eddb_id...")
-      self._create_indices('idx_systems_eddb_id ON systems (eddb_id)', cursor = c)
     self._conn.commit()
     log.debug("Indexes added.")
 
@@ -306,16 +253,12 @@ class SQLite3DBConnection(eb.EnvBackend):
   def insert_or_replace_stations_edsm(self, many, cursor = None, mode = 'INSERT'):
     c = cursor if cursor is not None else self._conn.cursor()
     log.debug('Going for {} INTO stations...', mode)
-    c.executemany('{} INTO stations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'.format(mode), self._generate_stations_edsm(many))
+    c.executemany('{} INTO stations VALUES (?, ?, ?, ?, ?, ?, ?, ?)'.format(mode), self._generate_stations_edsm(many))
     self._conn.commit()
 
-  def populate_table_stations(self, many, systems_source):
+  def populate_table_stations(self, many):
     c = self._conn.cursor()
-    if systems_source == 'edsm':
-      self.insert_or_replace_stations_edsm(many, cursor = c, mode = 'REPLACE')
-    else:
-      log.debug("Going for REPLACE INTO stations...")
-      c.executemany('REPLACE INTO stations VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', self._generate_stations_eddb(many))
+    self.insert_or_replace_stations_edsm(many, cursor = c, mode = 'REPLACE')
     self._conn.commit()
     log.debug("Done, {} rows inserted.", c.rowcount)
     log.debug("Going to add indexes to stations for name, system_id...")
@@ -325,18 +268,6 @@ class SQLite3DBConnection(eb.EnvBackend):
     ], cursor = c)
     self._conn.commit()
     log.debug("Indexes added.")
-
-  def populate_table_bodies(self, many, systems_source):
-    # TODO: Actually populate a bodies table and indexes
-    # TODO: Then update arrival_star_class from that data and add an index for it
-    if systems_source != 'eddb':
-      raise ValueError("invalid systems_source provided to populate_table_bodies")
-    c = self._conn.cursor()
-    log.debug("Going for UPDATE systems for body data...")
-    c.executemany('UPDATE systems SET arrival_star_class=? WHERE eddb_id=?', self._generate_systems_arrival_star_update_eddb(many))
-    # log.debug("Going for INSERT into bodies...")
-    # c.executemany('INSERT INTO bodies VALUES (...)', self._generate_bodies(many))
-    self._conn.commit()
 
   def populate_table_coriolis_fsds(self, many):
     log.debug("Going for REPLACE INTO coriolis_fsds...")
@@ -414,24 +345,9 @@ class SQLite3DBConnection(eb.EnvBackend):
     else:
       return None
 
-  def assert_systems_source_edsm(self):
-    c = self._conn.cursor()
-    cmd = 'SELECT systems_source FROM edts_info'
-    c.execute(cmd)
-    result = c.fetchone()
-    if result is not None:
-      systems_source = result['systems_source']
-      if systems_source == 'edsm':
-        return
-      if systems_source is not None:
-        raise ValueError("invalid systems_source provided to use EDSM API")
-    c.execute('UPDATE edts_info SET systems_source=?', ('edsm',))
-    self._conn.commit()
-
   def find_systems_from_edsm(self, names):
     if self._edsm_cache is None:
       return
-    self.assert_systems_source_edsm()
     snames = self._edsm_cache.filter_names(names)
     if not len(snames):
       return
@@ -459,7 +375,6 @@ class SQLite3DBConnection(eb.EnvBackend):
       return
     if self._use_edsm == 'when-missing':
       return
-    self.assert_systems_source_edsm()
     for system in names:
       log.debug('Checking EDSM for systems between {}Ly and {}Ly from {}', inner, radius, system)
       try:
@@ -523,7 +438,6 @@ class SQLite3DBConnection(eb.EnvBackend):
   def find_stations_in_systems_from_edsm(self, systems):
     if self._edsm_cache is None:
       return
-    self.assert_systems_source_edsm()
     snames = self._edsm_cache.filter_names(systems)
     if not len(snames):
       return

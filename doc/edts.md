@@ -80,7 +80,7 @@ Common optional arguments:
 * `-n N`/`--num-jumps=N`: the number of legs, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-b N`/`--boost N` (optional): level `1`-`3` FSD boost or `D` for white dwarf, `N` for neutron star); default: no boost
 * `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-r`/`--route`: causes a full route to be computed (for every jump, not just the legs). The route is generated from the available EDDB data, and thus may not be optimal.
+* `-r`/`--route`: causes a full route to be computed (for every jump, not just the legs). The route is generated from the available EDSM data, and thus may not be optimal.
 * `-a`/`--accurate`: only used with `-r`; makes routing use a different algorithm (`trunkle`) which produces more accurate and efficient routes, but sometimes is slightly slower and may be unable to calculate some routes.
 * `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
 * `-O`/`--tour`: partial ordered, for calculating the optimal route for passenger tours; each time this flag appears any subsequent system[/station] arguments will be routed in order.

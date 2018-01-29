@@ -5,9 +5,7 @@ EDTS can query the [EDSM](https://www.edsm.net/) API for system and station info
 
 ## Prerequisites ##
 
-EDSM dynamic mode requires using EDSM as the definitive data source, which is not the default.  If you have previously downloaded system data from EDDB you will need to reinitialise the local database.
-
-`python update.py --systems-source edsm --steps clean,fsds`
+`python update.py --steps clean,fsds`
 
 No further steps are necessary to start from a clean database.  You may, however, wish to obtain the latest full dataset by running:
 

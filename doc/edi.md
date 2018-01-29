@@ -32,9 +32,6 @@ EDI>
 Optional Arguments:
 
 * `-v N`/`--verbose=N`: sets the output level (0-3, with 3 being debug output)
-* `--eddb-systems-file=F`: sets the systems.json file to use (default: `eddb/systems.json`)
-* `--eddb-stations-file=F`: sets the stations.json file to use (default: `eddb/stations.json`)
-* `--coriolis-fsd-file=F`: sets the frame_shift_drive.json file to use (default: `coriolis/frame_shift_drive.json`)
 
 Note that these arguments can also be used with any of the individual commands when run standalone (but not within EDI).
 
