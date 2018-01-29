@@ -797,7 +797,7 @@ def _construct_query(qtables, select, qfilter, select_params = None, filter_para
       qfilter.append("systems.id=stations.system_id")
       # More hack: if we weren't originally joining on stations, group results by system
       if 'stations' not in qtables:
-        group.append('systems.eddb_id')
+        group.append('systems.id')
     # If we have any groups/ordering/limiting, set it up
     if any(group):
       qmodifier.append('GROUP BY {}'.format(', '.join(group)))
