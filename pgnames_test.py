@@ -219,6 +219,11 @@ if __name__ == '__main__':
         else:
           print("Could not find sector or system")
 
+    elif sys.argv[1] == "localdatatest":
+      env.set_verbosity(2)
+      with env.use() as envdata:
+        run_test(envdata.find_all_systems())
+
     elif sys.argv[1] == "id64datatest":
       env.set_verbosity(2)
       env.start()
