@@ -255,25 +255,13 @@ class KnownSystem(System):
     Creates a system object with data from a coordinates database.
 
     Args:
-      obj: A dict containing the keys (x, y, z, name, id64), and optionally (id, edsm_id, eddb_id, needs_permit, allegiance, arrival_star_class)
+      obj: A dict containing the keys (x, y, z, name, id64), and optionally (id, needs_permit, allegiance, arrival_star_class)
     """
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'], obj['id64'], 0.0)
     self._id = obj['id'] if 'id' in obj else None
-    self._edsm_id = obj['edsm_id'] if 'edsm_id' in obj else None
-    self._eddb_id = obj['eddb_id'] if 'eddb_id' in obj else None
     self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else None
     self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
     self._arrival_star = Star({ 'name': obj['name'], 'is_main_star': True, 'spectral_class': obj.get('arrival_star_class') })
-
-  @property
-  def edsm_id(self):
-    """The system's ID as specified by EDSM, or None if this is not available"""
-    return self._edsm_id
-
-  @property
-  def eddb_id(self):
-    """The system's ID as specified by EDDB, or None if this is not available"""
-    return self._eddb_id
 
   @property
   def needs_permit(self):

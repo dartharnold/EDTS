@@ -4,8 +4,7 @@ FIND_GLOB = 1
 FIND_REGEX = 2
 
 class EnvBackend(object):
-  # SystemResult = {"id": int, "edsm_id": int or None, "eddb_id": int or None, "name": str,
-  #                 "x": float, "y": float, "z": float, "id64": int or None, ...}
+  # SystemResult = {"id": int, "name": str, "x": float, "y": float, "z": float, "id64": int or None, ...}
   # StationResult = {"id": int, name": str, "type": str, "has_refuel": bool, "is_planetary": bool,
   #                  "max_landing_pad_size": str, "distance_to_star": float, ...}
   # All methods returning list-like objects may instead return generators or other iterators
@@ -38,7 +37,7 @@ class EnvBackend(object):
     raise NotImplementedError("Invalid use of base EnvBackend get_stations_by_names method")
 
   def find_stations_by_system_id(self, args, filters = None):
-    # return [StationResult + {"eddb_station_id": int}, ...]
+    # return [StationResult, ...]
     raise NotImplementedError("Invalid use of base EnvBackend find_stations_by_system_id method")
 
   def find_systems_by_aabb(self, min_x, min_y, min_z, max_x, max_y, max_z, filters = None):

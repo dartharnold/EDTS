@@ -10,7 +10,7 @@
 * **[fuel_usage](doc/fuel_usage.md)**: determines the amount of fuel used by a series of jumps
 * **[galmath](doc/galmath.md)**: gives an estimate of good plot distances in the galactic core
 
-* **[edi](doc/edi.md)**: an interactive interpreter to run all the above tools more quickly (without reloading the EDDB/Coriolis data)
+* **[edi](doc/edi.md)**: an interactive interpreter to run all the above tools more quickly (without reloading the EDSM/Coriolis data)
 
 ### Features ###
 
@@ -28,7 +28,7 @@ Please note that versions of Python 2.7 earlier than 2.7.9 may have problems ini
 
 ### How to use ###
 
-On first run, the latest [EDSM](http://edsm.net)/[EDDB](http://eddb.io) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
+On first run, the latest [EDSM](http://edsm.net) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
 
 `python update.py`  
 

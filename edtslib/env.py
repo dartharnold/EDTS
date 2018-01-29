@@ -49,7 +49,7 @@ def _get_default_backend(path):
         log.error("Could not move existing database file to updated location: {}".format(str(ex)))
         return None
     else:
-      log.error("Error: EDDB/Coriolis data not found. Please run update.py to download this data and create the local database.")
+      log.error("Error: EDSM/Coriolis data not found. Please run update.py to download this data and create the local database.")
       return None
   return db_sqlite3.open_db(db_path, use_edsm = global_args.use_edsm)
 
