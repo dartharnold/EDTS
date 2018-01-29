@@ -9,14 +9,14 @@ Once the [First Run Setup](firstrun.md) is done, the script can be used:
 ```
 #!text
 
-   Distance  System         Fuel cost  Remaining  
-             Alioth (A)                   30.35T  
-    21.61Ly  Loucetios (M)      1.65T     30.35T  
-    23.37Ly  Eranin (K)         2.03T     29.97T  
-     5.23Ly  LP 98-132 (M)      0.04T     31.96T  
-    12.51Ly  Aulin (K)          0.40T     31.60T  
-    36.73Ly  Altair (A)         6.57T     25.43T  
-    16.74Ly  Sol (G)            0.85T     31.15T  
+   Distance  System            Fuel cost  Remaining  
+             Alioth (Star)                   32.00T  
+    21.61Ly  Loucetios (Star)      1.65T     30.35T  
+    23.37Ly  Eranin (Star)         2.01T     28.34T  
+     5.23Ly  LP 98-132 (Star)      0.04T     28.30T  
+    12.51Ly  Aulin (Star)          0.39T     27.90T  
+    36.73Ly  Altair (Star)         6.44T     21.46T  
+    16.74Ly  Sol (Star)            0.81T     20.65T  
 ```
 
 The output will show a warning if the given jump is impossible due to insufficient range:
@@ -26,11 +26,11 @@ The output will show a warning if the given jump is impossible due to insufficie
 ```
 #!text
 
-   Distance  System         Fuel cost  Remaining  
-             Alioth (A)                   30.35T  
-    21.61Ly  Loucetios (M)      1.65T     30.35T  
-    23.37Ly  Eranin (K)         2.03T     29.97T  
- !  42.46Ly  Altair (A)         8.20T    -13.03T  
+   Distance  System            Fuel cost  Remaining  
+             Alioth (Star)                   32.00T  
+    21.61Ly  Loucetios (Star)      1.65T     30.35T  
+    23.37Ly  Eranin (Star)         2.01T     28.34T  
+ !  42.46Ly  Altair (Star)         9.40T     18.93T  
 ```
 
 Similarly if you would have run out of fuel (here we set the starting fuel amount to 8T):
@@ -41,7 +41,7 @@ Similarly if you would have run out of fuel (here we set the starting fuel amoun
 #!text
 
    Distance  System           Fuel cost  Remaining  
-             Pandemonium (G)                 3.58T  
+             Pandemonium (G)                 8.00T  
     32.73Ly  Jotunheim (K)        4.42T      3.58T  
     26.18Ly  Cemiess (G)          2.42T      1.16T  
     14.38Ly  Achenar (B)          0.50T      0.65T  
@@ -56,7 +56,7 @@ You can specify that the ship was refueled by giving the amount of added fuel as
 #!text
 
    Distance  System           Refuel  Percent  Fuel cost  Remaining  
-             Pandemonium (G)                                  3.58T  
+             Pandemonium (G)                                  8.00T  
     32.73Ly  Jotunheim (K)                         4.42T      3.58T  
     26.18Ly  Cemiess (G)                           2.42T      1.16T  
                                3.20T   10.00%                 4.36T  

@@ -86,7 +86,8 @@ def run(args, hosted = False, state = {}):
         row = ['', '', entry.origin.system]
         if refueling:
           row += ['', '']
-        row += ['', '{:.2f}T'.format(entry.fuel.final), '']
+        # This is the first row, so use the initial fuel available, not at the destination
+        row += ['', '{:.2f}T'.format(entry.fuel.initial), '']
         cow.add(row)
       row = ['!' if not entry.ok else '*' if entry.is_long else '', entry.distance.to_string(True), entry.destination.system]
       if refueling:
