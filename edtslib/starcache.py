@@ -14,32 +14,16 @@ IMPORTFORMAT = 'ImportStars{}.txt'
 IMPORTEDFILE = "ImportStars.txt.imported"
 CACHEFILE = "VisitedStarsCache.dat"
 RECENTFILE = "RecentlyVisitedStars.dat"
-KNOWN_VERSIONS = [100]
 
-class VisitedStarsCacheHeader(object):
-  def __init__(self):
-    self.start_magic = 'VisitedStars'
-    self.recent_magic = 0x7f00
-    self.end_magic = 0x5AFEC0DE5AFEC0DE
-    self.magic = self.start_magic
-    self.recent = False
-    self.version = KNOWN_VERSIONS[0]
-    self.start = 0x30
-    self.end = 0x30
-    self.num_entries_offset = 0x18
-    self.num_entries = 0
-    self.entry_len = self.expected_entry_len
-    self.account_id = 0
-    self.padding = 0
-    self.cmdr_id = 0
+class VisitedStarsCacheFormat(object):
+  def __init__(self, version, **args):
+    self.version = version
+    for k in ['historical_magic', 'has_visit_count', 'has_last_visit_date']:
+      # Raise if we forget to pass a parameter.
+      setattr(self, k, args[k])
 
-  @property
-  def has_visit_count(self):
-    return self.version > KNOWN_VERSIONS[0]
-
-  @property
-  def has_last_visit_date(self):
-    return self.version > KNOWN_VERSIONS[0]
+  def __str__(self):
+    return self.version
 
   @property
   def expected_entry_len(self):
@@ -49,6 +33,41 @@ class VisitedStarsCacheHeader(object):
     if self.has_last_visit_date:
       exp_len += 4
     return exp_len
+
+
+KNOWN_VERSIONS = { v.version: v for v in [
+  VisitedStarsCacheFormat(200, historical_magic = 0x100, has_visit_count = True, has_last_visit_date = True),
+  VisitedStarsCacheFormat(100, historical_magic = 0, has_visit_count = False, has_last_visit_date = False)
+] }
+KNOWN_VERSIONS['latest'] = KNOWN_VERSIONS[200]
+
+class VisitedStarsCacheHeader(object):
+  def __init__(self, version = None):
+    self.format = KNOWN_VERSIONS.get(version) if version is not None else None
+    if self.format is None:
+      self.format = KNOWN_VERSIONS['latest']
+    self.version = version if version is not None else self.format.version
+    self.start_magic = 'VisitedStars'
+    self.recent_magic = 0x7f00
+    self.end_magic = 0x5AFEC0DE5AFEC0DE
+    self.magic = self.start_magic
+    self.recent = False
+    self.start = 0x30
+    self.end = 0x30
+    self.num_entries_offset = 0x18
+    self.num_entries = 0
+    self.entry_len = self.format.expected_entry_len
+    self.account_id = 0
+    self.padding = 0
+    self.cmdr_id = 0
+
+  @property
+  def has_visit_count(self):
+    return self.format.has_visit_count
+
+  @property
+  def has_last_visit_date(self):
+    return self.format.has_last_visit_date
 
 def read_struct(f, format, size):
   try:
@@ -94,11 +113,12 @@ def read_visited_stars_cache_header(f):
     recent = read_uint32(f)
     if recent == header.recent_magic:
       header.recent = True
-    elif recent:
-      log.warning('Unexpected recent magic...')
     header.version = read_uint32(f)
     if header.version not in KNOWN_VERSIONS:
-      log.warning('Unexpected version {} not {}...', header.version, ', '.join([str(version) for version in KNOWN_VERSIONS]))
+      log.warning('Unexpected version {} not {}...', header.version, ', '.join([str(version) for version in KNOWN_VERSIONS.keys() if version != 'latest']))
+    header.format = KNOWN_VERSIONS.get(header.version, KNOWN_VERSIONS['latest'])
+    if not header.recent and recent != header.format.historical_magic:
+      log.warning('Unexpected recent magic...')
     header.start = read_uint32(f)
     header.num_entries = read_uint32(f)
     header.entry_len = read_uint32(f)
@@ -127,15 +147,13 @@ def write_visited_stars_cache(filename, systems, recent = False, version = None)
     dirname = os.path.dirname(filename)
     fd, scratch = tempfile.mkstemp('.tmp', os.path.basename(filename), dirname if dirname else '.')
     with os.fdopen(fd, 'wb') as f:
-      header = VisitedStarsCacheHeader()
-      if version is not None:
-        header.version = version
-      header.entry_len = header.expected_entry_len
+      header = VisitedStarsCacheHeader(version)
+      header.entry_len = header.format.expected_entry_len
       write_str(f, header.magic)
       if recent:
         write_uint32(f, header.recent_magic)
       else:
-        write_uint32(f, 0)
+        write_uint32(f, header.format.historical_magic)
       write_uint32(f, header.version)
       write_uint32(f, header.start)
       header.num_entries_offset = f.tell()
