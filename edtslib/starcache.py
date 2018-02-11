@@ -14,7 +14,8 @@ IMPORTFORMAT = 'ImportStars{}.txt'
 IMPORTEDFILE = "ImportStars.txt.imported"
 CACHEFILE = "VisitedStarsCache.dat"
 RECENTFILE = "RecentlyVisitedStars.dat"
-KNOWN_VERSIONS = [100]
+# ED 2.x: 100; ED 3.0: 200
+KNOWN_VERSIONS = [100, 200]
 
 class VisitedStarsCacheHeader(object):
   def __init__(self):
@@ -35,11 +36,13 @@ class VisitedStarsCacheHeader(object):
 
   @property
   def has_visit_count(self):
-    return self.version > KNOWN_VERSIONS[0]
+    # This field was added as part of ED 3.0
+    return self.version >= 200
 
   @property
   def has_last_visit_date(self):
-    return self.version > KNOWN_VERSIONS[0]
+    # This field was added as part of ED 3.0
+    return self.version >= 200
 
   @property
   def expected_entry_len(self):
@@ -95,9 +98,11 @@ def read_visited_stars_cache_header(f):
     if recent == header.recent_magic:
       header.recent = True
     elif recent:
-      log.warning('Unexpected recent magic...')
+      log.warning('Unexpected recent magic: {0:08X}'.format(recent))
     header.version = read_uint32(f)
-    if header.version not in KNOWN_VERSIONS:
+    if header.version in KNOWN_VERSIONS:
+      log.debug('Found known VSC version {}', header.version)
+    else:
       log.warning('Unexpected version {} not {}...', header.version, ', '.join([str(version) for version in KNOWN_VERSIONS]))
     header.start = read_uint32(f)
     header.num_entries = read_uint32(f)
@@ -121,7 +126,7 @@ def read_visited_stars_cache_header(f):
   except:
     return None
 
-def write_visited_stars_cache(filename, systems, recent = False, version = None):
+def write_visited_stars_cache(filename, systems, recent = False, version = KNOWN_VERSIONS[-1]):
   scratch = None
   try:
     dirname = os.path.dirname(filename)
