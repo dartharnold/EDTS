@@ -66,14 +66,14 @@ class Application(object):
         if self._stations or not self._systems:
           stn_matches = list(envdata.find_stations_by_glob(self._pattern[0], filters=filters))
 
-      for system in sys_matches:
+      for sysobj in sys_matches:
         if self._list_stations:
           envdata.find_stations_in_systems_from_edsm([s.name for s in sys_matches])
-          stations = envdata.find_stations(sys_matches).get(system)
+          stations = envdata.find_stations(sys_matches).get(sysobj)
           stations.sort(key=lambda t: (t.distance if t.distance else Metres(sys.maxsize)))
         else:
           stations = []
-        yield Result(system = system, stations = stations)
+        yield Result(system = sysobj, stations = stations)
 
       for station in stn_matches:
         yield Result(station = station)
