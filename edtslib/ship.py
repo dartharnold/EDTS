@@ -80,6 +80,9 @@ class Ship(object):
   def cost(self, dist, fuel = None, cargo = 0):
     return self.fsd.cost(dist, self.mass, fuel if fuel is not None else self.tank_size, cargo)
 
+  def min_fuel_weight(self, dist, cargo = 0, allow_invalid = False):
+    return self.fsd.min_fuel_weight(dist, self.mass, cargo, allow_invalid)
+
   def max_fuel_weight(self, dist, cargo = 0, allow_invalid = False):
     return self.fsd.max_fuel_weight(dist, self.mass, cargo, allow_invalid)
 
