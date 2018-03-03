@@ -18,7 +18,7 @@ RECENTFILE = "RecentlyVisitedStars.dat"
 class VisitedStarsCacheFormat(object):
   def __init__(self, version, **args):
     self.version = version
-    for k in ['historical_magic', 'has_visit_count', 'has_last_visit_date']:
+    for k in ['recent_magic', 'historical_magic', 'has_visit_count', 'has_last_visit_date']:
       # Raise if we forget to pass a parameter.
       setattr(self, k, args[k])
 
@@ -36,8 +36,8 @@ class VisitedStarsCacheFormat(object):
 
 
 KNOWN_VERSIONS = { v.version: v for v in [
-  VisitedStarsCacheFormat(200, historical_magic = 0x100, has_visit_count = True, has_last_visit_date = True),
-  VisitedStarsCacheFormat(100, historical_magic = 0, has_visit_count = False, has_last_visit_date = False)
+  VisitedStarsCacheFormat(200, recent_magic = 0x0200, historical_magic = 0x100, has_visit_count = True, has_last_visit_date = True),
+  VisitedStarsCacheFormat(100, recent_magic = 0x7f00, historical_magic = 0, has_visit_count = False, has_last_visit_date = False)
 ] }
 KNOWN_VERSIONS['latest'] = KNOWN_VERSIONS[200]
 
@@ -48,7 +48,7 @@ class VisitedStarsCacheHeader(object):
       self.format = KNOWN_VERSIONS['latest']
     self.version = version if version is not None else self.format.version
     self.start_magic = 'VisitedStars'
-    self.recent_magic = 0x7f00
+    self.recent_magic = self.format.recent_magic
     self.end_magic = 0x5AFEC0DE5AFEC0DE
     self.magic = self.start_magic
     self.recent = False
@@ -69,19 +69,21 @@ class VisitedStarsCacheHeader(object):
   def has_last_visit_date(self):
     return self.format.has_last_visit_date
 
-def read_struct(f, format, size):
+def read_struct(f, format, size, rescue = None):
   try:
     data = f.read(size)
+    if len(data) < size and bool(rescue):
+      return None
     return struct.unpack(format, data)[0]
   except:
     log.error('Failed to read {} octets!', size)
     raise
 
-def read_uint32(f):
+def read_uint32(f, rescue = None):
   return read_struct(f, '<L', 4)
 
-def read_uint64(f):
-  return read_struct(f, '<Q', 8)
+def read_uint64(f, rescue = None):
+  return read_struct(f, '<Q', 8, rescue)
 
 def write_uint32(f, n):
   return write_struct(f, '<L', n)
@@ -195,8 +197,11 @@ def parse_visited_stars_cache(filename):
     if not header:
       return
     n = 0
-    while n < header.num_entries:
-      cur_id = read_uint64(f)
+    expected = header.num_entries
+    while True:
+      cur_id = read_uint64(f, header.recent)
+      if cur_id is None:
+        break
       # Check if this matches the magic EOF value
       if cur_id == header.end_magic:
         break
@@ -205,6 +210,8 @@ def parse_visited_stars_cache(filename):
       if header.has_last_visit_date:
         last_visit_date = read_uint32(f)
       n += 1
+      if n > expected > 0:
+        log.warning('Found more entries than the {} expected', expected)
       # Return this ID
       yield cur_id
 
