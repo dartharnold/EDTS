@@ -153,13 +153,13 @@ def write_visited_stars_cache(filename, systems, recent = False, version = None)
       header.entry_len = header.format.expected_entry_len
       write_str(f, header.magic)
       if recent:
-        write_uint32(f, header.recent_magic)
+        write_uint32(f, header.format.recent_magic)
       else:
         write_uint32(f, header.format.historical_magic)
       write_uint32(f, header.version)
       write_uint32(f, header.start)
       header.num_entries_offset = f.tell()
-      write_uint32(f, header.num_entries)
+      write_uint32(f, 0)
       write_uint32(f, header.entry_len)
       write_uint32(f, header.account_id)
       write_uint32(f, header.padding)
