@@ -26,6 +26,25 @@ NEAREST_NEIGHBOUR = "nearest-neighbour"
 modes = [CLUSTERED, CLUSTERED_REPEAT, BASIC, NEAREST_NEIGHBOUR]
 
 
+class RouteSet(object):
+  def __init__(self, **args):
+    self.stations = args.get('stations')
+    self.size = len(self.stations)
+    self.min = args.get('min')
+    if self.min is None:
+      self.min = 1
+    if self.min > self.size:
+      raise RuntimeError("Error: Route set {} is too small for minimum visit count {}!".format(self.destinations, self.min))
+    self.max = args.get('max')
+    if self.max is None:
+      self.max = min(self.size, max(1, self.min))
+
+  def included(self, route):
+    return [stn for stn in self.stations if stn in route]
+
+  def validate(self, route):
+    return self.min <= len(self.included(route)) <= self.max
+
 class _Cluster(object):
   def __init__(self, objs, mean):
     self.position = mean
@@ -62,7 +81,7 @@ class Solver(object):
     self._ws_time = witchspace_time
 
 
-  def solve(self, stations, start, end, maxstops, preferred_mode = CLUSTERED, tours = None):
+  def solve(self, stations, start, end, maxstops, preferred_mode = CLUSTERED, route_sets = None, tours = None):
     if tours is not None:
       if all(len(t) < 2 for t in tours):
         log.debug("No tours forming valid constraints detected, ignoring them all")
@@ -70,6 +89,10 @@ class Solver(object):
 
     timer = util.start_timer()
 
+    # We can't use route sets in clustered mode because systems in the set
+    # might end up in different clusters.
+    if route_sets is not None and len(route_sets):
+      preferred_mode = BASIC
     # If the user asked for clustered but the number of destinations is small enough, just use basic
     if preferred_mode in (CLUSTERED_REPEAT, CLUSTERED) and len(stations) <= max_single_solve_size:
       preferred_mode = BASIC
@@ -80,7 +103,7 @@ class Solver(object):
     elif preferred_mode == CLUSTERED:
       result = self.solve_clustered(stations, start, end, maxstops, tours = tours), False
     elif preferred_mode == BASIC:
-      result = self.solve_basic(stations, start, end, maxstops, tours = tours), True
+      result = self.solve_basic(stations, start, end, maxstops, route_sets = route_sets, tours = tours), True
     elif preferred_mode == NEAREST_NEIGHBOUR:
       result = self.solve_nearest_neighbour(stations, start, end, maxstops, tours = tours), True
     else:
@@ -90,12 +113,12 @@ class Solver(object):
     log.debug("Solve from {} to {} using mode {} finished after {}", start, end, preferred_mode, util.format_timer(timer))
     return result
 
-  def solve_basic(self, stations, start, end, maxstops, tours = None):
-    result, _ = self.solve_basic_with_cost(stations, start, end, maxstops, tours = tours)
+  def solve_basic(self, stations, start, end, maxstops, route_sets = None, tours = None):
+    result, _ = self.solve_basic_with_cost(stations, start, end, maxstops, route_sets = route_sets, tours = tours)
     return result
 
 
-  def solve_basic_with_cost(self, stations, start, end, maxstops, tours = None):
+  def solve_basic_with_cost(self, stations, start, end, maxstops, route_sets = None, tours = None):
     if not any(stations):
       if start == end:
         return [start], 0.0
@@ -109,7 +132,7 @@ class Solver(object):
     reversible = tours is None or all(len(t) < 2 for t in tours)
 
     log.debug("Calculating and checking viable routes...")
-    vr = self._get_viable_routes([start], stations, end, maxstops, tours = tours)
+    vr = self._get_viable_routes([start], stations, end, maxstops, route_sets = route_sets, tours = tours)
 
     for route in vr:
       count += 1
@@ -252,6 +275,12 @@ class Solver(object):
     return clusters
 
 
+  def _check_route_sets(self, route, route_sets):
+    if route_sets is None:
+      log.debug('No route sets to check.')
+      return True
+    return all([route_set.validate(route) for route_set in route_sets])
+
   def _check_tour_route(self, route, tours, station):
     if not tours:
       return True
@@ -286,7 +315,7 @@ class Solver(object):
         return False
     return True
 
-  def _get_viable_routes(self, route, stations, end, maxstops, tours = None):
+  def _get_viable_routes(self, route, stations, end, maxstops, route_sets = None, tours = None):
     # If we have more non-end stops to go...
     if len(route) + 1 < maxstops:
       nexts = {}
@@ -311,15 +340,16 @@ class Solver(object):
         mindist = min(nexts.values())
 
         for stn, dist in nexts.items():
-          if dist <= (mindist * self._diff_limit):
+          if dist <= (mindist * self._diff_limit) or not self._check_route_sets(route[1:], route_sets):
             # For each valid next stop, run
-            for r in self._get_viable_routes(route + [stn], stations, end, maxstops, tours = None):
+            for r in self._get_viable_routes(route + [stn], stations, end, maxstops, route_sets = route_sets, tours = None):
               yield r
 
     # We're at the end
     else:
-      route.append(end)
-      yield route
+      if not route_sets or self._check_route_sets(route[1:], route_sets):
+        route.append(end)
+        yield route
 
 
   def _get_best_supercluster_route(self, clusters, start, end):

@@ -12,6 +12,34 @@ from edtslib import solver
 import math
 import sys
 
+class ApplicationAction(argparse.Action):
+  def __call__(self, parser, namespace, value, option_strings=None):
+    n = vars(namespace)
+    route_set = n['route_set'] if n['route_set'] is not None else []
+    need_new = True
+    i = 0
+    while i < len(route_set):
+      if ('destinations' if self.dest == 'route_set' else self.dest) not in route_set[i]:
+        need_new = False
+        break
+      i += 1
+    if need_new:
+      route_set.append({})
+    d = route_set[i]
+    if self.dest == 'route_set':
+      if 'destinations' not in d:
+        d['destinations'] = value
+      else:
+        d['destinations'] += value
+    else:
+      if self.dest == 'route_set_min':
+        key = 'min'
+      elif self.dest == 'route_set_max':
+        key = 'max'
+      d[key] = value
+      setattr(namespace, self.dest, value)
+    setattr(namespace, 'route_set', route_set)
+
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
   ap = argparse.ArgumentParser(description = "Elite: Dangerous TSP Solver", fromfile_prefix_chars="@", parents=ap_parents, prog = edts.app_name)
@@ -37,6 +65,9 @@ def parse_args(arg, hosted, state):
   ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
   ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
   ap.add_argument("-O", "--tour", metavar="system[/station]", action='append', type=str, nargs='*', help="Following stations must be visited in order")
+  ap.add_argument("-R", "--route-set", metavar="system[/station]", nargs='+', action=ApplicationAction, help="Choose a subset of the following stations")
+  ap.add_argument(      "--route-set-min", type=int, default=1, action=ApplicationAction, help="Minimum number of stations to visit in the --route-set.")
+  ap.add_argument(      "--route-set-max", type=int, default=1, action=ApplicationAction, help="Maximum number of stations to visit in the --route-set.")
   ap.add_argument("-l", "--long-jumps", default=False, action='store_true', help="Whether to allow for jumps only possible at low fuel when routing")
   ap.add_argument("-a", "--accurate", dest='route_strategy', action='store_const', const='trunkle', default=edts.default_route_strategy, help="Use a more accurate but slower routing method (equivalent to --route-strategy=trunkle)")
   ap.add_argument("-x", "--avoid", metavar='system', action='append', type=str, nargs='?', help="Reject routes that pass through named system(s)")

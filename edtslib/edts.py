@@ -68,6 +68,7 @@ class Application(object):
     self._rbuffer = args.get('rbuffer', default_rbuffer)
     self._reverse = args.get('reverse')
     self._route = args.get('route')
+    self._route_set = args.get('route_set')
     self._route_strategy = args.get('route_strategy', default_route_strategy)
     self._slf = args.get('slf', default_slf)
     self._solve_mode = args.get('solve_mode', default_solve_mode)
@@ -118,9 +119,16 @@ class Application(object):
     for stations in self.tours:
       self.stations += stations
 
+    # Route sets.
+    if self._route_set is not None:
+      for route_set in self._route_set:
+        self.stations += route_set['destinations']
+
     # If the user hasn't provided a number of stops to use, assume we're stopping at all provided
     if self._num_jumps is None:
       self._num_jumps = len(self.stations)
+      if self._route_set is not None:
+        self._num_jumps += sum([route_set.get('min', 1) for route_set in self._route_set]) - sum([len(route_set['destinations']) for route_set in self._route_set])
 
     # Systems to route around.
     self.avoid = self._avoid if self._avoid else []
@@ -153,13 +161,14 @@ class Application(object):
         else:
           log.warning("Error: system/station {0} could not be found.", sname)
           return
+      route_sets = [solver.RouteSet(stations = [stations[sname] for sname in route_set['destinations']], min = route_set.get('min'), max = route_set.get('max')) for route_set in self._route_set] if self._route_set is not None else []
       avoid = []
       if len(self.avoid):
         avoid_stations = envdata.parse_stations(self.avoid)
         for sname in self.avoid:
           if sname in avoid_stations and avoid_stations[sname] is not None:
             avoid_system = avoid_stations[sname].system
-            if avoid_system in [sobj.system for sobj in stations.values()] + [stn.system for stn in [start, end]]:
+            if avoid_system in [sobj.system for sobj in stations.values()] + [stn.system for stn in [start, end]] + [sobj.system for sobj in route_set.stations for route_set in route_sets]:
               log.warning("Error: Can't avoid system {0} we are supposed to visit.", sname)
               return
             avoid.append(avoid_system)
@@ -190,7 +199,7 @@ class Application(object):
       route = [start] + stations + [end]
     else:
       # Add 2 to the jump count for start + end
-      route, is_definitive = s.solve(stations, start, end, self._num_jumps + 2, preferred_mode = self._solve_mode, tours = tours)
+      route, is_definitive = s.solve(stations, start, end, self._num_jumps + 2, preferred_mode = self._solve_mode, route_sets = route_sets, tours = tours)
 
     if route is not None:
       route = [stn for stn in route if stn != anywhere]
