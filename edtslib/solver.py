@@ -62,10 +62,11 @@ class Solver(object):
     self._ws_time = witchspace_time
 
 
-  def solve(self, tours, stations, start, end, maxstops, preferred_mode = CLUSTERED):
-    if all(len(t) < 2 for t in tours):
-      log.debug("No tours forming valid constraints detected, ignoring them all")
-      tours = None
+  def solve(self, stations, start, end, maxstops, preferred_mode = CLUSTERED, tours = None):
+    if tours is not None:
+      if all(len(t) < 2 for t in tours):
+        log.debug("No tours forming valid constraints detected, ignoring them all")
+        tours = None
 
     timer = util.start_timer()
 
@@ -75,13 +76,13 @@ class Solver(object):
 
     log.debug("Solving set using preferred mode '{}'", preferred_mode)
     if preferred_mode == CLUSTERED_REPEAT:
-      result = self.solve_clustered_repeat(tours, stations, start, end, maxstops), False
+      result = self.solve_clustered_repeat(stations, start, end, maxstops, tours = tours), False
     elif preferred_mode == CLUSTERED:
-      result = self.solve_clustered(tours, stations, start, end, maxstops), False
+      result = self.solve_clustered(stations, start, end, maxstops, tours = tours), False
     elif preferred_mode == BASIC:
-      result = self.solve_basic(tours, stations, start, end, maxstops), True
+      result = self.solve_basic(stations, start, end, maxstops, tours = tours), True
     elif preferred_mode == NEAREST_NEIGHBOUR:
-      result = self.solve_nearest_neighbour(tours, stations, start, end, maxstops), True
+      result = self.solve_nearest_neighbour(stations, start, end, maxstops, tours = tours), True
     else:
       log.error("Tried to use invalid preferred mode {}", preferred_mode)
       result = None
@@ -89,12 +90,12 @@ class Solver(object):
     log.debug("Solve from {} to {} using mode {} finished after {}", start, end, preferred_mode, util.format_timer(timer))
     return result
 
-  def solve_basic(self, tours, stations, start, end, maxstops):
-    result, _ = self.solve_basic_with_cost(tours, stations, start, end, maxstops)
+  def solve_basic(self, stations, start, end, maxstops, tours = None):
+    result, _ = self.solve_basic_with_cost(stations, start, end, maxstops, tours = tours)
     return result
 
 
-  def solve_basic_with_cost(self, tours, stations, start, end, maxstops):
+  def solve_basic_with_cost(self, stations, start, end, maxstops, tours = None):
     if not any(stations):
       if start == end:
         return [start], 0.0
@@ -108,7 +109,7 @@ class Solver(object):
     reversible = tours is None or all(len(t) < 2 for t in tours)
 
     log.debug("Calculating and checking viable routes...")
-    vr = self._get_viable_routes([start], tours, stations, end, maxstops)
+    vr = self._get_viable_routes([start], stations, end, maxstops, tours = tours)
 
     for route in vr:
       count += 1
@@ -131,11 +132,11 @@ class Solver(object):
     return minroute, mincost
 
 
-  def solve_nearest_neighbour(self, tours, stations, start, end, maxstops):
-    result, _ = self.solve_nearest_neighbour_with_cost(tours, stations, start, end, maxstops)
+  def solve_nearest_neighbour(self, stations, start, end, maxstops, tours = None):
+    result, _ = self.solve_nearest_neighbour_with_cost(stations, start, end, maxstops, tours = tours)
     return result
 
-  def solve_nearest_neighbour_with_cost(self, tours, stations, start, end, maxstops):
+  def solve_nearest_neighbour_with_cost(self, stations, start, end, maxstops, tours = None):
     route = [start]
     full_cost = 0
     remaining = stations
@@ -158,11 +159,11 @@ class Solver(object):
     return route, cur_cost
 
 
-  def solve_clustered(self, tours, stations, start, end, maxstops):
-    result, _ = self.solve_clustered_with_cost(tours, stations, start, end, maxstops)
+  def solve_clustered(self, stations, start, end, maxstops, tours = None):
+    result, _ = self.solve_clustered_with_cost(stations, start, end, maxstops, tours = tours)
     return result
 
-  def solve_clustered_with_cost(self, tours, stations, start, end, maxstops):
+  def solve_clustered_with_cost(self, stations, start, end, maxstops, tours = None):
     cluster_count = int(math.ceil(float(len(stations) + 2) / cluster_divisor))
     log.debug("Splitting problem into {0} clusters...", cluster_count)
     clusters = find_centers(stations, cluster_count)
@@ -188,13 +189,13 @@ class Solver(object):
       cur_maxstops = min(len(from_cluster.systems), int(round(float(maxstops) * len(from_cluster.systems) / len(stations))))
       r_maxstops -= cur_maxstops
       # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
-      newroute, newcost = self.solve_basic_with_cost(tours, [c for c in from_cluster.systems if c not in [from_start, from_end]], from_start, from_end, cur_maxstops)
+      newroute, newcost = self.solve_basic_with_cost([c for c in from_cluster.systems if c not in [from_start, from_end]], from_start, from_end, cur_maxstops, tours = tours)
       if newroute is None:
         return None, cost
       route += newroute
       cost += newcost
       from_start = to_start
-    newroute, newcost = self.solve_basic_with_cost(tours, [c for c in sclusters[-1].systems if c not in [from_start, to_end]], from_start, to_end, r_maxstops)
+    newroute, newcost = self.solve_basic_with_cost([c for c in sclusters[-1].systems if c not in [from_start, to_end]], from_start, to_end, r_maxstops, tours = tours)
     if newroute is None:
       return None, cost
     route += newroute
@@ -203,15 +204,15 @@ class Solver(object):
     return route, cost
 
 
-  def solve_clustered_repeat(self, tours, stations, start, end, maxstops, iterations = cluster_repeat_limit):
-    result, _ = self.solve_clustered_repeat_with_cost(tours, stations, start, end, maxstops, iterations)
+  def solve_clustered_repeat(self, stations, start, end, maxstops, iterations = cluster_repeat_limit, tours = None):
+    result, _ = self.solve_clustered_repeat_with_cost(stations, start, end, maxstops, iterations, tours = tours)
     return result
 
-  def solve_clustered_repeat_with_cost(self, tours, stations, start, end, maxstops, iterations = cluster_repeat_limit):
+  def solve_clustered_repeat_with_cost(self, stations, start, end, maxstops, iterations = cluster_repeat_limit, tours = None):
     minroute = None
     mincost = float('inf')
     for _ in range(0, iterations):
-      route, cost = self.solve_clustered_with_cost(tours, stations, start, end, maxstops)
+      route, cost = self.solve_clustered_with_cost(stations, start, end, maxstops, tours = tours)
       if cost < mincost:
         mincost = cost
         minroute = route
@@ -285,7 +286,7 @@ class Solver(object):
         return False
     return True
 
-  def _get_viable_routes(self, route, tours, stations, end, maxstops):
+  def _get_viable_routes(self, route, stations, end, maxstops, tours = None):
     # If we have more non-end stops to go...
     if len(route) + 1 < maxstops:
       nexts = {}
@@ -312,7 +313,7 @@ class Solver(object):
         for stn, dist in nexts.items():
           if dist <= (mindist * self._diff_limit):
             # For each valid next stop, run
-            for r in self._get_viable_routes(route + [stn], tours, stations, end, maxstops):
+            for r in self._get_viable_routes(route + [stn], stations, end, maxstops, tours = None):
               yield r
 
     # We're at the end
