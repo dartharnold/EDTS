@@ -192,10 +192,11 @@ class Application(object):
       # Add 2 to the jump count for start + end
       route, is_definitive = s.solve(tours, stations, start, end, self._num_jumps + 2, self._solve_mode)
 
-    route = [stn for stn in route if stn != anywhere]
+    if route is not None:
+      route = [stn for stn in route if stn != anywhere]
 
-    if self._reverse:
-      route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
+      if self._reverse:
+        route = [route[0]] + list(reversed(route[1:-1])) + [route[-1]]
 
     output_data = []
     total_fuel_cost = 0.0

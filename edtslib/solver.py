@@ -189,10 +189,14 @@ class Solver(object):
       r_maxstops -= cur_maxstops
       # Solve and add to the route. DO NOT allow nested clustering, that makes it all go wrong :)
       newroute, newcost = self.solve_basic_with_cost(tours, [c for c in from_cluster.systems if c not in [from_start, from_end]], from_start, from_end, cur_maxstops)
+      if newroute is None:
+        return None, cost
       route += newroute
       cost += newcost
       from_start = to_start
     newroute, newcost = self.solve_basic_with_cost(tours, [c for c in sclusters[-1].systems if c not in [from_start, to_end]], from_start, to_end, r_maxstops)
+    if newroute is None:
+      return None, cost
     route += newroute
     cost += newcost
     route += [end]
