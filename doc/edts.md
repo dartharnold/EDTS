@@ -98,6 +98,9 @@ Other optional arguments:
     - `trunkle`: a hybrid algorithm using trundle, but chunking the route to speed up execution; relatively fast and quite accurate
     - `astar`: the A* algorithm, fast and reliable but sometimes produces suboptimal and less well-balanced routes
 * `--avoid=SYSTEM`: Specify a system to route around, for instance because the next jump would be obscured or would have too high a fuel cost.  You can use `--avoid` multiple times to avoid multiple systems.
+* `--route-set system[/station] ...`: Specify a set of systems of which at least one but not necessarily all should be visited.  Implies --solve-mode=basic.
+* `--route-set-min=N`: Override the minimum number of systems in the route set which must be visited.  Default: `1`
+* `--route-set-max=N`: Override the maximum number of systems in the route set which can be visited.  Default: `1`
 
 ### File arguments ###
 
