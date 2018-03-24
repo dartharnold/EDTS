@@ -172,3 +172,41 @@ class FSD(object):
       return (wmin, wmax)
     else:
       return (None, None)
+
+class InfiniteImprobabilityDrive(FSD):
+  def __init__(self):
+    self.optmass    = float('inf')
+    self.maxfuel    = float('inf')
+    self.fuelmul    = 1.0
+    self.fuelpower  = 1.0
+    self.mass       = 0.0
+    self.boost      = 1.0
+    self.stock_mass      = self.mass
+    self.stock_optmass   = self.optmass
+    self.stock_maxfuel   = self.maxfuel
+    self.stock_fuelmul   = self.fuelmul
+    self.stock_fuelpower = self.fuelpower
+
+  def clone(self):
+    return InfiniteImprobabilityDrive()
+
+  def __str__(self):
+    return "Inf"
+
+  def __repr__(self):
+    return "FSD(Inf)"
+
+  def get_modified(self, optmass = None, optmass_percent = None, maxfuel = None, maxfuel_percent = None, fsdmass = None, fsdmass_percent = None):
+    return self.clone()
+
+  def range(self, mass, fuel, cargo = 0):
+    return float('inf')
+
+  def cost(self, dist, mass, fuel, cargo = 0):
+    return 0.0
+
+  def max_fuel_weight(self, dist, mass, cargo = 0, allow_invalid = False):
+    return float('inf')
+
+  def min_fuel_weight(self, dist, mass, cargo = 0, allow_invalid = False):
+    return 0.0

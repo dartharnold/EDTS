@@ -1,7 +1,7 @@
 import json
 import sys
 from . import util
-from .fsd import FSD
+from .fsd import FSD, InfiniteImprobabilityDrive
 
 log = util.get_logger("ship")
 
@@ -100,3 +100,7 @@ class Ship(object):
     elif fsdmass_percent is not None:
       s.mass += s.fsd.stock_mass * (fsdmass_percent/100.0)
     return s
+
+class HeartOfGold(Ship):
+  def __init__(self):
+    super(HeartOfGold, self).__init__(InfiniteImprobabilityDrive(), 0, 0, max_cargo = 0, reserve_tank = 0)
