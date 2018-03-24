@@ -123,7 +123,7 @@ def direction_hint(entry):
       hint = 'X'
   return hint
 
-def format_leg(entry, show_cruise = False, show_route = False, show_fuel = False):
+def format_leg(entry, show_cruise = False, show_route = False, show_jumps = True, show_fuel = False):
   row = [
     direction_hint(entry),
     '!' if entry.is_long else '',
@@ -166,20 +166,21 @@ def format_leg(entry, show_cruise = False, show_route = False, show_fuel = False
       else:
         row += ['', '']
 
-  if entry.waypoint is not None:
-    row += [
-      entry.waypoint.distance.to_string(True),
-      'for ' + entry.waypoint.direct.to_string(True)
-    ]
-    if entry.waypoint.jumps.min == entry.waypoint.jumps.max:
-      row += [entry.waypoint.jumps.min]
+  if show_jumps:
+    if entry.waypoint is not None:
+      row += [
+        entry.waypoint.distance.to_string(True),
+        'for ' + entry.waypoint.direct.to_string(True)
+      ]
+      if entry.waypoint.jumps.min == entry.waypoint.jumps.max:
+        row += [entry.waypoint.jumps.min]
+      else:
+        row += ['{} - {}'.format(
+          entry.waypoint.jumps.min,
+          entry.waypoint.jumps.max
+        )]
     else:
-      row += ['{} - {}'.format(
-        entry.waypoint.jumps.min,
-        entry.waypoint.jumps.max
-      )]
-  else:
-    row += ['', '', '']
+      row += ['', '', '']
 
   return row
 
@@ -196,6 +197,7 @@ def run(args, hosted = False, state = {}):
   print_summary = True
   show_cruise = False
   show_route = False
+  show_jumps = parsed.ship is not None or parsed.jump_range is not None
 
   for entry in results:
     if entry.origin.station is not None or entry.destination.station is not None:
@@ -225,9 +227,10 @@ def run(args, hosted = False, state = {}):
       headings += ['Fuel', 'Fuel', 'range']
       padding += ['<', '>', '<']
       intra += ['   ', ' ', '   ']
-    headings += ['Hop', 'dist.', 'Jumps']
-    padding += ['>', '<', '>']
-    intra += [' ', '  ']
+    if show_jumps:
+      headings += ['Hop', 'dist.', 'Jumps']
+      padding += ['>', '<', '>']
+      intra += [' ', '  ']
     cow = ColumnObjectWriter(len(headings), padding, intra)
     cow.add(headings)
     cow.add([])
@@ -288,7 +291,7 @@ def run(args, hosted = False, state = {}):
     if entry.fuel is not None and entry.fuel.cost is not None:
       total_fuel_cost += entry.fuel.cost
     if cow is not None:
-      cow.add(format_leg(entry, show_cruise, show_route, parsed.ship is not None))
+      cow.add(format_leg(entry, show_cruise, show_route, show_jumps, parsed.ship is not None))
     elif parsed.format == 'short':
       sys.stdout.write(', {}'.format(str(entry.destination.station) if entry.destination.station is not None else str(entry.destination.system)))
     elif parsed.format == 'csv':
@@ -317,8 +320,11 @@ def run(args, hosted = False, state = {}):
       est_time_max_s = int(est_time_max) % 60
       est_time_str += " - {:.0f}:{:02.0f}".format(est_time_max_m, est_time_max_s)
     print("")
-    print("Total distance: {}; total jumps: {}".format(totaldist_str, totaljumps_str))
-    print("Total SC distance: {:d}Ls{}; ETT: {}{}".format(int(totalsc), "+" if not totalsc_accurate else "", est_time_str, fuel_str))
+    if show_jumps:
+      print("Total distance: {}; total jumps: {}".format(totaldist_str, totaljumps_str))
+      print("Total SC distance: {:d}Ls{}; ETT: {}{}".format(int(totalsc), "+" if not totalsc_accurate else "", est_time_str, fuel_str))
+    else:
+      print("Total distance: {}".format(totaldist_str))
   print("")
 
 if __name__ == '__main__':

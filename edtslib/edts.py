@@ -92,7 +92,10 @@ class Application(object):
     else:
       # No ship is fine as long as we have a static jump range set
       if self._jump_range is None:
-        raise RuntimeError("Error: You must specify --ship or all of --fsd, --mass and --tank and/or --jump-range.")
+        if self._route:
+          raise RuntimeError("Error: You must specify --ship or all of --fsd, --mass and --tank and/or --jump-range.")
+        else:
+          self._ship = ship.HeartOfGold()
       else:
         self._ship = None
         if self._tank is not None:
