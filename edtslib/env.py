@@ -17,6 +17,8 @@ from .util import configure_logging, set_verbosity
 
 log = util.get_logger("env")
 
+sqlite_max_variable_number = 999
+
 def log_versions(extra = None):
   extra = extra or []
   sep = ' / '
@@ -254,7 +256,16 @@ class Env(object):
   def find_stations(self, args, filters = None):
     sysobjs = args if isinstance(args, collections.Iterable) else [args]
     sysobjs = {s.id: s for s in sysobjs if s.id is not None}
-    result = [_make_station(sysobjs[stndata['system_id']], stndata) for stndata in self._backend.find_stations_by_system_id(list(sysobjs.keys()), filters=self._get_as_filters(filters))]
+    result = []
+    keys = list(sysobjs.keys())
+    offset = 0
+    while True:
+      batch = keys[offset:offset+sqlite_max_variable_number]
+      if not len(batch):
+        break
+      offset += len(batch)
+      result += [_make_station(sysobjs[stndata['system_id']], stndata) for stndata in self._backend.find_stations_by_system_id(batch, filters=self._get_as_filters(filters))]
+
     return {sy: [st for st in result if st.system == sy] for sy in sysobjs.values()}
 
   def find_systems_by_aabb(self, vec_from, vec_to, buffer_from = 0.0, buffer_to = 0.0, filters = None):
