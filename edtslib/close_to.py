@@ -2,8 +2,9 @@
 
 from __future__ import print_function
 import math
+import sys
 
-from .dist import Lightyears
+from .dist import Lightyears, Metres
 from .opaque_types import Opaq
 from . import env
 from . import filtering
@@ -96,7 +97,7 @@ class Application(object):
 
         for i in range(0, len(asys)):
           stnlist = stations.get(asys[i], [])
-          stnlist.sort(key=lambda t: t.distance if t.distance else 0.0)
+          stnlist.sort(key=lambda t: t.distance if t.distance else Metres(sys.maxsize))
           yield Result(system = asys[i], distances = { d['sysobj'].name: Lightyears(asys[i].distance_to(d['sysobj'])) for d in self._systems }, stations = stnlist)
 
   def all_angles_within(self, starts, dest1, dest2, max_angle):
