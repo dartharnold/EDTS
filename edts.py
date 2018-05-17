@@ -9,6 +9,7 @@ from edtslib import env
 from edtslib import routing as rx
 from edtslib import ship
 from edtslib import solver
+from edtslib import util
 import math
 import sys
 
@@ -93,7 +94,7 @@ def parse_args(arg, hosted, state):
       fsd_optmass = util.parse_number_or_add_percentage(parsed.fsd_optmass, parsed.ship.fsd.stock_optmass)
       fsd_mass = util.parse_number_or_add_percentage(parsed.fsd_mass, parsed.ship.fsd.stock_mass)
       fsd_maxfuel = util.parse_number_or_add_percentage(parsed.fsd_maxfuel, parsed.ship.fsd.stock_maxfuel)
-      parsed.ship = ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
+      parsed.ship = parsed.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
   elif parsed.ship:
     loaded = ship.Ship.from_file(parsed.ship)
     fsd = parsed.fsd if parsed.fsd is not None else loaded.fsd
