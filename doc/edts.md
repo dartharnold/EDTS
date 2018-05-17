@@ -101,6 +101,7 @@ Other optional arguments:
 * `--route-set system[/station] ...`: Specify a set of systems of which at least one but not necessarily all should be visited.  Implies --solve-mode=basic.
 * `--route-set-min=N`: Override the minimum number of systems in the route set which must be visited.  Default: `1`
 * `--route-set-max=N`: Override the maximum number of systems in the route set which can be visited.  Default: `1`
+* `--route-filters=FILTERS`: List of filters which systems must match to be included in the plot.  Ignored if `--route` is not used.
 
 ### File arguments ###
 
