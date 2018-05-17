@@ -3,6 +3,7 @@ import sys
 
 from . import calc
 from . import env
+from . import filtering
 from . import util
 
 log = util.get_logger("route")
@@ -68,7 +69,7 @@ class Routing(object):
 
     return candidates
 
-  def plot(self, sys_from, sys_to, avoid, jump_range, full_range = None, cargo = 0):
+  def plot(self, sys_from, sys_to, avoid, jump_range, full_range = None, cargo = 0, route_filters = None):
     self._rejected_routes = {}
 
     if full_range is None:
@@ -77,13 +78,13 @@ class Routing(object):
 
     if self._route_strategy == "trundle":
       # My algorithm - slower but pinpoint
-      result = self.plot_trundle(sys_from, sys_to, avoid, jump_range, full_range, cargo)
+      result = self.plot_trundle(sys_from, sys_to, avoid, jump_range, full_range, cargo, route_filters = route_filters)
     elif self._route_strategy == "trunkle":
       # Hybrid - splits route up into N-jump blocks, and runs trundle on each block
-      result = self.plot_trunkle(sys_from, sys_to, avoid, jump_range, full_range, cargo)
+      result = self.plot_trunkle(sys_from, sys_to, avoid, jump_range, full_range, cargo, route_filters = route_filters)
     elif self._route_strategy == "astar":
       # A* search - faster but worse fuel efficiency
-      result = self.plot_astar(sys_from, sys_to, avoid, jump_range, full_range, cargo)
+      result = self.plot_astar(sys_from, sys_to, avoid, jump_range, full_range, cargo, route_filters = route_filters)
     else:
       log.error("Tried to use invalid route strategy {0}", self._route_strategy)
       result = None
@@ -91,10 +92,10 @@ class Routing(object):
     log.debug("Route plot from {} to {} using strategy {} finished after {}", sys_from, sys_to, self._route_strategy, util.format_timer(timer))
     return result
 
-  def plot_astar(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0):
+  def plot_astar(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, route_filters = None):
     rbuffer_ly = self._rbuffer_base
     with env.use() as envdata:
-      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly, filters = route_filters)
     stars = [s for s in list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)) if s not in avoid]
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
@@ -105,11 +106,11 @@ class Routing(object):
     cost_fn = lambda cur, neighbour, path: calc.astar_cost(cur, neighbour, path, jump_range, full_range, witchspace_time=self._ws_time, validate_fn=validate_fn)
     return calc.astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn)
 
-  def plot_trunkle(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0):
+  def plot_trunkle(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, route_filters = None):
     rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
     with env.use() as envdata:
-      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly, filters = route_filters)
     stars = list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly))
 
     best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
@@ -199,7 +200,7 @@ class Routing(object):
     log.debug("No full-route found")
     return None
 
-  def plot_trundle(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, addj_limit = None, starcache = None):
+  def plot_trundle(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, addj_limit = None, starcache = None, route_filters = None):
     if sys_from == sys_to:
       return [sys_from]
 
@@ -209,7 +210,7 @@ class Routing(object):
       stars_tmp = starcache
     else:
       with env.use() as envdata:
-        stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+        stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly, filters = route_filters)
     stars = [s for s in list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)) if s not in avoid]
 
     log.debug("{0} --> {1}: systems to search from: {2}", sys_from.name, sys_to.name, len(stars))

@@ -64,6 +64,7 @@ def parse_args(arg, hosted, state):
   ap.add_argument("-p", "--pad-size", default=edts.default_pad_size, type=str.upper, choices=['S','M','L'], help="The landing pad size of the ship (S/M/L)")
   ap.add_argument("-d", "--jump-decay", type=float, default=edts.default_jump_decay, help="An estimate of the range decay per jump in LY (e.g. due to taking on cargo)")
   ap.add_argument("-r", "--route", default=False, action='store_true', help="Whether to try to produce a full route rather than just legs")
+  ap.add_argument("--route-filters", required=False, metavar='filter', nargs='*', help="Only travel via systems that match the filters")
   ap.add_argument("-o", "--ordered", default=False, action='store_true', help="Whether the stations are already in a set order")
   ap.add_argument("-O", "--tour", metavar="system[/station]", action='append', type=str, nargs='*', help="Following stations must be visited in order")
   ap.add_argument("-R", "--route-set", metavar="system[/station]", nargs='+', action=ApplicationAction, help="Choose a subset of the following stations")

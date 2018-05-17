@@ -4,7 +4,7 @@ from __future__ import print_function
 from .opaque_types import Opaq
 from . import env
 from . import calc
-from . import ship
+from . import filtering
 from . import ship
 from . import routing as rx
 from . import util
@@ -68,6 +68,7 @@ class Application(object):
     self._rbuffer = args.get('rbuffer', default_rbuffer)
     self._reverse = args.get('reverse')
     self._route = args.get('route')
+    self._route_filters = args.get('route_filters')
     self._route_set = args.get('route_set')
     self._route_strategy = args.get('route_strategy', default_route_strategy)
     self._slf = args.get('slf', default_slf)
@@ -139,6 +140,8 @@ class Application(object):
   def run(self):
     timer = util.start_timer()
     with env.use() as envdata:
+      envdata.find_filtered_systems_from_edsm(self._route_filters)
+      route_filters = filtering.entry_separator.join(self._route_filters) if self._route_filters is not None else None
       sysstats = [envdata.parse_station(name, True) for name in ([self._start, self._end] + self.stations + self.avoid) if name is not None]
       envdata.find_systems_from_edsm(sysstat[0] for sysstat in sysstats)
       envdata.find_stations_in_systems_from_edsm(sysstat[0] for sysstat in sysstats if sysstat[1] is not None)
@@ -232,7 +235,7 @@ class Application(object):
           envdata.find_intermediate_systems_from_edsm(route[i-1].system.position, route[i].system.position)
           log.debug("Doing route plot for {0} --> {1}", route[i-1].system_name, route[i].system_name)
           if route[i-1].system != route[i].system and cur_data['jumpcount_max'] > 1:
-            leg_route = r.plot(route[i-1].system, route[i].system, avoid, cur_max_jump, full_max_jump, cargo)
+            leg_route = r.plot(route[i-1].system, route[i].system, avoid, cur_max_jump, full_max_jump, cargo, route_filters)
           else:
             leg_route = [route[i-1].system, route[i].system]
 
