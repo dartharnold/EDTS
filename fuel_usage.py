@@ -6,6 +6,7 @@ from edtslib.cow import ColumnObjectWriter
 from edtslib import env
 from edtslib import fuel_usage
 from edtslib import ship
+from edtslib import util
 
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
@@ -45,9 +46,9 @@ def parse_args(arg, hosted, state):
     parsed.ship = None
 
   if parsed.fsd_optmass is not None or parsed.fsd_mass is not None or parsed.fsd_maxfuel is not None:
-    fsd_optmass = util.parse_number_or_add_percentage(parsed.fsd_optmass, self.ship.fsd.stock_optmass)
-    fsd_mass = util.parse_number_or_add_percentage(parsed.fsd_mass, self.ship.fsd.stock_mass)
-    fsd_maxfuel = util.parse_number_or_add_percentage(parsed.fsd_maxfuel, self.ship.fsd.stock_maxfuel)
+    fsd_optmass = util.parse_number_or_add_percentage(parsed.fsd_optmass, parsed.ship.fsd.stock_optmass)
+    fsd_mass = util.parse_number_or_add_percentage(parsed.fsd_mass, parsed.ship.fsd.stock_mass)
+    fsd_maxfuel = util.parse_number_or_add_percentage(parsed.fsd_maxfuel, parsed.ship.fsd.stock_maxfuel)
     parsed.ship = parsed.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
 
   return parsed
