@@ -12,7 +12,9 @@ from . import vector3
 
 
 # This does not validate sector names, just ensures that it matches the 'Something AB-C d1' or 'Something AB-C d1-23' format
-pg_system_regex = re.compile(r"^(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)$")
+pg_system_regex_str = r"(?P<sector>[\w\s'.()/-]+) (?P<l1>[A-Za-z])(?P<l2>[A-Za-z])-(?P<l3>[A-Za-z]) (?P<mcode>[A-Za-z])(?:(?P<n1>\d+)-)?(?P<n2>\d+)"
+pg_system_search_regex = re.compile(pg_system_regex_str)
+pg_system_regex = re.compile(r"^" + pg_system_regex_str + r"$")
 
 
 # Hopefully-complete list of valid name fragments / phonemes
