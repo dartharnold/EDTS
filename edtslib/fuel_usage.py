@@ -42,6 +42,11 @@ class Application(object):
     if self._ship is None:
       raise RuntimeError("Error: You must specify a ship")
 
+    if not isinstance(self._ship, ship.Ship):
+        self._ship = ship.Ship.from_args(**self._ship)
+        if self._ship is None:
+          raise RuntimeError("Can't instantiate Ship from provided 'ship' parameter!")
+
     if self._boost:
       self._ship.supercharge(self._boost)
 

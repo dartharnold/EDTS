@@ -47,6 +47,20 @@ class Ship(object):
     except IOError:
       log.error("Error reading file {}!", filename)
 
+  @classmethod
+  def from_args(self, fsd = None, mass = None, tank = None, max_cargo = None, reserve_tank = None, fsd_optmass = None, fsd_mass = None, fsd_maxfuel = None):
+    if fsd is None or mass is None or tank is None:
+      log.error("Must pass fsd, mass and tank to ship.from_args()!")
+      return None
+
+    ship = Ship(fsd, mass, tank, max_cargo = max_cargo, reserve_tank = reserve_tank)
+    if fsd_optmass is not None or fsd_mass is not None or fsd_maxfuel is not None:
+      fsd_optmass = util.parse_number_or_add_percentage(fsd_optmass, ship.fsd.stock_optmass)
+      fsd_mass = util.parse_number_or_add_percentage(fsd_mass, ship.fsd.stock_mass)
+      fsd_maxfuel = util.parse_number_or_add_percentage(fsd_maxfuel, ship.fsd.stock_maxfuel)
+      return ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
+    return ship
+
   def __str__(self):
     return "Ship [FSD: {0}, mass: {1:.1f}T, fuel: {2:.0f}T]:{3} jump range {4:.2f}LY ({5:.2f}LY)".format(str(self.fsd), self.mass, self.tank_size, ' reserve {:d}kg'.format(int(self.reserve_tank * 1000)) if self.reserve_tank else '', self.range(), self.max_range())
 
