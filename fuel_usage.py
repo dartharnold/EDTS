@@ -55,13 +55,16 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
+  results = list(fuel_usage.Application(**vars(parsed)).run())
+  if env.global_args.json:
+    print(util.to_json(results))
+    return
 
   headings = ['  ', 'Distance', 'System']
   padding = ['>', '>', '<', '>']
   intra = [' ', '  ', '  ', '  ']
   refueling = False
 
-  results = list(fuel_usage.Application(**vars(parsed)).run())
   for entry in results:
     if entry.refuel is not None:
       refueling = True

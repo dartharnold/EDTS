@@ -394,6 +394,7 @@ def use(path = default_path, backend = default_backend_name):
 
 arg_parser = argparse.ArgumentParser(description = "Elite: Dangerous Travel Scripts", fromfile_prefix_chars="@", add_help=False)
 arg_parser.add_argument("-v", "--verbose", dest='log_level', type=int, default=2, help="Increases the logging output")
+arg_parser.add_argument("-J", "--json", action='store_true', default=False, help="Return output in JSON format")
 arg_parser.add_argument("--db-file", type=str, default=defs.default_db_file, help="Specifies the database file to use")
 arg_parser.add_argument("--use-edsm", type=str.lower, choices=['always', 'periodically', 'when-missing', 'never'], default=defs.use_edsm, help="Refresh system and station data from EDSM")
 global_args, local_args = arg_parser.parse_known_args(sys.argv[1:])

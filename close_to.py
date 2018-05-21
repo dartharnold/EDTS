@@ -57,6 +57,9 @@ def parse_args(arg, hosted, state):
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
   results = list(close_to.Application(**vars(parsed)).run())
+  if env.global_args.json:
+    print(util.to_json(results))
+    return
   if not len(results):
     print("")
     print("No matching systems")

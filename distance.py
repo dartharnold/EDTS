@@ -6,6 +6,7 @@ from edtslib.cow import ColumnObjectWriter
 from edtslib.dist import Lightyears
 from edtslib import distance
 from edtslib import env
+from edtslib import util
 
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
@@ -21,6 +22,10 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
+  results = distance.Application(**vars(parsed)).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
   cow = ColumnObjectWriter()
   raikogram_mode = False
   last_origin = None
@@ -39,7 +44,7 @@ def run(args, hosted = False, state = {}):
     shown_header = False
     cow.expand(len(parsed.systems) + (1 if not parsed.csv else 0), ['>'], [',' if parsed.csv else '   '])
 
-  for entry in distance.Application(**vars(parsed)).run():
+  for entry in results:
     if raikogram_mode:
       if entry.origin.system != last_origin:
         if len(row):

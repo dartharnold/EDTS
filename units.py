@@ -4,6 +4,7 @@ from __future__ import print_function
 import argparse
 from edtslib import env
 from edtslib import units
+from edtslib import util
 from edtslib.dist import *
 
 class CaseInsensitiveList(list):
@@ -25,7 +26,11 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
-  for entry in units.Application(**vars(parsed)).run():
+  results = units.Application(**vars(parsed)).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
+  for entry in results:
     print("")
     print(entry.distance.to_string(long = not parsed.short))
     print("")

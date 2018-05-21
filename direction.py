@@ -5,6 +5,7 @@ import argparse
 import sys
 from edtslib import direction
 from edtslib import env
+from edtslib import util
 
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
@@ -20,7 +21,11 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
-  for entry in direction.Application(**vars(parsed)).run():
+  results = direction.Application(**vars(parsed)).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
+  for entry in results:
     if parsed.check:
       if entry.check:
         print('OK {:0.2f}% deviation'.format(entry.deviation))

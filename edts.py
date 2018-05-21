@@ -184,7 +184,9 @@ def format_leg(entry, show_cruise = False, show_route = False, show_jumps = True
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
   results = list(edts.Application(**vars(parsed)).run())
-
+  if env.global_args.json:
+    print(util.to_json(results))
+    return
   if not len(results):
     print("")
     print("No viable route found :(")
