@@ -4,6 +4,7 @@ from __future__ import print_function
 import argparse
 from edtslib import env
 from edtslib import galmath
+from edtslib import util
 
 def parse_args(arg, hosted, state):
   ap = argparse.ArgumentParser(description = "Magic Number plotting for the Galactic Core", fromfile_prefix_chars="@", prog = galmath.app_name)
@@ -22,7 +23,11 @@ def parse_args(arg, hosted, state):
   return parsed
 
 def run(args, hosted = False, state = {}):
-  for entry in galmath.Application(**vars(parse_args(args, hosted, state))).run():
+  results = galmath.Application(**vars(parse_args(args, hosted, state))).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
+  for entry in results:
     print("")
     print("Travelling {} with a {} jump range, at around {} from the core centre:".format(entry.distance.to_string(True), entry.jump_range.to_string(True), entry.core_distance.to_string(True)))
     print("")

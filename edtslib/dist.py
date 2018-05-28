@@ -63,6 +63,20 @@ class Dist(object):
     else:
       return ('{:' + fmt + '}').format(f).rstrip('0').rstrip('.') + suffix
 
+  def magnitude(self, suffix = None):
+    if suffix is None:
+      suffix = self.suffix
+    if suffix == self.LY_SUFFIX:
+      return self.lightyears
+    elif suffix == self.LS_SUFFIX:
+      return self.lightseconds
+    elif suffix == self.MM_SUFFIX:
+      return self.megametres
+    elif suffix == self.KM_SUFFIX:
+      return self.kilometres
+    else:
+      return self.metres
+
   def convert(self, suffix = '', full = False, long = False):
     if suffix:
       suffix = self._canonical_suffix(suffix)
@@ -76,17 +90,14 @@ class Dist(object):
       elif self.metres > self.KM:
         suffix = self.KM_SUFFIX
       else:
-        suffix = self.M.SUFFIX
-    if suffix == self.LY_SUFFIX:
-      return self.prettyprint(self.lightyears, self.LY_SUFFIX, full, long)
-    elif suffix == self.LS_SUFFIX:
-      return self.prettyprint(self.lightseconds, self.LS_SUFFIX, full, long)
-    elif suffix == self.MM_SUFFIX:
-      return self.prettyprint(self.megametres, self.MM_SUFFIX, full, long)
-    elif suffix == self.KM_SUFFIX:
-      return self.prettyprint(self.kilometres, self.KM_SUFFIX, full, long)
-    else:
-      return self.prettyprint(self.metres, self.M_SUFFIX, full, long)
+        suffix = self.M_SUFFIX
+    return self.prettyprint(self.magnitude(suffix), suffix, full, long)
+
+  def to_opaq(self):
+    return {
+      'magnitude': self.magnitude(),
+      'suffix': self.suffix
+    }
 
   def __eq__(self, other):
     return self.metres == other.metres

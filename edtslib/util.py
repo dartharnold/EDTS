@@ -1,4 +1,5 @@
 import collections
+import json
 import logging
 import math
 import numbers
@@ -12,6 +13,7 @@ import timeit
 
 from . import defs
 from . import vector3
+from .opaque_types import OpaqEncoder
 from .thirdparty import gzipinputstream as gzis
 
 if sys.version_info >= (3, 0):
@@ -313,3 +315,6 @@ def get_timer(start):
 
 def format_timer(start):
   return format_seconds(get_timer(start), True)
+
+def to_json(obj):
+  return json.dumps(obj, cls = OpaqEncoder)

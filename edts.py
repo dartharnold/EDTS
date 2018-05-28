@@ -90,12 +90,7 @@ def parse_args(arg, hosted, state):
   if parsed.fsd is not None and parsed.mass is not None and parsed.tank is not None:
     # If user has provided full ship data in this invocation, use it
     # TODO: support cargo capacity?
-    parsed.ship = ship.Ship(parsed.fsd, parsed.mass, parsed.tank)
-    if parsed.fsd_optmass is not None or parsed.fsd_mass is not None or parsed.fsd_maxfuel is not None:
-      fsd_optmass = util.parse_number_or_add_percentage(parsed.fsd_optmass, parsed.ship.fsd.stock_optmass)
-      fsd_mass = util.parse_number_or_add_percentage(parsed.fsd_mass, parsed.ship.fsd.stock_mass)
-      fsd_maxfuel = util.parse_number_or_add_percentage(parsed.fsd_maxfuel, parsed.ship.fsd.stock_maxfuel)
-      parsed.ship = parsed.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
+    parsed.ship = ship.Ship.from_args(fsd = parsed.fsd, mass = parsed.mass, tank = parsed.tank, reserve_tank = parsed.reserve_tank, fsd_optmass = parsed.fsd_optmass, fsd_mass = parsed.fsd_mass, fsd_maxfuel = parsed.fsd_maxfuel)
   elif parsed.ship:
     loaded = ship.Ship.from_file(parsed.ship)
     fsd = parsed.fsd if parsed.fsd is not None else loaded.fsd
@@ -189,7 +184,9 @@ def format_leg(entry, show_cruise = False, show_route = False, show_jumps = True
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
   results = list(edts.Application(**vars(parsed)).run())
-
+  if env.global_args.json:
+    print(util.to_json(results))
+    return
   if not len(results):
     print("")
     print("No viable route found :(")

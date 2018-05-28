@@ -28,7 +28,7 @@ def parse_args(arg, hosted, state):
   parsed = ap.parse_args(arg)
 
   if parsed.fsd is not None and parsed.mass is not None and parsed.tank is not None:
-    parsed.ship = ship.Ship(parsed.fsd, parsed.mass, parsed.tank, reserve_tank = parsed.reserve_tank)
+    parsed.ship = ship.Ship.from_args(fsd = parsed.fsd, mass = parsed.mass, tank = parsed.tank, reserve_tank = parsed.reserve_tank, fsd_optmass = parsed.fsd_optmass, fsd_mass = parsed.fsd_mass, fsd_maxfuel = parsed.fsd_maxfuel)
   elif parsed.ship:
     loaded = ship.Ship.from_file(parsed.ship)
     fsd = parsed.fsd if parsed.fsd is not None else loaded.fsd
@@ -55,13 +55,16 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
+  results = list(fuel_usage.Application(**vars(parsed)).run())
+  if env.global_args.json:
+    print(util.to_json(results))
+    return
 
   headings = ['  ', 'Distance', 'System']
   padding = ['>', '>', '<', '>']
   intra = [' ', '  ', '  ', '  ']
   refueling = False
 
-  results = list(fuel_usage.Application(**vars(parsed)).run())
   for entry in results:
     if entry.refuel is not None:
       refueling = True

@@ -1,8 +1,20 @@
+import json
+
 from .dist import Lightyears
+
+class OpaqEncoder(json.JSONEncoder):
+  def default(self, obj):
+    try:
+      return obj.to_opaq()
+    except Exception as e:
+      return "Don't know how to serialise {}: {}".format(type(obj), e)
 
 class Opaq(object):
   def __repr__(self):
     return str(vars(self))
+
+  def to_opaq(self):
+    return vars(self)
 
 class Fuel(Opaq):
   def __init__(self, **args):
@@ -36,3 +48,6 @@ class Waypoint(Opaq):
     self.direct = args.get('direct', self.distance)
     self.jumps = args.get('jumps', Jumps())
     self.time = args.get('time', WaypointTime())
+
+  def to_opaq(self):
+    return vars(self)

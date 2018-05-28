@@ -20,6 +20,9 @@ class Station(object):
   def __repr__(self):
     return u"Station({0})".format(self.__str__())
 
+  def to_opaq(self):
+    return vars(self)
+
   def distance_to(self, other):
     return (self.position - other.position).length
 

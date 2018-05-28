@@ -5,6 +5,7 @@ import argparse
 from edtslib.cow import ColumnObjectWriter
 from edtslib import env
 from edtslib import find
+from edtslib import util
 
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
@@ -26,7 +27,11 @@ def run(args, hosted = False, state = {}):
   stn_matches = []
   sys_matches = []
 
-  for entry in find.Application(**vars(parsed)).run():
+  results = find.Application(**vars(parsed)).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
+  for entry in results:
     if entry.station is not None:
       stn_matches.append(entry)
     elif entry.system is not None:

@@ -40,4 +40,4 @@ class Application(object):
     self._distance = float(self._distance)
 
   def run(self):
-    yield Result(distance = Dist(self._distance, self._suffix, self._result), source = self._distance, scale = self._result)
+    yield Result(distance = Dist(self._distance, self._suffix, self._result), source = self._distance, scale = self._suffix)

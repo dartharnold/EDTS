@@ -71,7 +71,7 @@ class Application(object):
 
       for s in self._systems:
         sobj = systems[s]
-        yield Result(origin = Location(system = start_obj), destination = Location(system = systems[s]), distance = Lightyears(systems[s].distance_to(start_obj)))
+        yield Result(origin = Location(system = start_obj), destination = Location(system = sobj), distance = Lightyears(sobj.distance_to(start_obj)))
 
     else:
       # If we have many systems, generate a Raikogram
@@ -86,8 +86,10 @@ class Application(object):
           self._systems.sort()
 
         for x in self._systems:
+          sobjx = systems[x]
           for y in self._systems:
-            yield Result(origin = Location(system = x), destination = Location(system = y), distance = Lightyears(systems[x].distance_to(systems[y])))
+            sobjy = systems[y]
+            yield Result(origin = Location(system = sobjx), destination = Location(system = sobjy), distance = Lightyears(sobjx.distance_to(sobjy)))
 
       else:
         raise RuntimeError("For a simple distance calculation, at least two system names must be provided!")

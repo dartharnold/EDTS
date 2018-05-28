@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
 import sys
-import json
 import collections
+import importlib
+import json
 
 data_path = '..'
 
@@ -14,9 +15,11 @@ from edtslib import pgnames
 from edtslib import pgdata
 from edtslib import sector
 from edtslib import system
+from edtslib import util
 from edtslib import vector3
 del sys.path[1]
 
+env.configure_logging(env.global_args.log_level)
 
 def vec3_to_dict(v):
   return collections.OrderedDict([('x', v.x), ('y', v.y), ('z', v.z)])
@@ -204,6 +207,28 @@ def api_find_station(glob):
     result = None
   bottle.response.content_type = 'application/json'
   return {'result': result}
+
+def map_request(request):
+  return json.loads(request.forms.keys()[0])
+
+@bottle.route('/api/v3/<app>', method = 'post')
+def api_v3(app):
+  if app == 'raikogram':
+    app = 'distance'
+  if app not in ['close_to', 'coords', 'direction', 'distance', 'edts', 'find', 'fuel_usage', 'galmath', 'units']:
+    return None
+  module = importlib.import_module('edtslib.' + app)
+  result = []
+  bottle.response.content_type = 'application/json'
+  try:
+    for entry in module.Application(**map_request(bottle.request)).run():
+      result.append(entry)
+  except Exception as e:
+    bottle.response.status = 500
+    return util.to_json({ "error": e.message, "result": []})
+  if not len(result):
+    result = None
+  return util.to_json({"error": None, "result": result})
 
 if __name__ == '__main__':
   port = 8080

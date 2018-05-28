@@ -4,6 +4,7 @@ from __future__ import print_function
 import argparse
 from edtslib import env
 from edtslib import units
+from edtslib import util
 from edtslib.dist import *
 
 class CaseInsensitiveList(list):
@@ -19,13 +20,17 @@ def parse_args(arg, hosted, state):
   ap = argparse.ArgumentParser(description = "Convert distance scales", fromfile_prefix_chars="@", parents=ap_parents, prog = units.app_name)
   ap.add_argument("-s", "--short", default=False, action='store_true', help="Restrict number of significant figures")
   ap.add_argument("distance", metavar="distance", type=str, help="Distance to convert")
-  ap.add_argument("suffix", metavar="from_scale", type=str, nargs='?', choices=choices, help="Source scale scale")
+  ap.add_argument("suffix", metavar="from_scale", type=str, nargs='?', choices=choices, help="Source scale")
   ap.add_argument("result", metavar="scale", type=str, choices=choices, help="Resultant scale")
   return ap.parse_args(arg)
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
-  for entry in units.Application(**vars(parsed)).run():
+  results = units.Application(**vars(parsed)).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
+  for entry in results:
     print("")
     print(entry.distance.to_string(long = not parsed.short))
     print("")

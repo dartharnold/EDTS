@@ -87,6 +87,10 @@ class Application(object):
         raise RuntimeError("Tolerance must be in range 0 to 100 (percent)!")
 
     if self._ship is not None:
+      if not isinstance(self._ship, ship.Ship):
+        self._ship = ship.Ship.from_args(**self._ship)
+        if self._ship is None:
+          raise RuntimeError("Can't instantiate Ship from provided 'ship' parameter!")
       if self._boost:
         self._ship.supercharge(self._boost)
       log.debug(str(self._ship))

@@ -5,6 +5,12 @@ class Body(object):
     self.type = body_type
     self.name = name
 
+  def to_opaq(self):
+    return {
+      'name': self.name,
+      'type': 'body'
+    }
+
 class Star(Body):
   MAIN_SEQUENCE   = ('O', 'B', 'A', 'F', 'G', 'K', 'M')
   BLACK_HOLE      = ('BH', 'SMBH')
@@ -168,3 +174,11 @@ class Star(Body):
 
   def __repr__(self):
     return u'Star({})'.format(self.classification)
+
+  def to_json(self):
+    return {
+      'name': self.name,
+      'type': 'Star',
+      'classification': self.classification,
+      'spectral_class': self.spectral_class
+    }

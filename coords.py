@@ -5,6 +5,7 @@ import argparse
 from edtslib.cow import ColumnObjectWriter
 from edtslib import coords
 from edtslib import env
+from edtslib import util
 
 def parse_args(arg, hosted, state):
   ap_parents = [env.arg_parser] if not hosted else []
@@ -16,9 +17,13 @@ def parse_args(arg, hosted, state):
 
 def run(args, hosted = False, state = {}):
   parsed = parse_args(args, hosted, state)
+  results = coords.Application(**vars(parsed)).run()
+  if env.global_args.json:
+    print(util.to_json(list(results)))
+    return
   fmt = '8g' if parsed.full_width else '8.2f'
   cow = ColumnObjectWriter(5, ['<', '>'], ['  ', ''])
-  for entry in coords.Application(**vars(parsed)).run():
+  for entry in results:
     position = [('{:' + fmt + '}').format(coord) for coord in entry.system.position]
     cow.add([
       '',

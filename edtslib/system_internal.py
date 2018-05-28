@@ -133,6 +133,15 @@ class System(object):
   def __repr__(self):
     return u"System({})".format(self.name)
 
+  def to_opaq(self):
+    return {
+      'name': self.name,
+      'id64': self.id64,
+      'arrival_star': self.arrival_star,
+      'position': self.position,
+      'uncertainty': self.uncertainty
+    }
+
   def distance_to(self, other):
     """
     Gets the distance between this system and another system or position
