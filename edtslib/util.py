@@ -286,6 +286,27 @@ def get_as_position(v):
     pass
   return None
 
+def compass_degrees(r):
+  d = math.degrees(r)
+  if d < 0:
+    d += 360.0
+  return int(d)
+
+def compass_mils(r, scaled = True):
+  if r < 0:
+    r += 2 * math.pi
+  m = 1000 * r
+  if scaled:
+    m *= 6400 / (2000 * math.pi)
+  return int(m)
+
+def get_as_bearing(v):
+  if not isinstance(v, vector3.Vector3):
+    return None
+  # North is z-axis.  Up is y-axis.
+  # Sagittarius A* is slightly east, slightly down and far north of Sol.
+  return (math.atan(v.x / v.z), math.atan(v.x / v.y))
+
 def flatten(listish):
   return [i for sublist in [listish] for i in sublist] if (isinstance(listish, collections.Iterable) and not is_str(listish)) else [listish]
 
