@@ -36,8 +36,12 @@ def run(args, hosted = False, state = {}):
         print('NO {:0.2f}% deviation'.format(entry.deviation))
       sys.exit(100)
     else:
-      if entry.angle is not None:
-        print(entry.angle)
+      if parsed.angle:
+        if entry.angle is not None:
+          print(entry.angle)
+        else:
+          print('INVALID')
+          sys.exit(100)
       else:
         print(entry.direction)
 
