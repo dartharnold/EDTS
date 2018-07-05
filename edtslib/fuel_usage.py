@@ -33,6 +33,7 @@ class Application(object):
 
   def __init__(self, **args):
     self._boost = args.get('boost')
+    self._range_boost = args.get('range_boost')
     self._cargo = args.get('cargo', default_cargo)
     self._refuel = args.get('refuel')
     self._ship = args.get('ship')
@@ -49,6 +50,9 @@ class Application(object):
 
     if self._boost:
       self._ship.supercharge(self._boost)
+
+    if self._range_boost:
+      self._ship.range_boost = self._range_boost
 
     if self._starting_fuel is None:
       self._starting_fuel = self._ship.tank_size

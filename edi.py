@@ -180,6 +180,7 @@ class EDI(cmd.Cmd):
     ap.add_argument("-f", "--fsd", type=str, required=True, help="The ship's frame shift drive in the form 'A6 or '6A'")
     ap.add_argument("-m", "--mass", type=float, required=True, help="The ship's unladen mass excluding fuel")
     ap.add_argument("-t", "--tank", type=float, required=True, help="The ship's fuel tank size")
+    ap.add_argument("-B", "--range-boost", type=float, default=0, help="The bonus from the ship's Guardian FSD booster")
     ap.add_argument("-T", "--reserve-tank", type=float, default=0, help="The ship's reserve tank size")
     ap.add_argument("-c", "--cargo", type=int, default=0, help="The ship's cargo capacity")
     ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including %% sign)")
@@ -189,7 +190,7 @@ class EDI(cmd.Cmd):
       argobj = ap.parse_args(shlex.split(args))
     except SystemExit:
       return True
-    s = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, max_cargo = argobj.cargo, reserve_tank = argobj.reserve_tank)
+    s = ship.Ship(argobj.fsd, argobj.mass, argobj.tank, max_cargo = argobj.cargo, reserve_tank = argobj.reserve_tank, range_boost = argobj.range_boost)
     if argobj.fsd_optmass is not None or argobj.fsd_mass is not None or argobj.fsd_maxfuel is not None:
       fsd_optmass = util.parse_number_or_add_percentage(argobj.fsd_optmass, s.fsd.stock_optmass)
       fsd_mass = util.parse_number_or_add_percentage(argobj.fsd_mass, s.fsd.stock_mass)

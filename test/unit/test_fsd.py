@@ -66,7 +66,7 @@ class TestFSD(unittest.TestCase):
     self.assertGreater(wmin, 10**10)
     self.assertLess(wmax, 0)
 
-  def test_boost(self):
+  def test_supercharge(self):
     f = fsd.FSD("6A")
     f.supercharge('D')
     self.assertAlmostEqual(f.range(mass=521.8, fuel=32), 49.54, 2)
@@ -92,3 +92,12 @@ class TestFSD(unittest.TestCase):
     wmin, wmax = f.fuel_weight_range(41.41, mass=521.8)
     self.assertAlmostEqual(wmin, 0.21, 2)
     self.assertAlmostEqual(wmax, 1598.25, 2)
+
+  def test_boost(self):
+    f = fsd.FSD("6A")
+    f.range_boost = 10.5
+    self.assertAlmostEqual(f.range(mass=521.8, fuel=32), 50.13, 2)
+    self.assertAlmostEqual(f.cost(41.42, mass=521.8, fuel=32), 4.87, 2)
+    f.supercharge('N')
+    self.assertAlmostEqual(f.range(mass=521.8, fuel=32), 200.53, 2)
+    self.assertAlmostEqual(f.cost(41.42, mass=521.8, fuel=32), 0.13, 2)
