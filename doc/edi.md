@@ -46,7 +46,9 @@ Required arguments:
 
 * `-f F`/`--fsd=F`: set the FSD of the ship, in the form "6A" or "A6"
 * `-m N`/`--mass=N`: set the mass of the ship with no fuel or cargo on board
+* `-B N`/`--range-boost N` (optional): Range bonus from a Guardian FSD booster.
 * `-t N`/`--tank=N`: set the full fuel tank size of the ship
+* `-T N`/`--reserve-tank=N`: the size of the ship's reserve fuel tank
 
 ### ship ###
 This command shows the saved ship, if any.
