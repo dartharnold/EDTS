@@ -215,7 +215,7 @@ def map_request(request):
 def api_v3(app):
   if app == 'raikogram':
     app = 'distance'
-  if app not in ['close_to', 'coords', 'direction', 'distance', 'edts', 'find', 'fuel_usage', 'galmath', 'units']:
+  if app not in ['close_to', 'coords', 'direction', 'distance', 'edts', 'find', 'fuel_usage', 'galmath', 'obscured', 'units']:
     return None
   module = importlib.import_module('edtslib.' + app)
   result = []

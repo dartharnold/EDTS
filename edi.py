@@ -27,6 +27,7 @@ import distance
 import find
 import galmath
 import fuel_usage
+import obscured
 import units
 import vsc
 
@@ -118,6 +119,12 @@ class EDI(cmd.Cmd):
 
   def do_fuel_usage(self, args):
     return self.run_application(fuel_usage, args)
+
+  def help_obscured(self):
+    return self.run_help(obscured)
+
+  def do_obscured(self, args):
+    return self.run_application(obscured, args)
 
   def help_starcache(self):
     return self.run_help(vsc)
