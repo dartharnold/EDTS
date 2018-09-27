@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import argparse
 import os
 import shutil
 import sys
@@ -18,38 +17,12 @@ log = util.get_logger(app_name)
 
 class Application(object):
 
-  def __init__(self, arg, hosted, state = {}):
-    ap_parents = [env.arg_parser] if not hosted else []
-    ap = argparse.ArgumentParser(description = "Read and write the visited stars cache", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
-    subparsers = ap.add_subparsers()
-    bp = subparsers.add_parser("batch", help="Batch import jobs")
-    bp.add_argument("-c", "--clean", default=False, action="store_true", help="Delete any existing cache rather than back it up")
-    bp.add_argument("-d", "--directory", help="Directory where Elite looks for ImportStars.txt")
-    bp.add_argument("-n", "--no-import", default=False, action="store_true", help="Only create ImportStars files, don't copy to game client")
-    bp.add_argument("starfile", metavar="filename")
-    bp.add_argument("dictfile", nargs='?', help="Destination file")
-    bp.set_defaults(func=self.run_batch)
-    ip = subparsers.add_parser("import", help="Use Elite client to run import job")
-    ip.add_argument("-c", "--clean", default=False, action="store_true", help="Delete any existing cache rather than back it up")
-    ip.add_argument("-d", "--directory", help="Directory where Elite looks for ImportStars.txt")
-    ip.add_argument("importfile", metavar="filename")
-    ip.add_argument("cachefile")
-    ip.set_defaults(func=self.run_import)
-    rp = subparsers.add_parser("read", help="Read from star cache")
-    rp.add_argument("readfile", metavar="filename")
-    rp.set_defaults(func=self.run_read)
-    wp = subparsers.add_parser("write", help="Write to star cache")
-    wp.add_argument("writefile", metavar="filename")
-    wp.add_argument("-i", "--importfile", metavar="filename", nargs='?', help="File with list of stars")
-    wp.add_argument("-r", "--recent", default=False, action="store_true", help="Create in RecentlyVisitedStars format")
-    wp.add_argument("filters", metavar="filters", nargs='*')
-    wp.set_defaults(func=self.run_write)
-
-    self.args = ap.parse_args(arg)
+  def __init__(self, args):
+    self.args = args
 
   def run(self):
     with env.use() as envdata:
-      self.args.func(envdata, self.args)
+      self.args.func(self, envdata, self.args)
 
   def batch_read(self, envdata, id64list):
     missing = { str(id64): True for id64 in id64list }
@@ -241,7 +214,7 @@ class Application(object):
         iterator = envdata.find_systems_by_name([n.strip() for n in f], filters)
     else:
         iterator = envdata.find_all_systems(filters)
-    starcache.write_visited_stars_cache(args.writefile, iterator, self.args.recent)
+    starcache.write_visited_stars_cache(args.writefile, iterator, recent = self.args.recent, version = self.args.version)
 
 if __name__ == '__main__':
   env.start()

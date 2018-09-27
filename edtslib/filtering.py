@@ -5,6 +5,7 @@ import sys
 
 from . import station
 from . import util
+from .bodies import Star
 
 log = util.get_logger("filter")
 
@@ -34,10 +35,12 @@ PosArgs = PosArgsType()
 
 class PadSize(object):
   values = ['S','M','L']
-  def __init__(self, value):
-    if util.is_str(value):
-      value = value.upper()
-    self.value = value if value in PadSize.values else None
+  def __init__(self, obj):
+    if util.is_str(obj):
+      obj = obj.upper()
+    if isinstance(obj, PadSize):
+      obj = obj.value
+    self.value = obj if obj in PadSize.values else None
   def __str__(self):
     return self.value
   def __repr__(self):
@@ -50,7 +53,7 @@ class PadSize(object):
     if rhs is None:
       return sys.maxsize
     if not rhs in PadSize.values:
-      raise ValueError('tried to compare pad size with an invalid value')
+      raise ValueError('tried to compare pad size with an invalid value: {}'.format(rhs))
     return (PadSize.values.index(self.value) - PadSize.values.index(rhs))
   # Python 3.x doesn't like __cmp__
   def __lt__(self, rhs): return (self.__cmp__(rhs) < 0)
@@ -59,6 +62,19 @@ class PadSize(object):
   def __ge__(self, rhs): return (self.__cmp__(rhs) >= 0)
   def __eq__(self, rhs): return (self.__cmp__(rhs) == 0)
   def __ne__(self, rhs): return (self.__cmp__(rhs) != 0)
+
+def parse_star_class(s):
+  if s.lower() == 'mainsequence':
+    return Star.MAIN_SEQUENCE
+  elif s.lower() == 'nonsequence':
+    return Star.NON_SEQUENCE
+  elif s.lower() == 'scoopable':
+    return Star.SCOOPABLE
+  elif s.lower() == 'superchargeable':
+    return Star.SUPERCHARGEABLE
+  else:
+    return [s.upper()]
+
 
 class Operator(object):
   def __init__(self, op, value):
@@ -103,6 +119,8 @@ def _get_valid_ops(fn):
     return _get_valid_ops(fn['fn'])
   if fn is int or fn is float or fn is PadSize:
     return ['=','!=','<','>','<=','>=']
+  if fn == parse_star_class:
+    return ['=','!=','<>']
   if isinstance(fn, dict):
     return ['=']
   else:
@@ -122,6 +140,21 @@ def _get_valid_conversion(fndict, idx, subidx = None):
   return None
 
 _conversions = {
+  'x':           {
+                   'max': None,
+                   'special': [Any],
+                   'fn': float
+                 },
+  'y':           {
+                   'max': None,
+                   'special': [Any],
+                   'fn': float
+                 },
+  'z':           {
+                   'max': None,
+                   'special': [Any],
+                   'fn': float
+                 },
   'sc_distance': {
                    'max': None,
                    'special': [Any],
@@ -148,10 +181,20 @@ _conversions = {
                    'special': [Any, None],
                    'fn': str
                  },
+  'arrival_star':{
+                   'max': 1,
+                   'special': [Any],
+                   'fn': parse_star_class
+                 },
   'limit':       {
                    'max': 1,
                    'special': [],
                    'fn': int
+                 },
+  'id64':        {
+                    'max': None,
+                    'special': [Any],
+                    'fn': int
                  },
 }
 
@@ -160,17 +203,15 @@ def _global_conv(val, specials = None):
   specials = specials or []
   if isinstance(val, Operator):
     return (Operator(value=_global_conv(val.value, specials), op=val.operator), False)
-
-  if val.lower() == "any" and Any in specials:
-    return (Any, False)
-  elif val.lower() == "none" and None in specials:
-    return (None, False)
-  else:
-    return (val, True)
+  if util.is_str(val):
+    if val.lower() == "any" and Any in specials:
+      return (Any, False)
+    elif val.lower() == "none" and None in specials:
+      return (None, False)
+  return (val, True)
 
 
 def parse(filter_string, *args, **kwargs):
-  extra_converters = kwargs.get('extra_converters', {})
   entries = filter_string.split(entry_separator)
   # This needs to be ordered so that literal args ('?') are hit in the correct order
   output = collections.OrderedDict()
@@ -200,18 +241,24 @@ def parse(filter_string, *args, **kwargs):
     if key not in output:
       output[key] = []
     output[key].append(value)
+  return convert(output, *args, **kwargs)
 
+def convert(fobj, *args, **kwargs):
+  extra_converters = kwargs.get('extra_converters', {})
   literalarg_count = 0
+  # Check if we should normalise object before continuing
+  if kwargs.get('normalise', True):
+    fobj = normalise(fobj)
   # For each result
-  for k in output.keys():
+  for k in fobj.keys():
     # Do we know about it?
     if k in _conversions:
-      if _conversions[k]['max'] not in [None, 1] and len(output[k]) > _conversions[k]['max']:
+      if _conversions[k]['max'] not in [None, 1] and len(fobj[k]) > _conversions[k]['max']:
         raise KeyError("Filter key {} provided more than its maximum {} times".format(k, _conversions[k]['max']))
       # Is it a complicated one, or a simple key=value?
       if isinstance(_conversions[k]['fn'], dict):
         # For each present subkey, check if we know about it
-        outlist = output[k]
+        outlist = fobj[k]
         # For each subkey...
         for outentry in outlist:
           # For each named entry in that subkey (and None for positional args)...
@@ -230,7 +277,7 @@ def parse(filter_string, *args, **kwargs):
               specials = _conversions[k]['fn'][ek]['special'] if (ek in _conversions[k]['fn'] and isinstance(_conversions[k]['fn'][ek], dict)) else []
               ev.value, continue_conv = _global_conv(ev.value, specials)
               if continue_conv:
-                if ev.value == value_literalarg:
+                if util.is_str(ev.value) and ev.value == value_literalarg:
                   if literalarg_count >= len(args):
                     raise ValueError("Query included more literal args ('{}') than argument objects provided to parse function".format(value_literalarg))
                   ev.value = args[literalarg_count]
@@ -244,7 +291,7 @@ def parse(filter_string, *args, **kwargs):
                   ev.value = conv(ev.value)
       else:
         # For each entry associated with this key...
-        for ovl in output[k]:
+        for ovl in fobj[k]:
           nonpos_subkeys = [posk for posk in ovl.keys() if posk is not PosArgs]
           if any(nonpos_subkeys):
             raise KeyError("Unexpected filter subkey(s) provided: {0}".format(nonpos_subkeys))
@@ -256,7 +303,7 @@ def parse(filter_string, *args, **kwargs):
             # Do the conversions
             ov.value, continue_conv = _global_conv(ov.value, _conversions[k]['special'])
             if continue_conv:
-              if ov.value == value_literalarg:
+              if util.is_str(ov.value) and ov.value == value_literalarg:
                 if literalarg_count >= len(args):
                   raise ValueError("Query included more literal args ('{}') than argument objects provided to parse function".format(value_literalarg))
                 ov.value = args[literalarg_count]
@@ -272,12 +319,12 @@ def parse(filter_string, *args, **kwargs):
       raise KeyError("Unexpected filter key provided: {0}".format(k))
 
   # We don't need to return OrderedDicts once processing is done, so use normal ones
-  return {k: [dict(sv) for sv in v] for k, v in output.items()}
+  return {k: [dict(sv) for sv in v] for k, v in fobj.items()}
 
 
-def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
+def normalise(filters, strip_unexpected = False, anonymous_posargs = True, assume_ops = True):
   if not isinstance(filters, dict):
-    raise ValueError("filter object must be a dict")
+    raise ValueError("filter object must be a dict with the filter arguments as keys")
   output = filters
   for k in output:
     # Check we know about this key
@@ -310,7 +357,7 @@ def normalise_filter_object(filters, strip_unexpected = False, anonymous_posargs
           if isinstance(convdata['fn'], dict):
             if ek not in convdata['fn'] and len(output[k][i][ek])-1 not in convdata['fn']:
               raise ValueError("filter key '{}' contains unexpected positional arguments".format(k))
-            if ek in convdata['fn'] and convdata['fn'][ek]['max'] is not None and len(output[k][i][ek]) > convdata['fn'][ek]['max']:
+            if ek in convdata['fn'] and isinstance(convdata['fn'][ek], dict) and convdata['fn'][ek]['max'] is not None and len(output[k][i][ek]) > convdata['fn'][ek]['max']:
               raise ValueError("filter key '{}' contains too many positional arguments".format(k))
         else:
           if not isinstance(convdata['fn'], dict):
@@ -344,20 +391,46 @@ def generate_sql(filters):
   req_tables = set()
   idx = 0
 
+  for axis in ('x', 'y', 'z'):
+    if axis in filters:
+      req_tables.add('systems')
+      for oentry in filters[axis]:
+        for entry in oentry[PosArgs]:
+          filter_str.append('systems.pos_{} {} ?'.format(axis, entry.operator))
+          filter_params.append(entry.value)
+  if 'id64' in filters:
+    req_tables.add('systems')
+    for oentry in filters['id64']:
+      for entry in oentry[PosArgs]:
+        filter_str.append('systems.id64 {} ?'.format(entry.operator))
+        filter_params.append(entry.value)
   if 'close_to' in filters:
     start_idx = idx
     req_tables.add('systems')
+    order_indexes = []
     for oentry in filters['close_to']:
       for entry in oentry[PosArgs]:
         pos = util.get_as_position(entry.value)
-        select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{0}".format(idx))
-        select_params += [pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
+        # Get X/Y/Z distances of candidate system to reference system
+        select_str.append("(? - systems.pos_x) AS diff{}".format(idx+0))
+        select_str.append("(? - systems.pos_y) AS diff{}".format(idx+1))
+        select_str.append("(? - systems.pos_z) AS diff{}".format(idx+2))
+        # Get 3D distance of candidate system to reference system
+        select_str.append("(((? - systems.pos_x) * (? - systems.pos_x)) + ((? - systems.pos_y) * (? - systems.pos_y)) + ((? - systems.pos_z) * (? - systems.pos_z))) AS diff{}".format(idx+3))
+        select_params += [pos.x, pos.y, pos.z, pos.x, pos.x, pos.y, pos.y, pos.z, pos.z]
         # For each operator and value...
         if 'distance' in oentry:
           for opval in oentry['distance']:
-            filter_str.append("diff{} {} ? * ?".format(idx, opval.operator))
+            # If we're checking within a radius, restrict to a cube first to pare candidates down faster
+            if opval.operator in ('<', '<=', '='):
+              filter_str.append('diff{} {} ?'.format(idx+0, opval.operator))
+              filter_str.append('diff{} {} ?'.format(idx+1, opval.operator))
+              filter_str.append('diff{} {} ?'.format(idx+2, opval.operator))
+              filter_params += [opval.value, opval.value, opval.value]
+            filter_str.append("diff{} {} ? * ?".format(idx+3, opval.operator))
             filter_params += [opval.value, opval.value]
-        idx += 1
+        order_indexes.append(idx+3)
+        idx += 4
         if 'direction' in oentry:
           for dentry in oentry['direction']:
             dpos = util.get_as_position(dentry.value)
@@ -368,8 +441,9 @@ def generate_sql(filters):
                 angle = aentry.value * math.pi / 180.0
                 filter_str.append("diff{} {} ?".format(idx, aentry.operator))
                 filter_params.append(angle)
+            order_indexes.append(idx)
             idx += 1
-    order_str.append("+".join(["diff{}".format(i) for i in range(start_idx, idx)]))
+    order_str.append("+".join(["diff{}".format(i) for i in order_indexes]))
   if 'allegiance' in filters:
     req_tables.add('systems')
     for oentry in filters['allegiance']:
@@ -382,6 +456,19 @@ def generate_sql(filters):
           extra_str = " OR systems.allegiance IS NULL OR systems.allegiance == 'None'"
           filter_str.append("(systems.allegiance {} ?{})".format(entry.operator, extra_str if entry.operator == '!=' else ''))
           filter_params.append(entry.value)
+  if 'arrival_star' in filters:
+    req_tables.add('systems')
+    for oentry in filters['arrival_star']:
+      for entry in oentry[PosArgs]:
+        if (entry.operator == '=' and entry.value is Any):
+          filter_str.append("systems.arrival_star_class IS NOT NULL")
+        elif (entry.operator in ['!=','<>'] and entry.value is Any):
+          filter_str.append("systems.arrival_star_class IS NULL")
+        else:
+          extra_str = " OR systems.arrival_star_class IS NULL"
+          sql_op = "IN" if entry.operator == '=' else "NOT IN"
+          filter_str.append("(systems.arrival_star_class {0} ({1}) {2})".format(sql_op, ','.join(["?"] * len(entry.value)), extra_str if entry.operator == '!=' else ''))
+          filter_params += entry.value
   if 'pad' in filters:
     req_tables.add('stations')
     for oentry in filters['pad']:
@@ -393,7 +480,7 @@ def generate_sql(filters):
         elif entry.operator in ['=','!=']:
           extra_str = " OR stations.max_pad_size IS NULL"
           filter_str.append("stations.max_pad_size {} ?{}".format(entry.operator, extra_str if entry.operator == '!=' else ''))
-          filter_params.append(entry.value)
+          filter_params.append(str(entry.value))
         else:
           valid_values = [p for p in PadSize.values if entry.matches(PadSize(p))]
           filter_str.append("stations.max_pad_size IN ({0})".format(",".join(["?"] * len(valid_values))))
@@ -432,6 +519,18 @@ def filter(s_list, filters):
 def is_match(s, filters):
   sy = s.system if isinstance(s, station.Station) else s
   st = s if isinstance(s, station.Station) else station.Station.none(s)
+  if 'id64' in filters:
+    for oentry in filters['id64']:
+      for entry in oentry[PosArgs]:
+        # Handle Any/None carefully
+        if (entry.operator == '=' and entry.value is Any) or (entry.operator in ['!=','<>'] and entry.value is None):
+          if sy.id64 is None:
+            return False
+        elif (entry.operator == '=' and entry.value is None) or (entry.operator in ['!=','<>'] and entry.value is Any):
+          if sy.id64 is not None and sy.allegiance:
+            return False
+        elif not entry.matches(sy.id64):
+          return False
   if 'close_to' in filters:
     for oentry in filters['close_to']:
       for entry in oentry[PosArgs]:
@@ -460,6 +559,16 @@ def is_match(s, filters):
           if sy.allegiance is not None and sy.allegiance != 'None':
             return False
         elif not entry.matches(sy.allegiance):
+          return False
+  if 'arrival_star' in filters:
+    for oentry in filters['arrival_star']:
+      for entry in oentry[PosArgs]:
+        # Handle Any/None carefully
+        if (entry.operator == '=' and entry.value is Any) and sy.arrival_star_class is None:
+            return False
+        elif (entry.operator in ['!=','<>'] and entry.value is Any) and sy.arrival_star_class is not None:
+            return False
+        elif sy.arrival_star_class not in entry.value:
           return False
   if 'pad' in filters:
     for oentry in filters['pad']:

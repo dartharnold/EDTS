@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 
 from __future__ import print_function
-import argparse
 from math import log10, floor, fabs
+import re
 import sys
 
+from .dist import Lightyears
+from .opaque_types import Fuel, Refuel, Location, Opaq
 from . import env
 from . import ship
 from . import util
@@ -13,128 +15,102 @@ app_name = "fuel_usage"
 
 log = util.get_logger(app_name)
 
+default_cargo = 0
+
+class Result(Opaq):
+  def __init__(self, **args):
+    self.origin = args.get('origin')
+    self.destination = args.get('destination')
+    self.distance = args.get('distance', Lightyears(0))
+    self.cargo = args.get('cargo', 0)
+    self.fuel = args.get('fuel', Fuel())
+    self.is_long = args.get('is_long', False)
+    self.ok = args.get('ok', True)
+    self.refuel = args.get('refuel')
 
 class Application(object):
+  refuel_re = re.compile(r'^([+=])?([\d.]+)([%T])?$')
 
-  def __init__(self, arg, hosted, state = {}):
-    ap_parents = [env.arg_parser] if not hosted else []
-    ap = argparse.ArgumentParser(description = "Plot jump distance matrix", fromfile_prefix_chars="@", parents = ap_parents, prog = app_name)
-    ap.add_argument(      "--ship", metavar="filename", type=str, required=False, help="Load ship data from export file")
-    ap.add_argument("-f", "--fsd", type=str, required=False, help="The ship's frame shift drive in the form 'A6 or '6A'")
-    ap.add_argument("-b", "--boost", type=str.upper, choices=['0', '1', '2', '3', 'D', 'N'], help="FSD boost level (0 for none, D for white dwarf, N for neutron")
-    ap.add_argument("-m", "--mass", type=float, required=False, help="The ship's unladen mass excluding fuel")
-    ap.add_argument("-t", "--tank", type=float, required=False, help="The ship's fuel tank size")
-    ap.add_argument("-s", "--starting-fuel", type=float, required=False, help="The starting fuel quantity (default: tank size)")
-    ap.add_argument("-c", "--cargo", type=int, default=0, help="Cargo on board the ship")
-    ap.add_argument(      "--fsd-optmass", type=str, help="The optimal mass of your FSD, either as a number in T or modified percentage value (including % sign)")
-    ap.add_argument(      "--fsd-mass", type=str, help="The mass of your FSD, either as a number in T or modified percentage value (including % sign)")
-    ap.add_argument(      "--fsd-maxfuel", type=str, help="The max fuel per jump of your FSD, either as a number in T or modified percentage value (including % sign)")
-    ap.add_argument("-r", "--refuel", action='store_true', default=False, help="Assume that the ship can be refueled as needed, e.g. by fuel scooping")
-    ap.add_argument("systems", metavar="system", nargs='+', help="Systems")
+  def __init__(self, **args):
+    self._boost = args.get('boost')
+    self._range_boost = args.get('range_boost')
+    self._cargo = args.get('cargo', default_cargo)
+    self._refuel = args.get('refuel')
+    self._ship = args.get('ship')
+    self._starting_fuel = args.get('starting_fuel')
+    self._systems = args.get('systems')
 
-    self.args = ap.parse_args(arg)
+    if self._ship is None:
+      raise RuntimeError("Error: You must specify a ship")
 
-    if self.args.fsd is not None and self.args.mass is not None and self.args.tank is not None:
-      self.ship = ship.Ship(self.args.fsd, self.args.mass, self.args.tank)
-    elif self.args.ship:
-      loaded = ship.Ship.from_file(self.args.ship)
-      fsd = self.args.fsd if self.args.fsd is not None else loaded.fsd
-      mass = self.args.mass if self.args.mass is not None else loaded.mass
-      tank = self.args.tank if self.args.tank is not None else loaded.tank_size
-      self.ship = ship.Ship(fsd, mass, tank)
-    elif 'ship' in state:
-      fsd = self.args.fsd if self.args.fsd is not None else state['ship'].fsd
-      mass = self.args.mass if self.args.mass is not None else state['ship'].mass
-      tank = self.args.tank if self.args.tank is not None else state['ship'].tank_size
-      self.ship = ship.Ship(fsd, mass, tank)
+    if not isinstance(self._ship, ship.Ship):
+        self._ship = ship.Ship.from_args(**self._ship)
+        if self._ship is None:
+          raise RuntimeError("Can't instantiate Ship from provided 'ship' parameter!")
+
+    if self._boost:
+      self._ship.supercharge(self._boost)
+
+    if self._range_boost:
+      self._ship.range_boost = self._range_boost
+
+    if self._starting_fuel is None:
+      self._starting_fuel = self._ship.tank_size
+
+  def refuel(self, amount, cur_fuel = None):
+    m = self.refuel_re.match(amount)
+    if m is not None:
+      if cur_fuel is None:
+        return True
+      try:
+        absolute = (m.group(1) == '=')
+        if m.group(3) == '%':
+          extra_fuel = self._ship.refuel(cur_fuel, percent = float(m.group(2)), absolute = absolute)
+        else:
+          extra_fuel = self._ship.refuel(cur_fuel, amount = float(m.group(2)), absolute = absolute)
+        return extra_fuel
+      except:
+        log.exception("Can't parse refuel amount.")
+        return None
     else:
-      log.error("Error: You must specify --ship, all of --fsd, --mass and --tank, or have previously set a ship")
-      sys.exit(1)
-
-    if self.args.fsd_optmass is not None or self.args.fsd_mass is not None or self.args.fsd_maxfuel is not None:
-      fsd_optmass = util.parse_number_or_add_percentage(self.args.fsd_optmass, self.ship.fsd.stock_optmass)
-      fsd_mass = util.parse_number_or_add_percentage(self.args.fsd_mass, self.ship.fsd.stock_mass)
-      fsd_maxfuel = util.parse_number_or_add_percentage(self.args.fsd_maxfuel, self.ship.fsd.stock_maxfuel)
-      self.ship = self.ship.get_modified(optmass=fsd_optmass, fsdmass=fsd_mass, maxfuel=fsd_maxfuel)
-
-    if self.args.boost:
-      self.ship.supercharge(self.args.boost)
-
-    if self.args.starting_fuel is None:
-      self.args.starting_fuel = self.ship.tank_size
+      return None
 
   def run(self):
+    refueling = False
     with env.use() as envdata:
-      systems = envdata.parse_systems(self.args.systems)
-      for y in self.args.systems:
+      snames = [arg for arg in self._systems if self.refuel(arg) is None]
+      envdata.find_systems_from_edsm(snames)
+      systems = envdata.parse_systems(snames)
+      for y in self._systems:
+        if self.refuel(y) is not None:
+          refueling = True
+          continue
         if y not in systems or systems[y] is None:
-          log.error("Could not find system \"{0}\"!", y)
-          return
+          raise RuntimeError("Could not find system \"{0}\"!", y)
 
-    cur_fuel = self.args.starting_fuel
-    output_data = [{'src': systems[self.args.systems[0]]}]
+    cur_fuel = self._starting_fuel
 
     prev = None
-    for s in systems.values():
-      if prev is None:
-        # First iteration
-        prev = s
+    for y in self._systems:
+      extra_fuel = self.refuel(y, cur_fuel)
+      if extra_fuel is not None:
+        used_fuel = self._ship.tank_size - cur_fuel
+        if extra_fuel > used_fuel:
+          extra_fuel = used_fuel
+        yield Result(fuel = Fuel(initial = cur_fuel, final = cur_fuel + extra_fuel), refuel = Refuel(amount = extra_fuel, percent = self._ship.refuel_percent(extra_fuel)))
+        cur_fuel += extra_fuel
         continue
-      distance = prev.distance_to(s)
-      is_long = False
-      is_ok = True
-      if self.args.refuel:
-        fmax = self.ship.max_fuel_weight(distance, allow_invalid=True)
-        # Fudge factor to prevent cost coming out at exactly maxfuel (stupid floating point!)
-        cur_fuel = min(fmax - 0.000001, self.ship.tank_size)
-        is_long = (fmax >= 0.0 and fmax < self.ship.tank_size)
-        is_ok = (is_ok and fmax >= 0.0)
-
-      fuel_cost = self.ship.cost(distance, cur_fuel, self.args.cargo)
-      cur_fuel -= fuel_cost
-      is_ok = (is_ok and fuel_cost <= self.ship.fsd.maxfuel and cur_fuel >= 0.0)
-      output_data.append({
-          'src': prev, 'dst': s,
-          'distance': distance, 'cost': fuel_cost,
-          'remaining': cur_fuel, 'ok': is_ok, 'long': is_long})
+      else:
+        s = systems[y]
+      if prev is not None:
+        distance = prev.distance_to(s)
+        is_ok = True
+        fmin, fmax = self._ship.fuel_weight_range(distance, allow_invalid=True)
+        is_long = (fmax >= 0.0 and fmax < self._ship.tank_size)
+        if self._refuel:
+          is_ok = (is_ok and fmax >= 0.0)
+        fuel_cost = self._ship.cost(distance, cur_fuel, self._cargo)
+        is_ok = (is_ok and fuel_cost <= self._ship.fsd.maxfuel and cur_fuel >= fuel_cost)
+        yield Result(origin = Location(system = prev), destination = Location(system = s), distance = Lightyears(distance), cargo = self._cargo, ok = is_ok, is_long = is_long, fuel = Fuel(initial = cur_fuel, cost = fuel_cost, final = cur_fuel - fuel_cost, min = fmin, max = fmax))
+        cur_fuel -= fuel_cost
       prev = s
-
-    d_max_len = 1.0
-    c_max_len = 1.0
-    f_max_len = 1.0
-    f_min_len = 1.0
-    for i in range(1, len(output_data)):
-      od = output_data[i]
-      d_max_len = max(d_max_len, od['distance'])
-      c_max_len = max(c_max_len, od['cost'])
-      f_max_len = max(f_max_len, od['remaining'])
-      f_min_len = min(f_min_len, od['remaining'])
-    # Length = "NNN.nn", so length = len(NNN) + 3 = log10(NNN) + 4
-    d_max_len = str(int(floor(log10(fabs(d_max_len)))) + 4)
-    c_max_len = str(int(floor(log10(fabs(c_max_len)))) + 4)
-    f_max_len = int(floor(log10(fabs(f_max_len)))) + 4
-    f_min_len = int(floor(abs(log10(fabs(f_min_len))))) + (5 if f_min_len < 0.0 else 4)
-    f_len = str(max(f_max_len, f_min_len))
-
-    print('')
-    print(output_data[0]['src'].to_string())
-    for i in range(1, len(output_data)):
-      leg = output_data[i]
-      dist = leg['src'].distance_to(leg['dst'])
-      print(('    ={4}= {0: >'+d_max_len+'.2f}LY / {1:>'+c_max_len+'.2f}T / {2:>'+f_len+'.2f}T ={4}=> {3}').format(
-            dist,
-            leg['cost'],
-            leg['remaining'],
-            leg['dst'].to_string(),
-            _get_leg_char(leg)))
-    print('')
-
-
-def _get_leg_char(leg):
-  if leg['ok']:
-    if leg['long']:
-      return '~'
-    else:
-      return '='
-  else:
-    return '!'

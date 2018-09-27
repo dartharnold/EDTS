@@ -55,6 +55,14 @@ class Vector3(object):
         x, y, z = self._v
         return "Vector3(%s, %s, %s)" % (x, y, z)
 
+    def to_opaq(self):
+      x, y, z = self._v
+      return {
+        'x': float(x),
+        'y': float(y),
+        'z': float(z)
+      }
+
     def __len__(self):
         return 3
 

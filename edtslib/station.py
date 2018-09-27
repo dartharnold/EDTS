@@ -1,7 +1,8 @@
+from .dist import Lightseconds
 
 class Station(object):
   def __init__(self, obj, sysobj):
-    self.distance = int(obj['distance_to_star']) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] is not None) else None
+    self.distance = Lightseconds(int(obj['distance_to_star'])) if (obj is not None and 'distance_to_star' in obj and obj['distance_to_star'] is not None) else None
     self.uses_sc = (self.distance is not None)
     self.system = sysobj
     self.name = obj['name'] if obj is not None else None
@@ -18,6 +19,9 @@ class Station(object):
 
   def __repr__(self):
     return u"Station({0})".format(self.__str__())
+
+  def to_opaq(self):
+    return vars(self)
 
   def distance_to(self, other):
     return (self.position - other.position).length
@@ -43,7 +47,7 @@ class Station(object):
 
   @property
   def system_name(self):
-    return self.system.name
+    return self.system.to_string()
 
   def to_string(self, inc_sys = True):
     if self.name is None:

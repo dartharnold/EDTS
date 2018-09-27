@@ -3,12 +3,15 @@ import sys
 
 from . import calc
 from . import env
+from . import filtering
 from . import util
 
 log = util.get_logger("route")
 
-strategies = ["astar", "trunkle", "trundle"]
-default_strategy = "astar"
+route_strategies = ["astar", "trunkle", "trundle"]
+default_route_strategy = "astar"
+fuel_strategies = ["none", "station", "scoop", "optimal"]
+default_fuel_strategy = "optimal"
 default_rbuffer_ly = 40.0
 default_hbuffer_ly = 10.0
 hbuffer_relax_increment = 5.0
@@ -17,11 +20,18 @@ hbuffer_relax_max = 31.0
 
 class Routing(object):
 
-  def __init__(self, ship, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_strategy, witchspace_time = calc.default_ws_time):
+  def __init__(self, ship, rbuf_base = default_rbuffer_ly, hbuf_base = default_hbuffer_ly, route_strategy = default_route_strategy, fuel_strategy = default_fuel_strategy, witchspace_time = calc.default_ws_time, starting_fuel = None, jump_range = None):
     self._ship = ship
+    if jump_range is not None:
+      if fuel_strategy not in ['none', 'optimal']:
+        raise Exception("Can't use fuel strategy '{}' with a static jump range!".format(fuel_strategy))
+      self._starting_fuel = None
+    else:
+      self._starting_fuel = starting_fuel if starting_fuel is not None else ship.tank_size
     self._rbuffer_base = rbuf_base
     self._hbuffer_base = hbuf_base
     self._route_strategy = route_strategy
+    self._fuel_strategy = fuel_strategy
     self._ws_time = witchspace_time
     self._trundle_max_addjumps = 4
     self._trunkle_max_addjumps_mul = 1.0
@@ -32,6 +42,7 @@ class Routing(object):
     self._trunkle_leg_size = 5.0
     self._trunkle_search_radius = 10.0
     self._trunkle_search_radius_relax_mul = 0.01
+    self._rejected_routes = {}
 
   def lerp(self, in_min, in_max, out_min, out_max, value):
     if in_max == in_min:
@@ -58,20 +69,22 @@ class Routing(object):
 
     return candidates
 
-  def plot(self, sys_from, sys_to, jump_range, full_range = None):
+  def plot(self, sys_from, sys_to, avoid, jump_range, full_range = None, cargo = 0, route_filters = None):
+    self._rejected_routes = {}
+
     if full_range is None:
       full_range = jump_range
     timer = util.start_timer()
 
     if self._route_strategy == "trundle":
       # My algorithm - slower but pinpoint
-      result = self.plot_trundle(sys_from, sys_to, jump_range, full_range)
+      result = self.plot_trundle(sys_from, sys_to, avoid, jump_range, full_range, cargo, route_filters = route_filters)
     elif self._route_strategy == "trunkle":
       # Hybrid - splits route up into N-jump blocks, and runs trundle on each block
-      result = self.plot_trunkle(sys_from, sys_to, jump_range, full_range)
+      result = self.plot_trunkle(sys_from, sys_to, avoid, jump_range, full_range, cargo, route_filters = route_filters)
     elif self._route_strategy == "astar":
       # A* search - faster but worse fuel efficiency
-      result = self.plot_astar(sys_from, sys_to, jump_range, full_range)
+      result = self.plot_astar(sys_from, sys_to, avoid, jump_range, full_range, cargo, route_filters = route_filters)
     else:
       log.error("Tried to use invalid route strategy {0}", self._route_strategy)
       result = None
@@ -79,24 +92,25 @@ class Routing(object):
     log.debug("Route plot from {} to {} using strategy {} finished after {}", sys_from, sys_to, self._route_strategy, util.format_timer(timer))
     return result
 
-  def plot_astar(self, sys_from, sys_to, jump_range, full_range):
+  def plot_astar(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, route_filters = None):
     rbuffer_ly = self._rbuffer_base
     with env.use() as envdata:
-      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
-    stars = list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly))
+      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly, filters = route_filters)
+    stars = [s for s in list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)) if s not in avoid]
     # Ensure the target system is present, in case it's a "fake" system not in the main list
     if sys_to not in stars:
       stars.append(sys_to)
 
     valid_neighbour_fn = lambda n, current: n != current and n.distance_to(current) < jump_range
-    cost_fn = lambda cur, neighbour, path: calc.astar_cost(cur, neighbour, path, jump_range, full_range, witchspace_time=self._ws_time)
+    validate_fn = lambda route: self.apply_fuel_strategy(route, cargo)
+    cost_fn = lambda cur, neighbour, path: calc.astar_cost(cur, neighbour, path, jump_range, full_range, witchspace_time=self._ws_time, validate_fn=validate_fn)
     return calc.astar(stars, sys_from, sys_to, valid_neighbour_fn, cost_fn)
 
-  def plot_trunkle(self, sys_from, sys_to, jump_range, full_range):
+  def plot_trunkle(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, route_filters = None):
     rbuffer_ly = self._rbuffer_base
     # Get full cylinder to work from
     with env.use() as envdata:
-      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
+      stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly, filters = route_filters)
     stars = list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly))
 
     best_jump_count = int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
@@ -126,7 +140,7 @@ class Routing(object):
           # Work out the next position to get a circle of stars from
           next_pos = sys_cur.position + (sys_to.position - sys_cur.position).get_normalised() * factor
           # Get a circle of stars around the estimate
-          c_next_stars = self.circle(stars, next_pos, search_radius)
+          c_next_stars = [s for s in self.circle(stars, next_pos, search_radius) if s not in avoid]
           # Limit them to only ones where it's possible we'll get a valid route
           c_next_stars = [s for s in c_next_stars if self.best_jump_count(sys_cur, s, jump_range) <= trunc_jcount and s not in failed_attempts]
           c_next_stars.sort(key=lambda t: t.distance_to(sys_to))
@@ -148,7 +162,7 @@ class Routing(object):
       # This prevents getting stuck if we think we can get to sys_to in N, but actually need N+1
       jlimit = max(0, trunc_jcount - best_jcount) if next_star != sys_to else None
       # Use trundle to try and calculate a route
-      next_route = self.plot_trundle(sys_cur, next_star, jump_range, full_range, jlimit, starcache = stars_tmp)
+      next_route = self.plot_trundle(sys_cur, next_star, avoid, jump_range, full_range, cargo, jlimit, starcache = stars_tmp)
       # If our route was invalid or too long, check the next star
       if next_route is None or (next_star != sys_to and len(next_route)-1 > trunc_jcount):
         next_stars = next_stars[1:]
@@ -186,7 +200,7 @@ class Routing(object):
     log.debug("No full-route found")
     return None
 
-  def plot_trundle(self, sys_from, sys_to, jump_range, full_range, addj_limit = None, starcache = None):
+  def plot_trundle(self, sys_from, sys_to, avoid, jump_range, full_range, cargo = 0, addj_limit = None, starcache = None, route_filters = None):
     if sys_from == sys_to:
       return [sys_from]
 
@@ -196,8 +210,8 @@ class Routing(object):
       stars_tmp = starcache
     else:
       with env.use() as envdata:
-        stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly)
-    stars = list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly))
+        stars_tmp = envdata.find_systems_by_aabb(sys_from.position, sys_to.position, rbuffer_ly, rbuffer_ly, filters = route_filters)
+    stars = [s for s in list(self.cylinder(stars_tmp, sys_from.position, sys_to.position, rbuffer_ly)) if s not in avoid]
 
     log.debug("{0} --> {1}: systems to search from: {2}", sys_from.name, sys_to.name, len(stars))
 
@@ -211,9 +225,11 @@ class Routing(object):
       while best is None and (hbuffer_ly < hbuffer_relax_max or hbuffer_ly == self._hbuffer_base):
         log.debug("Attempt {0} at hbuffer {1:.1f}, jump count: {2}, calculating...", add_jumps, hbuffer_ly, best_jump_count + add_jumps)
         vrcount = 0
-        for route in self.trundle_get_viable_routes([sys_from], stars, sys_to, jump_range, add_jumps, hbuffer_ly):
-          cost = calc.trundle_cost(route, self._ship)
+        for route in self.trundle_get_viable_routes([sys_from], stars, sys_to, avoid, jump_range, add_jumps, hbuffer_ly):
+          cost = calc.trundle_cost(route, self._ship, self._starting_fuel)
           if bestcost is None or cost < bestcost:
+            if not self.apply_fuel_strategy(route, cargo):
+              continue
             best = route
             bestcost = cost
           vrcount += 1
@@ -231,13 +247,13 @@ class Routing(object):
   def best_jump_count(self, sys_from, sys_to, jump_range):
     return int(math.ceil(sys_from.distance_to(sys_to) / jump_range))
 
-  def trundle_get_viable_routes(self, route, stars, sys_to, jump_range, add_jumps, hbuffer_ly):
+  def trundle_get_viable_routes(self, route, stars, sys_to, avoid, jump_range, add_jumps, hbuffer_ly):
     best_jcount = int(math.ceil(route[0].distance_to(sys_to) / jump_range)) + add_jumps
     vec_mult = 0.5
 
-    return self._trundle_gvr_internal(route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly)
+    return self._trundle_gvr_internal(route, stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly)
 
-  def _trundle_gvr_internal(self, route, stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
+  def _trundle_gvr_internal(self, route, stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
     cur_dist = route[-1].distance_to(sys_to)
     if cur_dist > jump_range:
       # dir(current_pos --> sys_to) * jump_range
@@ -246,7 +262,7 @@ class Routing(object):
       start_vec = route[-1].position + (dir_vec * vec_mult)
       end_vec = route[-1].position + dir_vec
       # Get viable stars; if we're adding jumps, use a smaller buffer cylinder to prevent excessive searching
-      mystars = self.cylinder(stars, start_vec, end_vec, hbuffer_ly)
+      mystars = [s for s in self.cylinder(stars, start_vec, end_vec, hbuffer_ly) if s not in avoid]
 
       result_count = 0
       short_stars = []
@@ -263,7 +279,7 @@ class Routing(object):
           if dist_jumpN < maxd:
             # If we're going 4 systems or further we probably won't take any jumps < 2/3 of our range
             if (best_jcount <= 3 or next_dist*1.5 >= jump_range):
-              for r in self._trundle_gvr_internal(route + [s], stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
+              for r in self._trundle_gvr_internal(route + [s], stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
                 yield r
                 result_count += 1
             else:
@@ -271,9 +287,88 @@ class Routing(object):
       # If we got no results at all, try the short stars too just in case
       if result_count == 0:
         for s in short_stars:
-          for r in self._trundle_gvr_internal(route + [s], stars, sys_to, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
+          for r in self._trundle_gvr_internal(route + [s], stars, sys_to, avoid, jump_range, add_jumps, best_jcount, vec_mult, hbuffer_ly):
             yield r
             result_count += 1
     else:
       route.append(sys_to)
       yield route
+
+  def refuel_percent(self, system, cur_fuel, tmin, tmax = None, at_station = True):
+    if tmax is None:
+      tmax = tmin
+    if cur_fuel > tmax:
+      return (None, None)
+    smax = self._ship.refuel_percent(tmax - cur_fuel)
+
+    if cur_fuel > tmin:
+      smin = 0.0
+    else:
+      smin = self._ship.refuel_percent(tmin - cur_fuel)
+
+    if self._fuel_strategy == 'scoop':
+      if system.arrival_star.scoopable:
+        return (smin, smax)
+
+    if at_station and self._fuel_strategy in ['station', 'scoop']:
+      pmin = math.ceil(smin / 10)
+      pmax = math.floor(smax / 10)
+      if pmin <= pmax:
+        return (pmin * 10, pmax * 10)
+
+    return (None, None)
+
+  def apply_fuel_strategy(self, route, cargo = 0):
+    if len(route) == 1:
+      return route
+    key = ','.join([str(s.id) for s in route])
+    if key in self._rejected_routes:
+      return None
+
+    if self._fuel_strategy == 'optimal':
+      return route
+    elif self._fuel_strategy == 'none':
+      cost = calc.route_fuel_cost(route, self._ship, True, self._starting_fuel, True)
+      if cost is not None:
+        return route
+    elif self._fuel_strategy in ['station', 'scoop']:
+      cmin, cmax = None, None
+      for i in range(len(route)-1, 0, -1):
+        sys_from, sys_to = route[i-1], route[i]
+        dist = route[i-1].distance_to(route[i])
+        at_station = (i == 1)
+
+        if cmin is None:
+          # Last jump.
+          fmin, fmax = self._ship.fuel_weight_range(dist, cargo)
+        else:
+          if self.refuel_percent(route[i-1], 0, cmin, cmax, at_station)[0] is not None:
+            # If we can scoop at this star we can arrive on fumes.
+            fmin, fmax = self._ship.fuel_weight_range(dist, cargo)
+          else:
+            # Otherwise we need enough fuel to make the jump and arrive
+            # with enough left over for the next.
+            fmin = cmin + self._ship.to_arrive_with(cmin, dist, cargo, True)
+            fmax = cmax + self._ship.to_arrive_with(cmax, dist, cargo, True)
+
+        if fmin > self._ship.tank_size:
+          # Jump requires more fuel than we are carrying.
+          return None
+        if fmax > self._ship.tank_size:
+          fmax = self._ship.tank_size
+        cmin, cmax = fmin, fmax
+
+        if i == 1:
+          if fmin > self._starting_fuel:
+            # We are starting off without enough fuel for the first jump.
+            # Maybe we can scoop or refuel at the station.
+            pmin, pmax = self.refuel_percent(route[i-1], self._starting_fuel, fmin, fmax, True)
+            if pmin is None:
+              return None
+          if fmax < self._starting_fuel:
+            # Starting off too heavy.
+            return None
+      return route
+
+    self._rejected_routes[key] = True
+    return None

@@ -10,7 +10,7 @@
 * **[fuel_usage](doc/fuel_usage.md)**: determines the amount of fuel used by a series of jumps
 * **[galmath](doc/galmath.md)**: gives an estimate of good plot distances in the galactic core
 
-* **[edi](doc/edi.md)**: an interactive interpreter to run all the above tools more quickly (without reloading the EDDB/Coriolis data)
+* **[edi](doc/edi.md)**: an interactive interpreter to run all the above tools more quickly (without reloading the EDSM/Coriolis data)
 
 ### Features ###
 
@@ -28,7 +28,7 @@ Please note that versions of Python 2.7 earlier than 2.7.9 may have problems ini
 
 ### How to use ###
 
-On first run, the latest [EDSM](http://edsm.net)/[EDDB](http://eddb.io) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
+On first run, the latest [EDSM](http://edsm.net) system and station data must be downloaded, as well as [Coriolis](http://coriolis.io) data for ship FSD sizes:
 
 `python update.py`  
 
@@ -41,13 +41,16 @@ This example assumes you wish to go from Galileo in Sol, to Golden Gate in Aliot
 The output might look similar to the following:
 ```
 #!text
-Sol, Galileo (505Ls, Ocellus Starport)
-    ===   7.78Ly ( 1 jump ) ===> Wolf 359, Powell High (99Ls, Coriolis Starport), SC: ~83s
-    ===   8.33Ly ( 1 jump ) ===> Alpha Centauri
-    === 145.96Ly ( 5 jumps) ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~118s
-    === 230.65Ly ( 8 jumps) ===> Alioth, Golden Gate (7783Ls, Unknown Starport), SC: ~224s
+  Distance   System           Cruise                                                 Hop dist.         Jumps
+                                                                                                            
+           > Sol               503Ls         Galileo      Ocellus Starport  <                               
+  148.32Ly > Agartha           888Ls   ~118s Enoch Port   Coriolis Starport <   148.32Ly for 148.32Ly      5
+  145.96Ly > Alpha Centauri                                                 <   145.96Ly for 145.96Ly      5
+    8.33Ly > Wolf 359           98Ls    ~82s Powell High  Coriolis Starport <     8.33Ly for 8.33Ly        1
+   78.21Ly > Alioth           7781Ls   ~223s Golden Gate  Coriolis Starport <    78.21Ly for 78.21Ly       3
 
-Total distance: 392.72Ly; total jumps: 15; total SC distance: 8760Ls; ETT: 24:20
+Total distance: 380.82LY (380.82LY); total jumps: 14
+Total SC distance: 8767Ls; ETT: 16:55
 ```
 
 ### Contact ###

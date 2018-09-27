@@ -219,9 +219,8 @@ if __name__ == '__main__':
         else:
           print("Could not find sector or system")
 
-    elif sys.argv[1] == "eddbtest":
+    elif sys.argv[1] == "localdatatest":
       env.set_verbosity(2)
-      
       with env.use() as envdata:
         run_test(envdata.find_all_systems())
 
@@ -299,41 +298,6 @@ if __name__ == '__main__':
 
       log.info("Checked {} sectors, OK: {}, bad: {}", len(sectors), ok, bad)
 
-    elif sys.argv[1] == "eddbspaff":
-      with open("edsm_data.txt") as f:
-        edsm_sectors = [s.strip() for s in f.readlines() if len(s) > 1]
-
-      y_levels = {}
-     
-      with env.use() as envdata: 
-        for system in envdata.find_all_systems():
-          m = pgdata.pg_system_regex.match(system.name)
-          if m is not None and m.group("sector") in edsm_sectors:
-            sname = m.group("sector")
-            cls = pgnames._get_sector_class(m.group("sector"))
-            if cls != "2":
-              sect = pgnames.get_sector(system.position, allow_ha=False)
-              if sect.y not in y_levels:
-                y_levels[sect.y] = {}
-              if sect.z not in y_levels[sect.y]:
-                y_levels[sect.y][sect.z] = {}
-              if sect.x not in y_levels[sect.y][sect.z]:
-                y_levels[sect.y][sect.z][sect.x] = {}
-              if sname not in y_levels[sect.y][sect.z][sect.x]:
-                y_levels[sect.y][sect.z][sect.x][sname] = 0
-              y_levels[sect.y][sect.z][sect.x][sname] += 1
-
-      xcount = sector.galaxy_size[0]
-      zcount = sector.galaxy_size[2]
-      for y in y_levels:
-        with open("sectors_{0}.csv".format(y), 'w') as f:
-          for z in range(zcount - sector.base_sector_index[2], -sector.base_sector_index[2], -1):
-            zvalues = ["" for _ in range(xcount)]
-            if z in y_levels[y]:
-              for x in range(-sector.base_sector_index[0], xcount - sector.base_sector_index[0], 1):
-                if x in y_levels[y][z]:
-                  zvalues[x + sector.base_sector_index[0]] = max(y_levels[y][z][x], key=lambda t: y_levels[y][z][x][t])
-            f.write(",".join(zvalues) + "\n")
     else:
       print("Unknown test {0}".format(sys.argv[1]))
   else:

@@ -11,13 +11,16 @@ This example assumes you wish to go from Galileo in Sol, to Golden Gate in Aliot
 The script will then determine the most efficient way to visit all these destinations. The output might look similar to the following:
 ```
 #!text
-Sol, Galileo (505Ls, Ocellus Starport)
-    === 148.32Ly (5 jumps) ===> Agartha, Enoch Port (878Ls, Coriolis Starport), SC: ~118s
-    === 145.96Ly (5 jumps) ===> Alpha Centauri
-    ===   8.33Ly (1 jump ) ===> Wolf 359, Powell High (99Ls, Coriolis Starport), SC: ~83s
-    ===  78.21Ly (3 jumps) ===> Alioth, Golden Gate (7783Ls, Unknown Starport), SC: ~224s
+  Distance   System           Cruise                                                 Hop dist.         Jumps
+                                                                                                            
+           > Sol               503Ls         Galileo      Ocellus Starport  <                               
+  148.32Ly > Agartha           888Ls   ~118s Enoch Port   Coriolis Starport <   148.32Ly for 148.32Ly      5
+  145.96Ly > Alpha Centauri                                                 <   145.96Ly for 145.96Ly      5
+    8.33Ly > Wolf 359           98Ls    ~82s Powell High  Coriolis Starport <     8.33Ly for 8.33Ly        1
+   78.21Ly > Alioth           7781Ls   ~223s Golden Gate  Coriolis Starport <    78.21Ly for 78.21Ly       3
 
-Total distance: 380.82Ly; total jumps: 14; total SC distance: 8760Ls; ETT: 23:25
+Total distance: 380.82LY (380.82LY); total jumps: 14
+Total SC distance: 8767Ls; ETT: 16:55
 ```
 
 You can also use the tool to generate full routes:
@@ -26,37 +29,42 @@ You can also use the tool to generate full routes:
 
 ```
 #!text
-Sol, Galileo (505Ls, Ocellus Starport)
-    --- 26.56Ly ---> P Eridani
-    --- 30.34Ly ---> q1 Eridani
-    --- 31.80Ly ---> Putamasin
-    --- 31.75Ly ---> ICZ FW-V b2-5
-    === 31.13Ly ===> Agartha, Enoch Port (878Ls, Coriolis Starport) -- 151.59Ly for 148.32Ly
-    --- 31.13Ly ---> ICZ FW-V b2-5
-    --- 24.40Ly ---> ICZ CB-W b2-2
-    --- 29.01Ly ---> Cocijo
-    --- 30.33Ly ---> Sanuku
-    === 32.75Ly ===> Alpha Centauri -- 147.62Ly for 145.96Ly
-    ===  8.33Ly ===> Wolf 359, Powell High (99Ls, Coriolis Starport) -- 8.33Ly for 8.33Ly
-    --- 21.73Ly ---> LHS 316
-    --- 24.24Ly ---> BD+55 1519
-    === 32.65Ly ===> Alioth, Golden Gate (7783Ls, Unknown Starport) -- 78.62Ly for 78.21Ly
+   Distance   System                      Cruise                                            Fuel     Fuel range          Hop dist.         Jumps
+                                                                                                                                                
+            > Sol                          504Ls         Galileo      Ocellus Starport  <                                                       
+X   32.50Ly   Core Sys Sector WO-R a4-3                                                     0.89T   0.80T (39%) +                               
+    32.40Ly   LTT 183                                                                       0.82T   0.79T (39%) +                               
+X   29.32Ly   ICZ EB-X c1-28                                                                0.62T   0.64T (32%) +                               
+X   31.27Ly   ICZ FW-V b2-5                                                                 0.82T   0.74T (36%) +                               
+X   31.13Ly > Agartha                      887Ls   ~118s Enoch Port   Coriolis Starport <   0.76T   0.73T (36%) +   156.63Ly for 148.32Ly      5
+X   31.13Ly   ICZ FW-V b2-5                                                                 0.81T   0.73T (36%) +                               
+X   31.75Ly   Putamasin                                                                     0.79T   0.76T (38%) +                               
+X   31.80Ly   q1 Eridani                                                                    0.74T   0.76T (38%) +                               
+X   30.34Ly   P Eridani                                                                     0.77T   0.69T (34%) +                               
+X   24.83Ly > Alpha Centauri                                                            <   0.48T   0.45T (22%) +   149.86Ly for 145.96Ly      5
+X    8.33Ly > Wolf 359                      98Ls    ~82s Powell High  Coriolis Starport <   0.06T   0.05T (2%) +      8.33Ly for 8.33Ly        1
+X   30.35Ly   Ross 1003                                                                     0.77T   0.69T (34%) +                               
+X   32.36Ly   LHS 2651                                                                      0.82T   0.79T (39%) +                               
+X   17.61Ly > Alioth                      7781Ls   ~223s Golden Gate  Coriolis Starport <   0.23T   0.22T (11%) +    80.32Ly for 78.21Ly       3
 
-Total distance: 380.82Ly; total jumps: 14; total SC distance: 8760Ls; ETT: 23:25
+Total distance: 395.14LY (380.82LY); total jumps: 14
+Total SC distance: 8766Ls; ETT: 16:55; fuel cost: 9.38T
 ```
 
 ## Usage ##
 All station arguments are provided in the form `System/Station` or simply `System` to specify a system only.  
 The script can be run in Simple Mode (just provide the ship's jump range) or Ship Mode (provide the FSD size, empty ship mass and fuel tank size).
 
-Required arguments:
+Start/end arguments:
 
 * `-s S`/`--start=S`: the system/station to start from.
 * `-e S`/`--end=S`: the system/station to end at.
 
+If either or both of `--start` and `--end` are omitted, the script will choose them from the list of destinations.
+
 Simple Mode arguments:
 
-* `-j N`/`--jump-range=N` (required): the current jump range of the ship, in Ly.
+* `-j N`/`--jump-range=N` (optional): the current jump range of the ship, in Ly.
 * `-d N`/`--jump-decay=N` (optional): the jump range, in Ly, to lower the effective jump range by per leg. This allows modelling of picking up cargo at each leg along the route. Default: `0`
 
 Ship Mode arguments:
@@ -71,8 +79,9 @@ Common optional arguments:
 
 * `-n N`/`--num-jumps=N`: the number of legs, excluding the start and end, to be visited. Default: the number of stations provided (i.e. visit all the hops)
 * `-b N`/`--boost N` (optional): level `1`-`3` FSD boost or `D` for white dwarf, `N` for neutron star); default: no boost
+* `-B N`/`--range-boost N` (optional): Range bonus from a Guardian FSD booster.
 * `-p [SML]`/`--pad-size=[SML]`: the pad size of the ship. Default: `M` (medium pad).
-* `-r`/`--route`: causes a full route to be computed (for every jump, not just the legs). The route is generated from the available EDDB data, and thus may not be optimal.
+* `-r`/`--route`: causes a full route to be computed (for every jump, not just the legs). The route is generated from the available EDSM data, and thus may not be optimal.  Can only be used in conjunction with `-j` or `-f`.
 * `-a`/`--accurate`: only used with `-r`; makes routing use a different algorithm (`trunkle`) which produces more accurate and efficient routes, but sometimes is slightly slower and may be unable to calculate some routes.
 * `-o`/`--ordered`: indicates that the provided systems/stations are already in order; generally used either to provide informational output only, or in conjunction with `-r`
 * `-O`/`--tour`: partial ordered, for calculating the optimal route for passenger tours; each time this flag appears any subsequent system[/station] arguments will be routed in order.
@@ -89,6 +98,11 @@ Other optional arguments:
     - `trundle`: a custom algorithm, very slow in many cases but usually very accurate
     - `trunkle`: a hybrid algorithm using trundle, but chunking the route to speed up execution; relatively fast and quite accurate
     - `astar`: the A* algorithm, fast and reliable but sometimes produces suboptimal and less well-balanced routes
+* `--avoid=SYSTEM`: Specify a system to route around, for instance because the next jump would be obscured or would have too high a fuel cost.  You can use `--avoid` multiple times to avoid multiple systems.
+* `--route-set system[/station] ...`: Specify a set of systems of which at least one but not necessarily all should be visited.  Implies --solve-mode=basic.
+* `--route-set-min=N`: Override the minimum number of systems in the route set which must be visited.  Default: `1`
+* `--route-set-max=N`: Override the maximum number of systems in the route set which can be visited.  Default: `1`
+* `--route-filters=FILTERS`: List of filters which systems must match to be included in the plot.  Ignored if `--route` is not used.
 
 ### File arguments ###
 

@@ -1,4 +1,5 @@
 import collections
+import json
 import logging
 import math
 import numbers
@@ -12,6 +13,7 @@ import timeit
 
 from . import defs
 from . import vector3
+from .opaque_types import OpaqEncoder
 from .thirdparty import gzipinputstream as gzis
 
 if sys.version_info >= (3, 0):
@@ -169,6 +171,10 @@ def _path_to_url_py3(path): return urllib.parse.urljoin('file:', urllib.request.
 def _path_to_url_py2(path): return urlparse.urljoin('file:', urllib.pathname2url(os.path.abspath(path)))
 path_to_url = _path_to_url_py3 if sys.version_info >= (3, 0) else _path_to_url_py2
 
+def _urlencode_py3(args): return urllib.parse.urlencode(args)
+def _urlencode_py2(args): return urllib.urlencode(args)
+urlencode = _urlencode_py3 if sys.version_info >= (3, 0) else _urlencode_py2
+
 def get_relative_path(p1, p2):
   common_prefix = os.path.commonprefix([os.path.abspath(p1), os.path.abspath(p2)])
   p1r = os.path.relpath(p1, common_prefix)
@@ -280,6 +286,27 @@ def get_as_position(v):
     pass
   return None
 
+def compass_degrees(r):
+  d = math.degrees(r)
+  if d < 0:
+    d += 360.0
+  return int(d)
+
+def compass_mils(r, scaled = True):
+  if r < 0:
+    r += 2 * math.pi
+  m = 1000 * r
+  if scaled:
+    m *= 6400 / (2000 * math.pi)
+  return int(m)
+
+def get_as_bearing(v):
+  if not isinstance(v, vector3.Vector3):
+    return None
+  # North is z-axis.  Up is y-axis.
+  # Sagittarius A* is slightly east, slightly down and far north of Sol.
+  return (math.atan(v.x / v.z), math.atan(v.x / v.y))
+
 def flatten(listish):
   return [i for sublist in [listish] for i in sublist] if (isinstance(listish, collections.Iterable) and not is_str(listish)) else [listish]
 
@@ -309,3 +336,6 @@ def get_timer(start):
 
 def format_timer(start):
   return format_seconds(get_timer(start), True)
+
+def to_json(obj):
+  return json.dumps(obj, cls = OpaqEncoder)

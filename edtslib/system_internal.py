@@ -1,6 +1,7 @@
 import math
 import struct
 
+from .bodies import Star
 from .pgnames import get_system as pg_get_system
 from .pgnames import get_system_fragments as pg_get_system_fragments
 from .pgnames import get_sector as pg_get_sector
@@ -10,7 +11,19 @@ from . import util
 from . import vector3
 
 class System(object):
+  """A single star system."""
   def __init__(self, x, y, z, name = None, id64 = None, uncertainty = 0.0):
+    """
+    Create a base system object.
+
+    Args:
+      x: The in-game system position in the x axis
+      y: The in-game system position in the y axis
+      z: The in-game system position in the z axis
+      name: The system's name, or none if it is not known
+      id64: The system's id64 ("system address"), or none if it is not known
+      uncertainty: The uncertainty in the position provided, in each axis
+    """
     self._position = vector3.Vector3(float(x), float(y), float(z))
     self._name = name
     self._id = None
@@ -18,21 +31,26 @@ class System(object):
     self._uncertainty = uncertainty
     self.uses_sc = False
     self._hash = u"{}/{},{},{}".format(self.name, self.position.x, self.position.y, self.position.z).__hash__()
+    self._arrival_star = Star({ 'name': name, 'is_main_star': True, })
 
   @property
   def system_name(self):
+    """The system's name, or None if this is not available"""
     return self.name
 
   @property
   def position(self):
+    """The system's in-game position"""
     return self._position
 
   @property
   def name(self):
+    """The system's name, or None if this is not available"""
     return self._name
 
   @property
   def pg_name(self):
+    """The system's name as determined by the game's procedural generation system, or None if this is not available"""
     if self.id64 is not None:
       coords, cube_width, n2, _ = calculate_from_id64(self.id64)
       sys_proto = pg_get_system(coords, cube_width, allow_ha=False)
@@ -42,10 +60,12 @@ class System(object):
 
   @property
   def id(self):
+    """The system's ID as specified by the data source used to import it, or None if this is not available"""
     return self._id
 
   @property
   def id64(self):
+    """The system's ID64 ("system address") as a 64-bit integer, or None if it is not available"""
     if self._id64 is None:
       if self.name is not None:
         m = pg_get_system_fragments(self.name)
@@ -55,33 +75,57 @@ class System(object):
 
   @property
   def sector(self):
+    """The sector or region this system falls within"""
     return pg_get_sector(self.position)
 
   @property
   def pg_sector(self):
+    """The procedurally-generated sector which this system falls within"""
     return pg_get_sector(self.position, allow_ha=False)
 
   @property
   def needs_permit(self):
+    """Whether or not this system or the region it is within needs a permit to enter"""
     return self.sector.needs_permit
 
   @property
   def needs_system_permit(self):
+    """Whether or not this system specifically needs a permit to enter"""
     return False
 
   @property
   def uncertainty(self):
+    """The uncertainty per axis of this system's position"""
     return self._uncertainty
 
   @property
   def uncertainty3d(self):
+    """The maximum uncertainty (straight-line distance) of this system's position"""
     return math.sqrt((self.uncertainty**2) * 3)
 
+  @property
+  def arrival_star_class(self):
+    """The class of the system's arrival star, or None if it is not available"""
+    return self.arrival_star.classification
+
+  @property
+  def arrival_star(self):
+    """A Star object representing the system's arrival star, or None if it is not available"""
+    return self._arrival_star
+
   def to_string(self, use_long = False):
+    """
+    Describes this system as a string.
+
+    Args:
+      use_long: If true, also includes the system position
+    Returns:
+      A string representing this system
+    """
     if use_long:
-      return u"{0} ({1:.2f}, {2:.2f}, {3:.2f})".format(self.name, self.position.x, self.position.y, self.position.z)
+      return u"{0} ([{1:.2f}, {2:.2f}, {3:.2f}])".format(self.name, self.position.x, self.position.y, self.position.z)
     else:
-      return u"{0}".format(self.name)
+      return self.name
 
   def __str__(self):
     return self.to_string()
@@ -89,7 +133,24 @@ class System(object):
   def __repr__(self):
     return u"System({})".format(self.name)
 
+  def to_opaq(self):
+    return {
+      'name': self.name,
+      'id64': self.id64,
+      'arrival_star': self.arrival_star,
+      'position': self.position,
+      'uncertainty': self.uncertainty
+    }
+
   def distance_to(self, other):
+    """
+    Gets the distance between this system and another system or position
+
+    Args:
+      other: The other point to get distance to. May be a system object, a vector or an x,y,z tuple
+    Returns:
+      The distance in light years between this system and the other point
+    """
     other = util.get_as_position(other)
     if other is not None:
       return (self.position - other).length
@@ -103,6 +164,14 @@ class System(object):
       return NotImplemented
 
   def pretty_id64(self, fmt = 'INT'):
+    """
+    Gets the system's ID64 in a prettified format.
+
+    Args:
+      fmt: The format to return. May be 'INT' for an integer, 'HEX' for big-endian hex or 'VSC' for little-endian hex with spacing
+    Returns:
+      A string representing the system's ID64 in the chosen format
+    """
     if self.id64 is None:
       return "MISSING ID64"
     if fmt == 'VSC':
@@ -115,7 +184,19 @@ class System(object):
 
 
 class PGSystemPrototype(System):
+  """A procedurally-generated system with unknown N2 - a single unknown system with estimated coordinates."""
   def __init__(self, x, y, z, name, sector, uncertainty):
+    """
+    Creates an unknown system object within a known boxel
+
+    Args:
+      x: The in-game system position in the x axis
+      y: The in-game system position in the y axis
+      z: The in-game system position in the z axis
+      name: The system's name, or none if it is not known
+      sector: The sector this system falls within
+      uncertainty: The uncertainty in the position provided, in each axis
+    """
     super(PGSystemPrototype, self).__init__(x, y, z, name, uncertainty=uncertainty)
     self._sector = sector
 
@@ -131,7 +212,19 @@ class PGSystemPrototype(System):
 
 
 class PGSystem(PGSystemPrototype):
+  """A procedurally-generated system with estimated coordinates."""
   def __init__(self, x, y, z, name, sector, uncertainty):
+    """
+    Creates a PG system object within a known boxel
+
+    Args:
+      x: The in-game system position in the x axis
+      y: The in-game system position in the y axis
+      z: The in-game system position in the z axis
+      name: The system's name, or none if it is not known
+      sector: The sector this system falls within
+      uncertainty: The uncertainty in the position provided, in each axis
+    """
     super(PGSystem, self).__init__(x, y, z, name, sector, uncertainty)
 
   def __repr__(self):
@@ -142,7 +235,19 @@ class PGSystem(PGSystemPrototype):
 
 
 class HASystem(System):
+  """A hand-authored system with estimated coordinates."""
   def __init__(self, x, y, z, name, id64, uncertainty):
+    """
+    Creates an HA system without known coordinates.
+
+    Args:
+      x: The in-game system position in the x axis
+      y: The in-game system position in the y axis
+      z: The in-game system position in the z axis
+      name: The system's name, or none if it is not known
+      id64: The system's id64 ("system address"), or none if it is not known
+      uncertainty: The uncertainty in the position provided, in each axis
+    """
     super(HASystem, self).__init__(x, y, z, name, id64, uncertainty)
 
   def __repr__(self):
@@ -152,13 +257,20 @@ class HASystem(System):
     return super(HASystem, self).__hash__()
 
 
-class KnownSystem(HASystem):
+class KnownSystem(System):
+  """A known system with recorded coordinates and additional data."""
   def __init__(self, obj):
+    """
+    Creates a system object with data from a coordinates database.
+
+    Args:
+      obj: A dict containing the keys (x, y, z, name, id64), and optionally (id, needs_permit, allegiance, arrival_star_class)
+    """
     super(KnownSystem, self).__init__(float(obj['x']), float(obj['y']), float(obj['z']), obj['name'], obj['id64'], 0.0)
     self._id = obj['id'] if 'id' in obj else None
     self._needs_permit = obj['needs_permit'] if 'needs_permit' in obj else None
     self._allegiance = obj['allegiance'] if 'allegiance' in obj else None
-    self._arrival_star_class = obj['arrival_star_class'] if 'arrival_star_class' in obj else None
+    self._arrival_star = Star({ 'name': obj['name'], 'is_main_star': True, 'spectral_class': obj.get('arrival_star_class') })
 
   @property
   def needs_permit(self):
@@ -170,11 +282,14 @@ class KnownSystem(HASystem):
 
   @property
   def allegiance(self):
+    """The superpower allegiance of this system, or None if it is not available"""
     return self._allegiance
 
-  @property
-  def arrival_star_class(self):
-    return self._arrival_star_class
+  def to_string(self, use_long = False):
+    if use_long:
+      return u"{0} ([{1:.2f}, {2:.2f}, {3:.2f}] {4})".format(self.name, self.position.x, self.position.y, self.position.z, self.arrival_star.to_string(use_long))
+    else:
+      return u"{0} ({1})".format(self.name, self.arrival_star.to_string(use_long))
 
   def __repr__(self):
     return u"KnownSystem({0})".format(self.name)
@@ -196,6 +311,14 @@ class KnownSystem(HASystem):
 #
 
 def mask_id64_as_system(i):
+  """
+  Given an ID64, masks the bits such that the body ID is zero, making it now only refer to a system
+
+  Args:
+    i: The ID64 to mask
+  Returns:
+    The masked ID64
+  """
   result = i
   if util.is_str(result):
     result = int(result, 16)
@@ -204,6 +327,14 @@ def mask_id64_as_system(i):
 
 
 def mask_id64_as_body(i):
+  """
+  Given an ID64, extracts the body ID and returns it as an integer. Note that the body ID's position in the bitfield is not retained.
+
+  Args:
+    i: The ID64 to mask
+  Returns:
+    The body ID of the ID64
+  """
   result = i
   if util.is_str(result):
     result = int(result, 16)
@@ -213,6 +344,14 @@ def mask_id64_as_body(i):
 
 
 def mask_id64_as_boxel(i):
+  """
+  Given an ID64, masks the bits such that the N2 and body ID are zero, making it refer to a boxel
+
+  Args:
+    i: The ID64 to mask
+  Returns:
+    The masked ID64
+  """
   result = i
   if util.is_str(result):
     result = int(result, 16)
@@ -222,10 +361,27 @@ def mask_id64_as_boxel(i):
 
 
 def combine_to_id64(system, body):
+  """
+  Combines a system ID64 and body ID to create an ID64 representing that body
+
+  Args:
+    system: An ID64 representing a system
+    body: A zero-indexed body ID
+  Returns:
+    A combined ID64 representing the specified body within the specified system
+  """
   return (system & (2**55-1)) + ((body & (2**9-1)) << 55)
 
 
 def calculate_from_id64(i):
+  """
+  Calculates a system's details from its ID64
+
+  Args:
+    i: A valid ID64
+  Returns:
+    A tuple of (estimated coordinates, boxel size, N2 number, body ID)
+  """
   # If i is a string, assume hex
   if util.is_str(i):
     i = int(i, 16)
@@ -252,6 +408,17 @@ def calculate_from_id64(i):
 
 
 def calculate_id64(pos, mcode, n2, body = 0):
+  """
+  Calculates a system's ID64 from its details
+
+  Args:
+    pos: The system's position
+    mcode: The mass code of the system, or its boxel size
+    n2: The N2 number of the system
+    body: The body ID of the body within the system, or zero to create an ID64 for a system
+  Returns:
+    The ID64 representing the specified system details
+  """
   # Get the data we need to start with (mc as 0-7, cube width, boxel X/Y/Z coords)
   mc = ord(sector.get_mcode(mcode)) - ord('a')
   cube_width = sector.get_mcode_cube_width(mcode)
