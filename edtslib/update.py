@@ -17,6 +17,7 @@ from . import db_sqlite3 as db
 from . import defs
 from . import env
 from . import util
+from .thirdparty import gzipinputstream as gzis
 
 log = util.get_logger("update")
 
@@ -30,10 +31,10 @@ class DownloadOnly(object):
   populate_table_coriolis_fsds = ignore
   def close(self): pass
 
-edsm_systems_url  = "https://www.edsm.net/dump/systemsWithCoordinates.json"
-edsm_syspop_url   = "https://www.edsm.net/dump/systemsPopulated.json"
-edsm_stations_url = "https://www.edsm.net/dump/stations.json"
-coriolis_fsds_url = "https://raw.githubusercontent.com/cmmcleod/coriolis-data/master/modules/standard/frame_shift_drive.json"
+edsm_systems_url  = "https://www.edsm.net/dump/systemsWithCoordinates.json.gz"
+edsm_syspop_url   = "https://www.edsm.net/dump/systemsPopulated.json.gz"
+edsm_stations_url = "https://www.edsm.net/dump/stations.json.gz"
+coriolis_fsds_url = "https://raw.githubusercontent.com/edcd/coriolis-data/master/modules/standard/frame_shift_drive.json"
 
 local_path = 'data'
 edsm_systems_local_path  = os.path.join(local_path, "systemsWithCoordinates.json")
@@ -280,6 +281,18 @@ class Application(object):
         log.error("Failed to create a temporary file")
         raise
     try:
+      is_url_gzip = url.endswith(".gz")
+      request_gzip_enc = (not is_url_gzip)  # Don't try to request gzip encoding if the file is already gzipped
+      # Try to open the stream
+      stream = util.open_url(url, allow_no_ssl=is_url_local, allow_gzip=request_gzip_enc)
+      if stream is None:
+        if self.args.copy_local:
+          cleanup_local(f, scratch)
+        return
+      # If we have a gzip file, wrap the stream in a decompressor
+      if is_url_gzip:
+        stream = gzis.GzipInputStream(stream)
+      # Are we batch downloading?
       if batch_size is not None:
         log.info("Batch downloading {0} list from {1} ... ", description, url)
         sys.stdout.flush()
@@ -292,12 +305,7 @@ class Application(object):
         header = None
 
         batch = []
-        encoded = ''
-        stream = util.open_url(url, allow_no_ssl=is_url_local)
-        if stream is None:
-          if self.args.copy_local:
-            cleanup_local(f, scratch)
-          return
+        # Begin reading
         while True:
           line = util.read_stream_line(stream)
           if not line:
@@ -341,7 +349,7 @@ class Application(object):
         log.info("Downloading {0} list from {1} ... ", description, url)
         sys.stdout.flush()
         t = util.start_timer()
-        encoded = util.read_from_url(url, allow_no_ssl=is_url_local)
+        encoded = util.read_stream(stream)
         log.info("Done in {}.".format(util.format_timer(t)))
         if self.args.copy_local:
           log.info("Writing {0} local data...", description)
