@@ -77,7 +77,7 @@ class EDSMCache(object):
     uncached = self.excluding_cached(api, endpoint, names)
     if len(names) and not len(uncached):
       raise EDSMCacheHit
-    args = map(lambda name: util.urlencode({ 'systemName[]': name }), uncached)
+    args = list(map(lambda name: util.urlencode({ 'systemName[]': name }), uncached))
     args += ['onlyKnownCoordinates=1'] + self.STANDARD_ARGS
     result = self.get(api, endpoint, args)
     if result is not None:
